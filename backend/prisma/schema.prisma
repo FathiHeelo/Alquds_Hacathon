@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  customer
+  technician
+  admin
+}
+
+enum RepairRequestStatus {
+  open
+  matched
+  accepted
+  cancelled
+  completed
+}
+
+enum OfferStatus {
+  pending
+  accepted
+  rejected
+  withdrawn
+}
+
+enum JobStatus {
+  accepted
+  scheduled
+  on_the_way
+  in_progress
+  completed
+  cancelled
+}
+
+enum Urgency {
+  low
+  medium
+  high
+}
+
+model User {
+  id        String   @id @default(cuid())
+  role      UserRole
+  name      String
+  phone     String?  @unique
+  email     String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
