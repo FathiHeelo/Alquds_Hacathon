@@ -1,9 +1,8 @@
-export interface CreateRepairRequestDraft {
-  description: string;
-  category: string;
-  urgency: string;
-}
+import type { RepairRequest, RepairRequestDraft } from "../models/repairRequest";
+
+export type CreateRepairRequestDraft = RepairRequestDraft;
 
 export interface RepairRequestRepository {
-  create(draft: CreateRepairRequestDraft): Promise<{ id: string }>;
+  create(draft: CreateRepairRequestDraft): Promise<RepairRequest>;
+  getRequest(id: string): Promise<RepairRequest | undefined>;
 }
