@@ -30,6 +30,9 @@ export function MapControls({
   setMinimumRating,
   setQuery
 }: MapControlsProps) {
+  const categoryOrder = ["plumbing", "electrical", "ac", "carpentry", "appliances", "electronics", "general"];
+  const orderedCategories = [...serviceCategories].sort((a, b) => categoryOrder.indexOf(a.id) - categoryOrder.indexOf(b.id));
+  const categoryColor = (id: string) => id === "electrical" ? "#E35D4F" : id === "ac" ? "#3B82B6" : id === "plumbing" ? "#2E81C7" : colors.textMuted;
   return (
     <View style={styles.container}>
       <View style={styles.topRow}>
@@ -59,9 +62,13 @@ export function MapControls({
       </View>
 
       <ScrollView contentContainerStyle={styles.chipRow} horizontal showsHorizontalScrollIndicator={false}>
-        <FilterChip isSelected={!filters.categoryId} onPress={() => setCategoryId(undefined)}>{uiText.map.allCategories}</FilterChip>
-        {serviceCategories.map((category) => (
+        <FilterChip isSelected={!filters.categoryId} onPress={() => setCategoryId(undefined)}>
+          {`${uiText.map.allCategories} 14 فني`}
+        </FilterChip>
+        {orderedCategories.map((category) => (
           <FilterChip
+            icon={category.icon}
+            iconColor={categoryColor(category.id)}
             isSelected={filters.categoryId === category.id}
             key={category.id}
             onPress={() => setCategoryId(category.id)}
