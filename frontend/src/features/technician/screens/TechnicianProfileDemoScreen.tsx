@@ -1,0 +1,4 @@
+import { Text } from "react-native";
+import { Badge, Card, ScreenContainer } from "../../../shared/components";
+export function TechnicianProfileDemoScreen() { return <ScreenContainer><Text style={styles.title}>طارق المقدسي</Text><Card><Badge label="هوية موثقة" /><Badge label="AMMERHA Pro" /><Text style={styles.text}>فني سباكة معتمد • البلدة القديمة</Text><Text style={styles.text}>★ 4.9 · 154 أعمال مكتملة</Text><Text style={styles.text}>متاح الآن</Text><Text style={styles.text}>سمعة قوية في إصلاح التسريبات المنزلية وخدمة سريعة داخل القدس.</Text></Card></ScreenContainer>; }
+const styles = { title: { fontSize: 24, fontWeight: "700" as const, textAlign: "right" as const, writingDirection: "rtl" as const }, text: { fontSize: 16, textAlign: "right" as const, writingDirection: "rtl" as const, marginVertical: 6 } };

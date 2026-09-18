@@ -34,6 +34,7 @@ export type TechnicianStackParamList = {
   TechnicianAiAssistant: { requestId?: string; isPro?: boolean };
   TechnicianRequestDetails: { requestId: string };
   TechnicianCreateOffer: { requestId: string; suggestedPrice?: number; suggestedMessage?: string };
+  TechnicianChat: undefined;
 };
 
 export type AdminStackParamList = {

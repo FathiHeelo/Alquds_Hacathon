@@ -9,6 +9,13 @@ export class DemoOfferRepository implements OfferRepository {
   async getOffersForRequest(requestId: string): Promise<readonly Offer[]> {
     return [...this.offers.values()].filter((offer) => offer.repairRequestId === requestId).map(clone);
   }
+  async createOffer(input: Omit<Offer, "id" | "status" | "createdAt">): Promise<Offer> {
+    const existing = [...this.offers.values()].find((offer) => offer.repairRequestId === input.repairRequestId && offer.technicianId === input.technicianId && offer.status === "pending");
+    if (existing) return clone(existing);
+    const offer: Offer = { ...input, id: `offer-${input.technicianId}-${this.offers.size + 1}`, status: "pending", createdAt: new Date(0).toISOString() };
+    this.offers.set(offer.id, offer);
+    return clone(offer);
+  }
   async getOffer(id: string): Promise<Offer | undefined> {
     const offer = this.offers.get(id); return offer ? clone(offer) : undefined;
   }
