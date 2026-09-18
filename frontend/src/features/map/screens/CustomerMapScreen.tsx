@@ -57,7 +57,11 @@ export function CustomerMapScreen() {
         }}
         style={styles.map}
       >
-        <Marker coordinate={map.location} pinColor={colors.tertiary} title={map.location.label} />
+        <Marker coordinate={map.location} title={map.location.label}>
+          <View style={styles.locationMarker}>
+            <View style={styles.locationMarkerCore} />
+          </View>
+        </Marker>
         {map.technicians.map((technician) => (
           <Marker
             coordinate={technician.location}
@@ -137,6 +141,8 @@ const styles = StyleSheet.create({
   screen: { backgroundColor: colors.surface, flex: 1 },
   map: { bottom: 0, left: 0, position: "absolute", right: 0, top: 0 },
   controls: { backgroundColor: colors.background, borderBottomColor: colors.border, borderBottomWidth: 1, zIndex: 20 },
+  locationMarker: { alignItems: "center", backgroundColor: "#2F6FE4", borderColor: "rgba(47,111,228,0.22)", borderRadius: 24, borderWidth: 9, elevation: 5, height: 42, justifyContent: "center", shadowColor: "#164AAB", shadowOffset: { height: 2, width: 0 }, shadowOpacity: 0.3, shadowRadius: 5, width: 42 },
+  locationMarkerCore: { backgroundColor: colors.background, borderColor: "#2F6FE4", borderRadius: 8, borderWidth: 2, height: 12, width: 12 },
   state: { ...shadows.subtle, alignSelf: "center", backgroundColor: colors.background, borderRadius: radius.md, marginTop: spacing.lg },
   empty: { ...shadows.subtle, alignSelf: "center", backgroundColor: colors.background, borderRadius: radius.md, margin: spacing.md, padding: spacing.md },
   emptyText: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: typography.size.sm, textAlign: "center", writingDirection: "rtl" },
