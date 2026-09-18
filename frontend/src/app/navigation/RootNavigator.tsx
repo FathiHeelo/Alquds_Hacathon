@@ -15,7 +15,7 @@ export function RootNavigator() {
 
   return (
     <View style={styles.container}>
-      {isDemo ? <DemoRoleSwitcher /> : null}
+      {isDemo && role !== UserRole.Customer ? <DemoRoleSwitcher /> : null}
       <NavigationContainer direction="rtl" key={role} theme={navigationTheme}>
         {role === UserRole.Customer ? <CustomerNavigator /> : null}
         {role === UserRole.Technician ? <TechnicianNavigator /> : null}

@@ -2,160 +2,121 @@ import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { CompositeNavigationProp } from "@react-navigation/native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { StyleSheet, Text, View } from "react-native";
-import { Animated, Pressable } from "react-native";
+import { Animated, Keyboard, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import MapView, { Marker, type Region } from "react-native-maps";
-
 import type { CustomerStackParamList, CustomerTabParamList } from "../../../app/navigation/navigation.types";
-import { Button, ErrorState, LoadingState } from "../../../shared/components";
+import { useDemoSession } from "../../../app/providers/DemoSessionProvider";
+import { UserRole } from "../../../domain/enums/status";
+import { ErrorState, LoadingState } from "../../../shared/components";
 import { uiText } from "../../../shared/constants/uiText";
-import { colors, radius, shadows, spacing, typography } from "../../../shared/theme";
+import { colors, shadows, typography } from "../../../shared/theme";
 import { MapControls } from "../components/MapControls";
 import { TechnicianMapMarker } from "../components/TechnicianMapMarker";
 import { TechnicianPreview } from "../components/TechnicianPreview";
 import { useCustomerMap } from "../hooks/useCustomerMap";
 
-type MapNavigation = CompositeNavigationProp<
-  BottomTabNavigationProp<CustomerTabParamList, "CustomerMap">,
-  NativeStackNavigationProp<CustomerStackParamList>
->;
-
-const jerusalemRegion: Region = {
-  latitude: 31.7834,
-  latitudeDelta: 0.055,
-  longitude: 35.2304,
-  longitudeDelta: 0.045
-};
+type MapNavigation = CompositeNavigationProp<BottomTabNavigationProp<CustomerTabParamList, "CustomerMap">, NativeStackNavigationProp<CustomerStackParamList>>;
+const jerusalemRegion: Region = { latitude: 31.7834, longitude: 35.2304, latitudeDelta: 0.035, longitudeDelta: 0.028 };
 
 export function CustomerMapScreen() {
   const navigation = useNavigation<MapNavigation>();
   const map = useCustomerMap();
+  const { switchRole } = useDemoSession();
   const insets = useSafeAreaInsets();
-  const [quickActionsOpen, setQuickActionsOpen] = useState(false);
-  const animation = useRef(new Animated.Value(0)).current;
-  const markerPressAtRef = useRef(0);
-  const toggleQuickActions = () => {
-    const next = quickActionsOpen ? 0 : 1;
-    setQuickActionsOpen(!quickActionsOpen);
-    Animated.spring(animation, { toValue: next, useNativeDriver: true, damping: 18, stiffness: 180, mass: 0.7 }).start();
-  };
-  const closeQuickActions = () => {
-    setQuickActionsOpen(false);
-    Animated.spring(animation, { toValue: 0, useNativeDriver: true, damping: 18, stiffness: 180, mass: 0.7 }).start();
-  };
+  const { height } = useWindowDimensions();
+  const mapRef = useRef<MapView>(null);
+  const pulse = useRef(new Animated.Value(0)).current;
+  const cardAnimation = useRef(new Animated.Value(0)).current;
+  const markerPressAt = useRef(0);
+  const initialSelectionMade = useRef(false);
+  const bottomSpace = Math.min(80, Math.max(12, height * 0.09));
+  useEffect(() => {
+    if (!initialSelectionMade.current && !map.isLoading && map.technicians.length) {
+      initialSelectionMade.current = true;
+      map.selectTechnician(map.technicians[0].id);
+    }
+  }, [map.isLoading, map.technicians, map.selectTechnician]);
+  useEffect(() => {
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(pulse, { toValue: 1, duration: 950, useNativeDriver: true }),
+      Animated.timing(pulse, { toValue: 0, duration: 950, useNativeDriver: true })
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [pulse]);
+  useEffect(() => {
+    cardAnimation.setValue(0);
+    if (map.selectedTechnician) Animated.timing(cardAnimation, { toValue: 1, duration: 180, useNativeDriver: true }).start();
+  }, [map.selectedTechnician?.id, cardAnimation]);
+  const requestRepair = () => navigation.navigate("CustomerRepairRequest", { technicianId: map.selectedTechnician?.id });
 
   return (
     <View style={styles.screen}>
-      <MapView
-        initialRegion={jerusalemRegion}
-        onPress={() => {
-          if (Date.now() - markerPressAtRef.current < 300) return;
+      <MapView ref={mapRef} initialRegion={jerusalemRegion} style={[styles.map, { bottom: bottomSpace + 74 }]} userInterfaceStyle="light"
+        onPress={(event) => {
+          if (event.nativeEvent.action === "marker-press" || Date.now() - markerPressAt.current < 300) return;
+          Keyboard.dismiss();
           map.selectTechnician(undefined);
-        }}
-        style={styles.map}
-      >
-        <Marker coordinate={map.location} title={map.location.label}>
-          <View style={styles.locationMarker}>
-            <View style={styles.locationMarkerCore} />
+        }}>
+        <Marker coordinate={map.location} anchor={{ x: 0.5, y: 0.42 }}>
+          <View style={styles.locationWrap}>
+            <View style={styles.locationTarget}>
+              <Animated.View style={[styles.halo, { opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.1, 0.3] }), transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }]} />
+              <View style={styles.locationDot}><View style={styles.locationCore} /></View>
+            </View>
+            <Text style={styles.locationLabel}>موقعك: {map.location.label}</Text>
           </View>
         </Marker>
-        {map.technicians.map((technician) => (
-          <Marker
-            coordinate={technician.location}
-            key={technician.id}
-            onPress={() => {
-              markerPressAtRef.current = Date.now();
-              map.selectTechnician(technician.id);
-            }}
-          >
-            <TechnicianMapMarker isSelected={map.selectedTechnician?.id === technician.id} technician={technician} />
-          </Marker>
-        ))}
+        {map.technicians.map((technician) => <Marker coordinate={technician.location} key={technician.id} stopPropagation anchor={{ x: 0.5, y: 0.4 }}
+          onPress={() => { markerPressAt.current = Date.now(); Keyboard.dismiss(); map.selectTechnician(technician.id); }}>
+          <TechnicianMapMarker isSelected={map.selectedTechnician?.id === technician.id} technician={technician} />
+        </Marker>)}
       </MapView>
-
-      <View style={[styles.controls, { paddingTop: insets.top + spacing.sm }]}>
-        <MapControls
-          filters={map.filters}
-          location={map.location}
-          resultCount={map.technicians.length}
-          setAvailableOnly={map.setAvailableOnly}
-          setCategoryId={map.setCategoryId}
-          setMaximumDistanceKm={map.setMaximumDistanceKm}
-          setMinimumRating={map.setMinimumRating}
-          setQuery={map.setQuery}
-        />
+      <View pointerEvents="box-none" style={[styles.controls, { paddingTop: insets.top + 10 }]}>
+        <MapControls filters={map.filters} location={map.location} resultCount={map.technicians.length}
+          onNotifications={() => navigation.navigate("CustomerNotifications")}
+          onTechnicianMode={() => switchRole(UserRole.Technician)} onVoice={requestRepair}
+          setAvailableOnly={map.setAvailableOnly} setCategoryId={map.setCategoryId}
+          setMaximumDistanceKm={map.setMaximumDistanceKm} setMinimumRating={map.setMinimumRating} setQuery={map.setQuery} />
       </View>
-
       {map.isLoading ? <View style={styles.state}><LoadingState /></View> : null}
       {map.error ? <View style={styles.state}><ErrorState onRetry={map.retry} /></View> : null}
-      {!map.isLoading && !map.error && map.technicians.length === 0 ? (
-        <View style={styles.empty}><Text style={styles.emptyText}>{uiText.map.noResults}</Text></View>
-      ) : null}
-
-      {map.selectedTechnician ? (
-        <View style={styles.preview}>
-          <TechnicianPreview
-            onDismiss={() => map.selectTechnician(undefined)}
+      {!map.isLoading && !map.error && !map.technicians.length ? <View style={styles.state}><Text style={styles.empty}>{uiText.map.noResults}</Text></View> : null}
+      <View pointerEvents="box-none" style={[styles.bottom, { bottom: bottomSpace }]}>
+        {map.selectedTechnician ? <Animated.View style={{ opacity: cardAnimation, transform: [{ translateY: cardAnimation.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }] }}>
+          <TechnicianPreview onDismiss={() => map.selectTechnician(undefined)}
             onProfile={() => navigation.navigate("CustomerTechnicianProfile", { technicianId: map.selectedTechnician!.id })}
-            onRepairRequest={() => navigation.navigate("CustomerRepairRequest", { technicianId: map.selectedTechnician!.id })}
-            technician={map.selectedTechnician}
-          />
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => navigation.navigate("CustomerRepairRequest", { technicianId: map.selectedTechnician!.id })}
-            style={({ pressed }) => [styles.aiCta, pressed && styles.aiCtaPressed]}
-          >
-            <Ionicons color={colors.primary} name="mic" size={18} />
-            <View style={styles.aiCtaCopy}>
-              <Text style={styles.aiCtaTitle}>احكِ المشكلة بصوتك أو صوّرها</Text>
-              <Text style={styles.aiCtaSubtitle}>تشخيص ذكي وسعر عادل من أقرب فني</Text>
-            </View>
-            <Ionicons color={colors.primary} name="arrow-back" size={18} />
-          </Pressable>
-        </View>
-      ) : null}
-
-      <View pointerEvents="box-none" style={[styles.quickActions, { bottom: Math.max(insets.bottom + 70, 86) }]}>
-        <Animated.View pointerEvents={quickActionsOpen ? "auto" : "none"} style={[styles.actionStack, { opacity: animation, transform: [{ translateY: animation.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }, { scale: animation.interpolate({ inputRange: [0, 1], outputRange: [0.86, 1] }) }] }]}>
-          <Pressable accessibilityRole="button" onPress={() => { closeQuickActions(); navigation.navigate("CustomerRepairRequest", {}); }} style={styles.quickAction}>
-            <Ionicons color={colors.neutral} name="construct-outline" size={18} />
-            <Text style={styles.quickActionLabel}>طلب صيانة</Text>
-          </Pressable>
-          <Pressable accessibilityRole="button" onPress={() => { closeQuickActions(); map.retry(); }} style={styles.quickAction}>
-            <Ionicons color={colors.neutral} name="refresh-outline" size={18} />
-            <Text style={styles.quickActionLabel}>تحديث الفنيين</Text>
-          </Pressable>
-        </Animated.View>
-        <Pressable accessibilityLabel={quickActionsOpen ? "إغلاق الإجراءات السريعة" : "فتح الإجراءات السريعة"} accessibilityRole="button" onPress={toggleQuickActions} style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}>
-          <Animated.View style={{ transform: [{ rotate: animation.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "45deg"] }) }] }}><Ionicons color={colors.neutral} name="add" size={30} /></Animated.View>
+            onRepairRequest={requestRepair} technician={map.selectedTechnician} />
+        </Animated.View> : null}
+        <Pressable accessibilityRole="button" accessibilityLabel="احكِ المشكلة بصوتك أو صوّرها" onPress={requestRepair} style={({ pressed }) => [styles.aiCta, pressed && styles.pressed]}>
+          <View style={styles.mic}><Ionicons color="white" name="mic" size={18} /></View>
+          <View style={styles.copy}><Text style={styles.title}>احكِ المشكلة بصوتك أو صوّرها</Text><Text style={styles.subtitle}>الذكاء الاصطناعي يشخّص العطل ويقترح السعر العادل فوراً</Text></View>
+          <Ionicons color={colors.primary} name="arrow-back" size={19} />
         </Pressable>
       </View>
     </View>
   );
 }
-
 const styles = StyleSheet.create({
-  screen: { backgroundColor: colors.surface, flex: 1 },
-  map: { bottom: 0, left: 0, position: "absolute", right: 0, top: 0 },
-  controls: { backgroundColor: colors.background, borderBottomColor: colors.border, borderBottomWidth: 1, zIndex: 20 },
-  locationMarker: { alignItems: "center", backgroundColor: "#2F6FE4", borderColor: "rgba(47,111,228,0.22)", borderRadius: 24, borderWidth: 9, elevation: 5, height: 42, justifyContent: "center", shadowColor: "#164AAB", shadowOffset: { height: 2, width: 0 }, shadowOpacity: 0.3, shadowRadius: 5, width: 42 },
-  locationMarkerCore: { backgroundColor: colors.background, borderColor: "#2F6FE4", borderRadius: 8, borderWidth: 2, height: 12, width: 12 },
-  state: { ...shadows.subtle, alignSelf: "center", backgroundColor: colors.background, borderRadius: radius.md, marginTop: spacing.lg },
-  empty: { ...shadows.subtle, alignSelf: "center", backgroundColor: colors.background, borderRadius: radius.md, margin: spacing.md, padding: spacing.md },
-  emptyText: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: typography.size.sm, textAlign: "center", writingDirection: "rtl" },
-  preview: { bottom: spacing.md, gap: spacing.sm, left: spacing.sm, position: "absolute", right: spacing.sm, zIndex: 25 },
-  aiCta: { alignItems: "center", backgroundColor: colors.secondary, borderRadius: radius.lg, flexDirection: "row-reverse", gap: spacing.sm, minHeight: 54, paddingHorizontal: spacing.md },
-  aiCtaPressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },
-  aiCtaCopy: { flex: 1 },
-  aiCtaTitle: { color: colors.invertedText, fontFamily: typography.fontFamily, fontSize: 12, fontWeight: typography.weight.bold, textAlign: "right", writingDirection: "rtl" },
-  aiCtaSubtitle: { color: "#EFD477", fontFamily: typography.fontFamily, fontSize: 10, marginTop: 2, textAlign: "right", writingDirection: "rtl" },
-  quickActions: { alignItems: "center", left: 0, position: "absolute", right: 0 },
-  actionStack: { alignItems: "center", gap: spacing.sm, marginBottom: spacing.sm },
-  quickAction: { ...shadows.raised, alignItems: "center", backgroundColor: colors.background, borderColor: colors.border, borderRadius: radius.md, borderWidth: 1, flexDirection: "row-reverse", gap: spacing.sm, minHeight: 46, paddingHorizontal: spacing.md },
-  quickActionLabel: { color: colors.text, fontFamily: typography.fontFamily, fontSize: typography.size.sm, fontWeight: typography.weight.bold, writingDirection: "rtl" },
-  fab: { ...shadows.raised, alignItems: "center", backgroundColor: colors.primary, borderColor: colors.background, borderRadius: radius.round, borderWidth: 3, height: 62, justifyContent: "center", width: 62 },
-  fabPressed: { backgroundColor: colors.primaryPressed, transform: [{ scale: 0.94 }] }
+  screen: { flex: 1, backgroundColor: "#FAF9F6" },
+  map: { position: "absolute", left: 0, right: 0, top: 0 },
+  controls: { zIndex: 20 },
+  state: { ...shadows.subtle, backgroundColor: "white", borderRadius: 14, margin: 12 },
+  empty: { padding: 14, textAlign: "center", color: colors.textMuted },
+  bottom: { position: "absolute", left: 12, right: 12, gap: 8, zIndex: 25 },
+  aiCta: { ...shadows.raised, direction: "ltr", flexDirection: "row-reverse", alignItems: "center", gap: 8, paddingHorizontal: 14, minHeight: 58, backgroundColor: "#16231D", borderRadius: 14 },
+  mic: { width: 32, height: 36, backgroundColor: colors.primary, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  copy: { flex: 1 },
+  title: { color: "white", fontSize: 12, fontWeight: "700", fontFamily: typography.fontFamily, textAlign: "right", writingDirection: "rtl" },
+  subtitle: { color: "#DDC04A", fontSize: 9, lineHeight: 14, fontFamily: typography.fontFamily, textAlign: "right", writingDirection: "rtl" },
+  pressed: { opacity: 0.8, transform: [{ scale: 0.99 }] },
+  locationWrap: { width: 170, height: 74, alignItems: "center" },
+  locationTarget: { width: 50, height: 50, alignItems: "center", justifyContent: "center" },
+  halo: { position: "absolute", width: 50, height: 50, borderRadius: 25, backgroundColor: "#3B82F6" },
+  locationDot: { width: 20, height: 20, borderRadius: 10, backgroundColor: "#2F6FE4", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#B7D0FF" },
+  locationCore: { width: 6, height: 6, borderRadius: 3, backgroundColor: "white" },
+  locationLabel: { ...shadows.subtle, backgroundColor: "white", borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, fontFamily: typography.fontFamily, fontSize: 9, color: "#475569", textAlign: "center" }
 });

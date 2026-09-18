@@ -49,10 +49,10 @@ function CustomerTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const stackNavigation = navigation.getParent<NativeStackNavigationProp<CustomerStackParamList>>();
   const tabs = [
-    { route: "CustomerMap" as const, icon: "map-outline" as const, label: uiText.customer.map },
+    { route: "CustomerMap" as const, icon: "map-outline" as const, label: "الرئيسية" },
     { route: "CustomerRequests" as const, icon: "document-text-outline" as const, label: uiText.customer.requests },
-    { route: "CustomerRewards" as const, icon: "star-outline" as const, label: uiText.customer.rewards },
-    { route: "CustomerAccount" as const, icon: "person-outline" as const, label: uiText.customer.account }
+    { route: "CustomerMessages" as const, icon: "chatbubbles-outline" as const, label: uiText.customer.messages },
+    { route: "CustomerRewards" as const, icon: "star-outline" as const, label: uiText.customer.rewards }
   ];
 
   return (
@@ -82,21 +82,25 @@ function CustomerTabButton({ route, icon, label, state, descriptors, navigation 
       accessibilityLabel={descriptor?.options.tabBarAccessibilityLabel ?? label}
       accessibilityRole="tab"
       accessibilityState={{ selected: isFocused }}
-      onPress={() => navigation.navigate(route)}
+      onPress={() => {
+        if (!routeState) return;
+        const event = navigation.emit({ type: "tabPress", target: routeState.key, canPreventDefault: true });
+        if (!isFocused && !event.defaultPrevented) navigation.navigate(route);
+      }}
       style={footerStyles.tab}
     >
-      <Ionicons color={isFocused ? colors.primaryPressed : colors.textMuted} name={icon} size={21} />
+      <Ionicons color={isFocused ? "#BF8537" : "#AAB5C6"} name={icon} size={20} />
       <Text style={[footerStyles.label, isFocused && footerStyles.activeLabel]}>{label}</Text>
     </Pressable>
   );
 }
 
 const footerStyles = StyleSheet.create({
-  footer: { alignItems: "center", backgroundColor: colors.background, borderTopColor: colors.border, borderTopWidth: 1, elevation: 5, flexDirection: "row-reverse", justifyContent: "space-around", minHeight: 70, paddingHorizontal: 8, shadowColor: colors.neutral, shadowOffset: { height: -2, width: 0 }, shadowOpacity: 0.12, shadowRadius: 7 },
+  footer: { direction: "ltr", alignItems: "center", backgroundColor: colors.background, borderTopColor: "#F3F1EC", borderTopWidth: 1, flexDirection: "row-reverse", justifyContent: "space-around", paddingHorizontal: 8 },
   tab: { alignItems: "center", flex: 1, gap: 2, justifyContent: "center", minHeight: 56 },
-  label: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 10, fontWeight: typography.weight.semibold, writingDirection: "rtl" },
+  label: { color: "#AAB5C6", fontFamily: typography.fontFamily, fontSize: 10, fontWeight: typography.weight.semibold, writingDirection: "rtl" },
   activeLabel: { color: colors.primaryPressed },
-  plusButton: { alignItems: "center", backgroundColor: colors.primary, borderColor: colors.background, borderRadius: 999, borderWidth: 4, elevation: 7, height: 58, justifyContent: "center", marginHorizontal: 4, marginTop: -25, shadowColor: colors.neutral, shadowOffset: { height: 3, width: 0 }, shadowOpacity: 0.2, shadowRadius: 7, width: 58 },
+  plusButton: { alignItems: "center", backgroundColor: colors.primary, borderColor: "#F8EDB8", borderRadius: 999, borderWidth: 2, elevation: 5, height: 42, justifyContent: "center", marginHorizontal: 12, marginTop: -10, shadowColor: colors.primaryPressed, shadowOffset: { height: 3, width: 0 }, shadowOpacity: 0.2, shadowRadius: 5, width: 42 },
   plusPressed: { backgroundColor: colors.primaryPressed, transform: [{ scale: 0.93 }] }
 });
 

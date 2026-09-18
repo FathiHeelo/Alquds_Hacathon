@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import type { CustomerLocation } from "../../../domain/models/location";
@@ -13,6 +14,9 @@ interface MapControlsProps {
   filters: CustomerMapFilters;
   location: CustomerLocation;
   resultCount: number;
+  onNotifications(): void;
+  onTechnicianMode(): void;
+  onVoice(): void;
   setAvailableOnly(value: boolean): void;
   setCategoryId(value?: ServiceCategoryId): void;
   setMaximumDistanceKm(value: number): void;
@@ -24,46 +28,52 @@ export function MapControls({
   filters,
   location,
   resultCount,
+  onNotifications,
+  onTechnicianMode,
+  onVoice,
   setAvailableOnly,
   setCategoryId,
   setMaximumDistanceKm,
   setMinimumRating,
   setQuery
 }: MapControlsProps) {
+  const [showFilters, setShowFilters] = useState(false);
   const categoryOrder = ["plumbing", "electrical", "ac", "carpentry", "appliances", "electronics", "general"];
   const orderedCategories = [...serviceCategories].sort((a, b) => categoryOrder.indexOf(a.id) - categoryOrder.indexOf(b.id));
   const categoryColor = (id: string) => id === "electrical" ? "#E35D4F" : id === "ac" ? "#3B82B6" : id === "plumbing" ? "#2E81C7" : colors.textMuted;
   return (
     <View style={styles.container}>
       <View style={styles.topRow}>
-        <Pressable style={styles.modeButton}>
+        <Pressable accessibilityRole="button" onPress={onTechnicianMode} style={styles.modeButton}>
           <Ionicons color={colors.primaryPressed} name="swap-horizontal" size={14} />
           <Text style={styles.modeLabel}>وضع الفني</Text>
         </Pressable>
-        <Pressable accessibilityLabel="التنبيهات" style={styles.notificationButton}>
+        <Pressable accessibilityLabel="التنبيهات" onPress={onNotifications} style={styles.notificationButton}>
           <Ionicons color={colors.textMuted} name="notifications-outline" size={18} />
           <View style={styles.notificationDot} />
         </Pressable>
-        <View style={styles.locationPill}>
-          <Text numberOfLines={1} style={styles.locationLabel}>{location.label || "القدس"}</Text>
+        <View style={{ flex: 1 }} />
+        <View accessibilityLabel={location.label} style={styles.locationPill}>
+          <View><Text style={styles.locationLabel}>عَمِّرها القدس</Text><Text style={styles.tagline}>من قلب القدس نبنيها بأيدينا</Text></View>
           <Ionicons color={colors.primaryPressed} name="location" size={15} />
         </View>
       </View>
 
       <View style={styles.searchBox}>
-        <Ionicons color={colors.textMuted} name="search" size={20} />
+        <Pressable accessibilityLabel="فلاتر البحث" accessibilityState={{ expanded: showFilters }} onPress={() => setShowFilters(!showFilters)} style={styles.searchControl}><Ionicons color={colors.primaryPressed} name="search" size={18} /></Pressable>
         <TextInput
           onChangeText={setQuery}
-          placeholder={uiText.map.searchPlaceholder}
+          placeholder="ما المشكلة التي تريد إصلاحها في بيتك بالقدس؟"
           placeholderTextColor={colors.textMuted}
           style={styles.searchInput}
           value={filters.query}
         />
+        <Pressable accessibilityLabel="طلب بالصوت أو الصورة" onPress={onVoice} style={styles.voice}><Ionicons name="mic-outline" size={13} color={colors.primaryPressed} /><Text style={styles.voiceLabel}>صوتك</Text></Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={styles.chipRow} horizontal showsHorizontalScrollIndicator={false}>
+      <ScrollView style={styles.categoryScroll} contentContainerStyle={styles.chipRow} horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <FilterChip isSelected={!filters.categoryId} onPress={() => setCategoryId(undefined)}>
-          {`${uiText.map.allCategories} 14 فني`}
+          {`${uiText.map.allCategories} ${resultCount} فني`}
         </FilterChip>
         {orderedCategories.map((category) => (
           <FilterChip
@@ -78,7 +88,7 @@ export function MapControls({
         ))}
       </ScrollView>
 
-      <ScrollView contentContainerStyle={styles.chipRow} horizontal showsHorizontalScrollIndicator={false}>
+      {showFilters ? <ScrollView contentContainerStyle={styles.chipRow} horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <FilterChip isSelected={filters.availableOnly} onPress={() => setAvailableOnly(!filters.availableOnly)}>
           {filters.availableOnly ? uiText.map.availableNow : uiText.map.allAvailability}
         </FilterChip>
@@ -92,18 +102,16 @@ export function MapControls({
             {distance} {uiText.map.kilometers}
           </FilterChip>
         ))}
-      </ScrollView>
-
-      {location.source === "demo" ? <Text style={styles.fallback}>{uiText.map.locationFallback}</Text> : null}
+      </ScrollView> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: colors.background, gap: spacing.sm, paddingHorizontal: spacing.md, paddingBottom: spacing.sm },
-  topRow: { alignItems: "center", flexDirection: "row-reverse", gap: spacing.sm, justifyContent: "space-between" },
+  container: { gap: 10, paddingHorizontal: 12, paddingBottom: spacing.sm },
+  topRow: { direction: "ltr", alignItems: "center", flexDirection: "row", gap: spacing.sm },
   modeButton: { alignItems: "center", backgroundColor: colors.secondary, borderRadius: radius.round, flexDirection: "row-reverse", gap: 4, paddingHorizontal: 10, paddingVertical: 7 },
-  modeLabel: { color: colors.invertedText, fontFamily: typography.fontFamily, fontSize: 11, fontWeight: typography.weight.bold, writingDirection: "rtl" },
+  modeLabel: { color: colors.primary, fontFamily: typography.fontFamily, fontSize: 10, fontWeight: typography.weight.bold, writingDirection: "rtl" },
   notificationButton: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.round, height: 32, justifyContent: "center", width: 32 },
   notificationDot: { backgroundColor: colors.primary, borderColor: colors.background, borderRadius: radius.round, borderWidth: 1, height: 7, position: "absolute", right: 5, top: 5, width: 7 },
   locationPill: {
@@ -113,7 +121,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radius.round,
     borderWidth: 1,
-    flex: 1,
     flexDirection: "row-reverse",
     gap: spacing.sm,
     justifyContent: "center",
@@ -122,19 +129,25 @@ const styles = StyleSheet.create({
     paddingVertical: 7
   },
   locationLabel: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 11, fontWeight: typography.weight.bold, textAlign: "right", writingDirection: "rtl" },
+  tagline: { color: "#B29243", fontFamily: typography.fontFamily, fontSize: 8, textAlign: "right" },
+  voice: { flexDirection: "row-reverse", alignItems: "center", gap: 3, backgroundColor: "#FCF9F0", borderRadius: 12, borderWidth: 1, borderColor: colors.border, minHeight: 30, paddingHorizontal: 6 },
+  voiceLabel: { color: colors.primaryPressed, fontSize: 11, fontFamily: typography.fontFamily },
+  searchControl: { minHeight: 40, justifyContent: "center", width: 26, alignItems: "center" },
   searchBox: {
     ...shadows.subtle,
     alignItems: "center",
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
     borderColor: colors.border,
-    borderRadius: radius.lg,
+    borderRadius: 18,
     borderWidth: 1,
     flexDirection: "row-reverse",
     gap: spacing.sm,
-    minHeight: 50,
-    paddingHorizontal: spacing.md
+    minHeight: 48,
+    paddingHorizontal: 8,
+    direction: "ltr"
   },
-  searchInput: { color: colors.text, flex: 1, fontFamily: typography.fontFamily, fontSize: typography.size.sm, textAlign: "right", writingDirection: "rtl" },
-  chipRow: { flexDirection: "row-reverse", gap: spacing.sm, paddingHorizontal: spacing.xs },
+  searchInput: { color: colors.text, flex: 1, minHeight: 32, paddingHorizontal: 4, borderWidth: 1, borderColor: "#D5DBE4", fontFamily: typography.fontFamily, fontSize: 11, textAlign: "right", writingDirection: "rtl" },
+  categoryScroll: { direction: "rtl", flexGrow: 0 },
+  chipRow: { flexDirection: "row", gap: 5, paddingVertical: 2 },
   fallback: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: typography.size.xs, textAlign: "right", writingDirection: "rtl" }
 });
