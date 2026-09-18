@@ -3,6 +3,10 @@ import type { CompositeNavigationProp } from "@react-navigation/native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { StyleSheet, Text, View } from "react-native";
+import { Animated, Pressable } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRef, useState } from "react";
 import MapView, { Marker, type Region } from "react-native-maps";
 
 import type { CustomerStackParamList, CustomerTabParamList } from "../../../app/navigation/navigation.types";
@@ -29,6 +33,18 @@ const jerusalemRegion: Region = {
 export function CustomerMapScreen() {
   const navigation = useNavigation<MapNavigation>();
   const map = useCustomerMap();
+  const insets = useSafeAreaInsets();
+  const [quickActionsOpen, setQuickActionsOpen] = useState(false);
+  const animation = useRef(new Animated.Value(0)).current;
+  const toggleQuickActions = () => {
+    const next = quickActionsOpen ? 0 : 1;
+    setQuickActionsOpen(!quickActionsOpen);
+    Animated.spring(animation, { toValue: next, useNativeDriver: true, damping: 18, stiffness: 180, mass: 0.7 }).start();
+  };
+  const closeQuickActions = () => {
+    setQuickActionsOpen(false);
+    Animated.spring(animation, { toValue: 0, useNativeDriver: true, damping: 18, stiffness: 180, mass: 0.7 }).start();
+  };
 
   return (
     <View style={styles.screen}>
@@ -58,7 +74,7 @@ export function CustomerMapScreen() {
         <View style={styles.empty}><Text style={styles.emptyText}>{uiText.map.noResults}</Text></View>
       ) : null}
 
-      {map.selectedTechnician ? (
+      {map.selectedTechnician && !quickActionsOpen ? (
         <View style={styles.preview}>
           <TechnicianPreview
             onProfile={() => navigation.navigate("CustomerTechnicianProfile", { technicianId: map.selectedTechnician!.id })}
@@ -66,7 +82,23 @@ export function CustomerMapScreen() {
             technician={map.selectedTechnician}
           />
         </View>
-      ) : <View style={styles.preview}><Button onPress={() => navigation.navigate("CustomerRepairRequest", {})}>{uiText.map.repairRequest}</Button></View>}
+      ) : null}
+
+      <View pointerEvents="box-none" style={[styles.quickActions, { bottom: Math.max(insets.bottom + 70, 86) }]}>
+        <Animated.View pointerEvents={quickActionsOpen ? "auto" : "none"} style={[styles.actionStack, { opacity: animation, transform: [{ translateY: animation.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }, { scale: animation.interpolate({ inputRange: [0, 1], outputRange: [0.86, 1] }) }] }]}>
+          <Pressable accessibilityRole="button" onPress={() => { closeQuickActions(); navigation.navigate("CustomerRepairRequest", {}); }} style={styles.quickAction}>
+            <Ionicons color={colors.neutral} name="construct-outline" size={18} />
+            <Text style={styles.quickActionLabel}>طلب صيانة</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" onPress={() => { closeQuickActions(); map.retry(); }} style={styles.quickAction}>
+            <Ionicons color={colors.neutral} name="refresh-outline" size={18} />
+            <Text style={styles.quickActionLabel}>تحديث الفنيين</Text>
+          </Pressable>
+        </Animated.View>
+        <Pressable accessibilityLabel={quickActionsOpen ? "إغلاق الإجراءات السريعة" : "فتح الإجراءات السريعة"} accessibilityRole="button" onPress={toggleQuickActions} style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}>
+          <Animated.View style={{ transform: [{ rotate: animation.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "45deg"] }) }] }}><Ionicons color={colors.neutral} name="add" size={30} /></Animated.View>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -77,5 +109,11 @@ const styles = StyleSheet.create({
   state: { ...shadows.subtle, alignSelf: "center", backgroundColor: colors.background, borderRadius: radius.md, marginTop: spacing.lg },
   empty: { ...shadows.subtle, alignSelf: "center", backgroundColor: colors.background, borderRadius: radius.md, margin: spacing.md, padding: spacing.md },
   emptyText: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: typography.size.sm, textAlign: "center", writingDirection: "rtl" },
-  preview: { bottom: spacing.md, left: spacing.sm, position: "absolute", right: spacing.sm }
+  preview: { bottom: spacing.md, left: spacing.sm, position: "absolute", right: spacing.sm },
+  quickActions: { alignItems: "flex-end", position: "absolute", right: spacing.md },
+  actionStack: { alignItems: "flex-end", gap: spacing.sm, marginBottom: spacing.sm },
+  quickAction: { ...shadows.raised, alignItems: "center", backgroundColor: colors.background, borderColor: colors.border, borderRadius: radius.md, borderWidth: 1, flexDirection: "row-reverse", gap: spacing.sm, minHeight: 46, paddingHorizontal: spacing.md },
+  quickActionLabel: { color: colors.text, fontFamily: typography.fontFamily, fontSize: typography.size.sm, fontWeight: typography.weight.bold, writingDirection: "rtl" },
+  fab: { ...shadows.raised, alignItems: "center", backgroundColor: colors.primary, borderColor: colors.background, borderRadius: radius.round, borderWidth: 3, height: 62, justifyContent: "center", width: 62 },
+  fabPressed: { backgroundColor: colors.primaryPressed, transform: [{ scale: 0.94 }] }
 });
