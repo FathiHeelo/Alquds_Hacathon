@@ -17,6 +17,7 @@ import { CustomerRatingScreen } from "../../features/jobs/screens/CustomerRating
 import { RewardsScreen } from "../../features/rewards/screens/RewardsScreen";
 import { NotificationsScreen } from "../../features/notifications/screens/NotificationsScreen";
 import { CustomerChatScreen } from "../../features/jobs/screens/CustomerChatScreen";
+import { CustomerMessagesScreen } from "../../features/jobs/screens/CustomerMessagesScreen";
 import { CustomerRequestsScreen } from "../../features/jobs/screens/CustomerRequestsScreen";
 import { PlaceholderScreen } from "../../features/shell/screens/PlaceholderScreen";
 import { uiText } from "../../shared/constants/uiText";
@@ -33,9 +34,7 @@ function CustomerTabs() {
     <Tab.Navigator initialRouteName="CustomerMap" screenOptions={{ lazy: true }} tabBar={(props) => <CustomerTabBar {...props} />}>
       <Tab.Screen name="CustomerMap" component={CustomerMapScreen} options={{ ...tabOptions("map-outline"), title: uiText.customer.map }} />
       <Tab.Screen name="CustomerRequests" component={CustomerRequestsScreen} options={{ ...tabOptions("document-text-outline"), title: uiText.customer.requests }} />
-      <Tab.Screen name="CustomerMessages" options={{ ...tabOptions("chatbubble-ellipses-outline"), title: uiText.customer.messages }}>
-        {() => <PlaceholderScreen title={uiText.customer.messages} />}
-      </Tab.Screen>
+      <Tab.Screen name="CustomerMessages" component={CustomerMessagesScreen} options={{ ...tabOptions("chatbubble-ellipses-outline"), title: uiText.customer.messages }} />
       <Tab.Screen name="CustomerRewards" component={RewardsScreen} options={{ ...tabOptions("star-outline"), title: uiText.customer.rewards }} />
       <Tab.Screen name="CustomerAccount" options={{ ...tabOptions("person-outline"), title: uiText.customer.account }}>
         {() => <PlaceholderScreen title={uiText.customer.account} />}
@@ -124,7 +123,7 @@ export function CustomerNavigator() {
       <Stack.Screen name="CustomerJob" component={CustomerJobScreen} options={{ title: "المهمة النشطة" }} />
       <Stack.Screen name="CustomerRating" component={CustomerRatingScreen} options={{ title: "تقييم الفني" }} />
       <Stack.Screen name="CustomerNotifications" component={NotificationsScreen} options={{ title: "التنبيهات" }} />
-      <Stack.Screen name="CustomerChat" component={CustomerChatScreen} options={{ title: "المحادثة" }} />
+      <Stack.Screen name="CustomerChat" component={CustomerChatScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
