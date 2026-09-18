@@ -7,9 +7,9 @@ import { TechnicianPortrait } from "./TechnicianPortrait";
 export function TechnicianMapMarker({ isSelected, technician }: { isSelected: boolean; technician: Technician }) {
   const category = technician.categoryIds[0];
   const icon = technician.isPro ? "star" : category === "electrical" ? "flash" : category === "ac" ? "snow" : "water";
-  return <View style={styles.wrapper}>
+  return <View pointerEvents="none" style={styles.wrapper}>
     <View style={[styles.ring, isSelected && styles.selected]}>
-      <TechnicianPortrait technician={technician} round size={36} />
+      <TechnicianPortrait technician={technician} round size={42} />
       <View style={[styles.online, !technician.isAvailable && styles.offline]} />
       <View style={[styles.trade, { backgroundColor: technician.isPro ? colors.secondary : category === "electrical" ? "#F59E0B" : "#0EA5C6" }]}><Ionicons name={icon} color={technician.isPro ? colors.primary : "white"} size={10} /></View>
     </View>
@@ -17,7 +17,7 @@ export function TechnicianMapMarker({ isSelected, technician }: { isSelected: bo
   </View>;
 }
 const styles = StyleSheet.create({
-  wrapper: { width: 132, height: 76, alignItems: "center", justifyContent: "center", padding: 5 },
+  wrapper: { width: 150, height: 92, alignItems: "center", justifyContent: "center", padding: 12 },
   ring: { padding: 3, borderRadius: 24, borderWidth: 2, borderColor: "transparent" },
   selected: { backgroundColor: "#F5E6BE", borderColor: "#E8CE77" },
   online: { position: "absolute", top: 0, right: 0, width: 10, height: 10, borderRadius: 5, backgroundColor: "#10B981", borderWidth: 1.5, borderColor: "white" },

@@ -56,6 +56,13 @@ export function CustomerMapScreen() {
   return (
     <View style={styles.screen}>
       <MapView ref={mapRef} initialRegion={jerusalemRegion} style={styles.map} userInterfaceStyle="light"
+        onMarkerPress={(event) => {
+          const technicianId = event.nativeEvent.id;
+          if (!map.technicians.some(({ id }) => id === technicianId)) return;
+          markerPressAt.current = Date.now();
+          Keyboard.dismiss();
+          map.selectTechnician(technicianId);
+        }}
         onPress={(event) => {
           if (event.nativeEvent.action === "marker-press" || Date.now() - markerPressAt.current < 300) return;
           Keyboard.dismiss();
@@ -70,7 +77,7 @@ export function CustomerMapScreen() {
             <Text style={styles.locationLabel}>موقعك: {map.location.label}</Text>
           </View>
         </Marker>
-        {map.technicians.map((technician) => <Marker coordinate={technician.location} key={technician.id} stopPropagation anchor={{ x: 0.5, y: 0.4 }}
+        {map.technicians.map((technician) => <Marker accessibilityLabel={`عرض معلومات الفني ${technician.name}`} coordinate={technician.location} identifier={technician.id} key={technician.id} stopPropagation anchor={{ x: 0.5, y: 0.4 }}
           onPress={() => { markerPressAt.current = Date.now(); Keyboard.dismiss(); map.selectTechnician(technician.id); }}>
           <TechnicianMapMarker isSelected={map.selectedTechnician?.id === technician.id} technician={technician} />
         </Marker>)}
