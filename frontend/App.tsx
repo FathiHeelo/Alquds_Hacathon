@@ -40,59 +40,77 @@ function BrandSplash() {
 
 const styles = StyleSheet.create({
   splash: {
-    alignItems: "center",
-    backgroundColor: "#F8F7F4",
     flex: 1,
+    alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 32
+    paddingHorizontal: 32,
+    backgroundColor: colors.background, // Premium off-white
   },
+
   logoMark: {
     alignItems: "center",
-    backgroundColor: colors.neutral,
+    justifyContent: "center",
+
+    backgroundColor: colors.surface,
     borderColor: colors.primary,
-    borderRadius: 28,
-    borderWidth: 2,
-    paddingHorizontal: 30,
-    paddingVertical: 24,
-    shadowColor: "#132A24",
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.14,
-    shadowRadius: 30
+    borderWidth: 1.5,
+    borderRadius: 24,
+
+    paddingHorizontal: 34,
+    paddingVertical: 26,
+
+    shadowColor: colors.text,
+    shadowOffset: {
+      width: 0,
+      height: 10,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+
+    elevation: 5,
   },
+
   logoText: {
     color: colors.primary,
     fontFamily: typography.fontFamily,
     fontSize: 42,
     fontWeight: "900",
-    letterSpacing: 0,
-    lineHeight: 56,
+    lineHeight: 54,
+
     textAlign: "center",
-    writingDirection: "rtl"
+    writingDirection: "rtl",
   },
+
   logoRule: {
+    width: 68,
+    height: 3,
+    marginVertical: 10,
+
     backgroundColor: colors.primary,
     borderRadius: 999,
-    height: 3,
-    marginVertical: 8,
-    width: 72
   },
+
   communityText: {
-    color: colors.secondary,
+    color: colors.text,
     fontFamily: typography.fontFamily,
     fontSize: 17,
     fontWeight: "800",
-    lineHeight: 24,
+    lineHeight: 25,
+
     textAlign: "center",
-    writingDirection: "rtl"
+    writingDirection: "rtl",
   },
+
   tagline: {
+    marginTop: 16,
+
     color: colors.textMuted,
     fontFamily: typography.fontFamily,
     fontSize: 13,
-    fontWeight: "700",
-    lineHeight: 22,
-    marginTop: 18,
+    fontWeight: "600",
+    lineHeight: 21,
+
     textAlign: "center",
-    writingDirection: "rtl"
-  }
+    writingDirection: "rtl",
+  },
 });
