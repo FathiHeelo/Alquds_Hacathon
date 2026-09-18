@@ -17,6 +17,7 @@ import { CustomerRatingScreen } from "../../features/jobs/screens/CustomerRating
 import { RewardsScreen } from "../../features/rewards/screens/RewardsScreen";
 import { NotificationsScreen } from "../../features/notifications/screens/NotificationsScreen";
 import { CustomerChatScreen } from "../../features/jobs/screens/CustomerChatScreen";
+import { CustomerRequestsScreen } from "../../features/jobs/screens/CustomerRequestsScreen";
 import { PlaceholderScreen } from "../../features/shell/screens/PlaceholderScreen";
 import { uiText } from "../../shared/constants/uiText";
 import { colors, typography } from "../../shared/theme";
@@ -31,9 +32,7 @@ function CustomerTabs() {
   return (
     <Tab.Navigator initialRouteName="CustomerMap" screenOptions={{ lazy: true }} tabBar={(props) => <CustomerTabBar {...props} />}>
       <Tab.Screen name="CustomerMap" component={CustomerMapScreen} options={{ ...tabOptions("map-outline"), title: uiText.customer.map }} />
-      <Tab.Screen name="CustomerRequests" options={{ ...tabOptions("document-text-outline"), title: uiText.customer.requests }}>
-        {() => <PlaceholderScreen title={uiText.customer.requests} />}
-      </Tab.Screen>
+      <Tab.Screen name="CustomerRequests" component={CustomerRequestsScreen} options={{ ...tabOptions("document-text-outline"), title: uiText.customer.requests }} />
       <Tab.Screen name="CustomerMessages" options={{ ...tabOptions("chatbubble-ellipses-outline"), title: uiText.customer.messages }}>
         {() => <PlaceholderScreen title={uiText.customer.messages} />}
       </Tab.Screen>
