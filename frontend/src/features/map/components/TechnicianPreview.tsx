@@ -37,9 +37,12 @@ export function TechnicianPreview({ onProfile, onRepairRequest, onDismiss, techn
         {technician.isPro ? <Badge label={uiText.map.pro} /> : null}
       </View>
       <View style={styles.metrics}>
-        <Text style={styles.metric}>★ {technician.rating}</Text>
-        <Text style={styles.metric}>{technician.completedJobs} {uiText.map.jobs}</Text>
-        <Text style={styles.metric}>{technician.distanceKm} {uiText.map.kilometers}</Text>
+        <View style={styles.metricGroup}>
+          <Ionicons color={colors.primary} name="star" size={13} />
+          <Text style={styles.ratingMetric}>{technician.rating.toFixed(1)}</Text>
+          <Text style={styles.mutedMetric}>({technician.completedJobs} عملية)</Text>
+        </View>
+        <Text style={styles.metric}>يبعد {Math.round(technician.distanceKm * 1000)} متر</Text>
       </View>
       {children}
       <View style={styles.actions}>
@@ -62,8 +65,11 @@ const styles = StyleSheet.create({
   availability: { color: colors.tertiary, fontFamily: typography.fontFamily, fontSize: typography.size.xs, fontWeight: typography.weight.bold },
   unavailable: { color: colors.textMuted },
   badges: { flexDirection: "row-reverse", gap: spacing.xs, marginTop: spacing.sm },
-  metrics: { flexDirection: "row-reverse", flexWrap: "wrap", gap: spacing.md, marginTop: spacing.sm },
+  metrics: { alignItems: "center", flexDirection: "row-reverse", flexWrap: "wrap", gap: spacing.md, marginTop: spacing.sm },
+  metricGroup: { alignItems: "center", flexDirection: "row-reverse", gap: 3 },
   metric: { color: colors.text, fontFamily: typography.fontFamily, fontSize: typography.size.xs, fontWeight: typography.weight.semibold },
+  ratingMetric: { color: colors.primaryPressed, fontFamily: typography.fontFamily, fontSize: typography.size.xs, fontWeight: typography.weight.bold },
+  mutedMetric: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 11 },
   actions: { flexDirection: "row-reverse", gap: spacing.sm, marginTop: spacing.md },
   action: { flex: 1 }
 });
