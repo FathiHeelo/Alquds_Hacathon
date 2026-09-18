@@ -1,5 +1,8 @@
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { createBottomTabNavigator, type BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { Ionicons } from "@expo/vector-icons";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CustomerMapScreen } from "../../features/map/screens/CustomerMapScreen";
 import { RepairRequestScreen } from "../../features/repair-request/screens/RepairRequestScreen";
@@ -16,8 +19,9 @@ import { NotificationsScreen } from "../../features/notifications/screens/Notifi
 import { CustomerChatScreen } from "../../features/jobs/screens/CustomerChatScreen";
 import { PlaceholderScreen } from "../../features/shell/screens/PlaceholderScreen";
 import { uiText } from "../../shared/constants/uiText";
-import { colors, typography } from "../../shared/theme";
+import { colors, shadows, typography } from "../../shared/theme";
 import type { CustomerStackParamList, CustomerTabParamList } from "./navigation.types";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { tabOptions } from "./tabOptions";
 
 const Tab = createBottomTabNavigator<CustomerTabParamList>();
@@ -25,7 +29,7 @@ const Stack = createNativeStackNavigator<CustomerStackParamList>();
 
 function CustomerTabs() {
   return (
-    <Tab.Navigator initialRouteName="CustomerMap" screenOptions={{ lazy: true }}>
+    <Tab.Navigator initialRouteName="CustomerMap" screenOptions={{ lazy: true }} tabBar={(props) => <CustomerTabBar {...props} />}>
       <Tab.Screen name="CustomerMap" component={CustomerMapScreen} options={{ ...tabOptions("map-outline"), title: uiText.customer.map }} />
       <Tab.Screen name="CustomerRequests" options={{ ...tabOptions("document-text-outline"), title: uiText.customer.requests }}>
         {() => <PlaceholderScreen title={uiText.customer.requests} />}
@@ -40,6 +44,59 @@ function CustomerTabs() {
     </Tab.Navigator>
   );
 }
+
+function CustomerTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const insets = useSafeAreaInsets();
+  const stackNavigation = navigation.getParent<NativeStackNavigationProp<CustomerStackParamList>>();
+  const tabs = [
+    { route: "CustomerMap" as const, icon: "map-outline" as const, label: uiText.customer.map },
+    { route: "CustomerRequests" as const, icon: "document-text-outline" as const, label: uiText.customer.requests },
+    { route: "CustomerRewards" as const, icon: "star-outline" as const, label: uiText.customer.rewards },
+    { route: "CustomerAccount" as const, icon: "person-outline" as const, label: uiText.customer.account }
+  ];
+
+  return (
+    <View style={[footerStyles.footer, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+      {tabs.slice(0, 2).map((tab) => <CustomerTabButton descriptors={descriptors} key={tab.route} navigation={navigation} state={state} {...tab} />)}
+      <Pressable
+        accessibilityLabel="طلب صيانة جديد"
+        accessibilityRole="button"
+        onPress={() => stackNavigation?.navigate("CustomerRepairRequest", {})}
+        style={({ pressed }) => [footerStyles.plusButton, pressed && footerStyles.plusPressed]}
+      >
+        <Ionicons color={colors.neutral} name="add" size={26} />
+      </Pressable>
+      {tabs.slice(2).map((tab) => <CustomerTabButton descriptors={descriptors} key={tab.route} navigation={navigation} state={state} {...tab} />)}
+    </View>
+  );
+}
+
+type CustomerTabButtonProps = Pick<BottomTabBarProps, "state" | "descriptors" | "navigation"> & { route: keyof CustomerTabParamList; icon: keyof typeof Ionicons.glyphMap; label: string };
+
+function CustomerTabButton({ route, icon, label, state, descriptors, navigation }: CustomerTabButtonProps) {
+  const isFocused = state.routes[state.index]?.name === route;
+  return (
+    <Pressable
+      accessibilityLabel={descriptors[route].options.tabBarAccessibilityLabel ?? label}
+      accessibilityRole="tab"
+      accessibilityState={{ selected: isFocused }}
+      onPress={() => navigation.navigate(route)}
+      style={footerStyles.tab}
+    >
+      <Ionicons color={isFocused ? colors.primaryPressed : colors.textMuted} name={icon} size={21} />
+      <Text style={[footerStyles.label, isFocused && footerStyles.activeLabel]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+const footerStyles = StyleSheet.create({
+  footer: { ...shadows.raised, alignItems: "center", backgroundColor: colors.background, borderTopColor: colors.border, borderTopWidth: 1, flexDirection: "row-reverse", justifyContent: "space-around", minHeight: 70, paddingHorizontal: 8 },
+  tab: { alignItems: "center", flex: 1, gap: 2, justifyContent: "center", minHeight: 56 },
+  label: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 10, fontWeight: typography.weight.semibold, writingDirection: "rtl" },
+  activeLabel: { color: colors.primaryPressed },
+  plusButton: { alignItems: "center", backgroundColor: colors.primary, borderColor: colors.background, borderRadius: 999, borderWidth: 4, elevation: 7, height: 58, justifyContent: "center", marginHorizontal: 4, marginTop: -25, shadowColor: colors.neutral, shadowOffset: { height: 3, width: 0 }, shadowOpacity: 0.2, shadowRadius: 7, width: 58 },
+  plusPressed: { backgroundColor: colors.primaryPressed, transform: [{ scale: 0.93 }] }
+});
 
 export function CustomerNavigator() {
   return (
