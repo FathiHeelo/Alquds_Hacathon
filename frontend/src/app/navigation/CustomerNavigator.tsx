@@ -19,7 +19,7 @@ import { NotificationsScreen } from "../../features/notifications/screens/Notifi
 import { CustomerChatScreen } from "../../features/jobs/screens/CustomerChatScreen";
 import { PlaceholderScreen } from "../../features/shell/screens/PlaceholderScreen";
 import { uiText } from "../../shared/constants/uiText";
-import { colors, shadows, typography } from "../../shared/theme";
+import { colors, typography } from "../../shared/theme";
 import type { CustomerStackParamList, CustomerTabParamList } from "./navigation.types";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { tabOptions } from "./tabOptions";
@@ -75,9 +75,11 @@ type CustomerTabButtonProps = Pick<BottomTabBarProps, "state" | "descriptors" | 
 
 function CustomerTabButton({ route, icon, label, state, descriptors, navigation }: CustomerTabButtonProps) {
   const isFocused = state.routes[state.index]?.name === route;
+  const routeState = state.routes.find((item) => item.name === route);
+  const descriptor = routeState ? descriptors[routeState.key] : undefined;
   return (
     <Pressable
-      accessibilityLabel={descriptors[route].options.tabBarAccessibilityLabel ?? label}
+      accessibilityLabel={descriptor?.options.tabBarAccessibilityLabel ?? label}
       accessibilityRole="tab"
       accessibilityState={{ selected: isFocused }}
       onPress={() => navigation.navigate(route)}
@@ -90,7 +92,7 @@ function CustomerTabButton({ route, icon, label, state, descriptors, navigation 
 }
 
 const footerStyles = StyleSheet.create({
-  footer: { ...shadows.raised, alignItems: "center", backgroundColor: colors.background, borderTopColor: colors.border, borderTopWidth: 1, flexDirection: "row-reverse", justifyContent: "space-around", minHeight: 70, paddingHorizontal: 8 },
+  footer: { alignItems: "center", backgroundColor: colors.background, borderTopColor: colors.border, borderTopWidth: 1, elevation: 5, flexDirection: "row-reverse", justifyContent: "space-around", minHeight: 70, paddingHorizontal: 8, shadowColor: colors.neutral, shadowOffset: { height: -2, width: 0 }, shadowOpacity: 0.12, shadowRadius: 7 },
   tab: { alignItems: "center", flex: 1, gap: 2, justifyContent: "center", minHeight: 56 },
   label: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 10, fontWeight: typography.weight.semibold, writingDirection: "rtl" },
   activeLabel: { color: colors.primaryPressed },
