@@ -36,6 +36,7 @@ export function CustomerMapScreen() {
   const insets = useSafeAreaInsets();
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);
   const animation = useRef(new Animated.Value(0)).current;
+  const markerPressAtRef = useRef(0);
   const toggleQuickActions = () => {
     const next = quickActionsOpen ? 0 : 1;
     setQuickActionsOpen(!quickActionsOpen);
@@ -50,12 +51,22 @@ export function CustomerMapScreen() {
     <View style={styles.screen}>
       <MapView
         initialRegion={jerusalemRegion}
-        onPress={() => map.selectTechnician(undefined)}
+        onPress={() => {
+          if (Date.now() - markerPressAtRef.current < 300) return;
+          map.selectTechnician(undefined);
+        }}
         style={styles.map}
       >
         <Marker coordinate={map.location} pinColor={colors.tertiary} title={map.location.label} />
         {map.technicians.map((technician) => (
-          <Marker coordinate={technician.location} key={technician.id} onPress={() => map.selectTechnician(technician.id)}>
+          <Marker
+            coordinate={technician.location}
+            key={technician.id}
+            onPress={() => {
+              markerPressAtRef.current = Date.now();
+              map.selectTechnician(technician.id);
+            }}
+          >
             <TechnicianMapMarker isSelected={map.selectedTechnician?.id === technician.id} technician={technician} />
           </Marker>
         ))}
