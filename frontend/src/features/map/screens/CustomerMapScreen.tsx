@@ -55,7 +55,7 @@ export function CustomerMapScreen() {
 
   return (
     <View style={styles.screen}>
-      <MapView ref={mapRef} initialRegion={jerusalemRegion} style={[styles.map, { bottom: bottomSpace + 74 }]} userInterfaceStyle="light"
+      <MapView ref={mapRef} initialRegion={jerusalemRegion} style={styles.map} userInterfaceStyle="light"
         onPress={(event) => {
           if (event.nativeEvent.action === "marker-press" || Date.now() - markerPressAt.current < 300) return;
           Keyboard.dismiss();
