@@ -89,19 +89,19 @@ export function MapControls({
 }
 
 const styles = StyleSheet.create({
-  container: { gap: spacing.sm, padding: spacing.sm },
+  container: { backgroundColor: colors.background, gap: spacing.sm, paddingHorizontal: spacing.md, paddingBottom: spacing.sm },
   locationRow: {
     ...shadows.subtle,
     alignItems: "center",
-    backgroundColor: colors.background,
+    backgroundColor: colors.surface,
     borderColor: colors.border,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     flexDirection: "row-reverse",
     gap: spacing.sm,
     padding: spacing.sm
   },
-  locationIcon: { alignItems: "center", backgroundColor: colors.surface, borderRadius: radius.md, height: 36, justifyContent: "center", width: 36 },
+  locationIcon: { alignItems: "center", backgroundColor: "#F5E6BE", borderRadius: radius.md, height: 36, justifyContent: "center", width: 36 },
   locationText: { flex: 1 },
   eyebrow: { color: colors.primaryPressed, fontFamily: typography.fontFamily, fontSize: typography.size.xs, fontWeight: typography.weight.bold, textAlign: "right" },
   locationLabel: { color: colors.text, fontFamily: typography.fontFamily, fontSize: typography.size.sm, textAlign: "right", writingDirection: "rtl" },
@@ -109,13 +109,13 @@ const styles = StyleSheet.create({
   searchBox: {
     ...shadows.subtle,
     alignItems: "center",
-    backgroundColor: colors.background,
+    backgroundColor: colors.surface,
     borderColor: colors.border,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     flexDirection: "row-reverse",
     gap: spacing.sm,
-    minHeight: 48,
+    minHeight: 50,
     paddingHorizontal: spacing.md
   },
   searchInput: { color: colors.text, flex: 1, fontFamily: typography.fontFamily, fontSize: typography.size.sm, textAlign: "right", writingDirection: "rtl" },

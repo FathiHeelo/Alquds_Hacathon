@@ -2,9 +2,9 @@ import { StyleSheet, Text, View } from "react-native";
 import type { ReactNode } from "react";
 
 import type { Technician } from "../../../domain/models/technician";
-import { Badge, Button, Card } from "../../../shared/components";
+import { Badge, Button } from "../../../shared/components";
 import { uiText } from "../../../shared/constants/uiText";
-import { colors, spacing, typography } from "../../../shared/theme";
+import { colors, radius, shadows, spacing, typography } from "../../../shared/theme";
 
 interface TechnicianPreviewProps {
   onProfile(): void;
@@ -16,7 +16,7 @@ interface TechnicianPreviewProps {
 
 export function TechnicianPreview({ onProfile, onRepairRequest, technician, actionLabel = uiText.map.repairRequest, children }: TechnicianPreviewProps) {
   return (
-    <Card>
+    <View style={styles.card}>
       <View style={styles.header}>
         <View style={styles.avatar}><Text style={styles.avatarText}>{technician.name.slice(0, 1)}</Text></View>
         <View style={styles.identity}>
@@ -41,13 +41,14 @@ export function TechnicianPreview({ onProfile, onRepairRequest, technician, acti
         <View style={styles.action}><Button onPress={onProfile} variant="outlined">{uiText.map.profile}</Button></View>
         <View style={styles.action}><Button disabled={!technician.isAvailable} onPress={onRepairRequest}>{actionLabel}</Button></View>
       </View>
-    </Card>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  card: { ...shadows.raised, backgroundColor: colors.background, borderColor: colors.border, borderRadius: 16, borderWidth: 1, padding: spacing.md },
   header: { alignItems: "center", flexDirection: "row-reverse", gap: spacing.sm },
-  avatar: { alignItems: "center", backgroundColor: colors.primary, borderRadius: 12, height: 48, justifyContent: "center", width: 48 },
+  avatar: { alignItems: "center", backgroundColor: colors.primary, borderRadius: radius.lg, height: 56, justifyContent: "center", width: 56 },
   avatarText: { color: colors.neutral, fontSize: typography.size.lg, fontWeight: typography.weight.bold },
   identity: { flex: 1 },
   name: { color: colors.text, fontFamily: typography.fontFamily, fontSize: typography.size.md, fontWeight: typography.weight.bold, textAlign: "right" },

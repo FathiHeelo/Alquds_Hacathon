@@ -6,6 +6,7 @@ import { colors, radius, shadows, typography } from "../../../shared/theme";
 export function TechnicianMapMarker({ isSelected, technician }: { isSelected: boolean; technician: Technician }) {
   return (
     <View style={styles.wrapper}>
+      {isSelected ? <View style={styles.radar} /> : null}
       <View style={[styles.marker, technician.isPro && styles.proMarker, isSelected && styles.selectedMarker]}>
         <Text style={styles.initial}>{technician.name.slice(0, 1)}</Text>
       </View>
@@ -16,6 +17,7 @@ export function TechnicianMapMarker({ isSelected, technician }: { isSelected: bo
 
 const styles = StyleSheet.create({
   wrapper: { alignItems: "center" },
+  radar: { backgroundColor: "rgba(197,155,39,0.22)", borderColor: "rgba(197,155,39,0.35)", borderRadius: radius.round, borderWidth: 8, height: 68, position: "absolute", width: 68 },
   marker: {
     ...shadows.raised,
     alignItems: "center",

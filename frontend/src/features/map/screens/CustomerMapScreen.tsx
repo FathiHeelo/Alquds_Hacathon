@@ -57,16 +57,18 @@ export function CustomerMapScreen() {
         ))}
       </MapView>
 
-      <MapControls
-        filters={map.filters}
-        location={map.location}
-        resultCount={map.technicians.length}
-        setAvailableOnly={map.setAvailableOnly}
-        setCategoryId={map.setCategoryId}
-        setMaximumDistanceKm={map.setMaximumDistanceKm}
-        setMinimumRating={map.setMinimumRating}
-        setQuery={map.setQuery}
-      />
+      <View style={[styles.controls, { paddingTop: insets.top + spacing.sm }]}>
+        <MapControls
+          filters={map.filters}
+          location={map.location}
+          resultCount={map.technicians.length}
+          setAvailableOnly={map.setAvailableOnly}
+          setCategoryId={map.setCategoryId}
+          setMaximumDistanceKm={map.setMaximumDistanceKm}
+          setMinimumRating={map.setMinimumRating}
+          setQuery={map.setQuery}
+        />
+      </View>
 
       {map.isLoading ? <View style={styles.state}><LoadingState /></View> : null}
       {map.error ? <View style={styles.state}><ErrorState onRetry={map.retry} /></View> : null}
@@ -74,7 +76,7 @@ export function CustomerMapScreen() {
         <View style={styles.empty}><Text style={styles.emptyText}>{uiText.map.noResults}</Text></View>
       ) : null}
 
-      {map.selectedTechnician && !quickActionsOpen ? (
+      {map.selectedTechnician ? (
         <View style={styles.preview}>
           <TechnicianPreview
             onProfile={() => navigation.navigate("CustomerTechnicianProfile", { technicianId: map.selectedTechnician!.id })}
@@ -106,12 +108,13 @@ export function CustomerMapScreen() {
 const styles = StyleSheet.create({
   screen: { backgroundColor: colors.surface, flex: 1 },
   map: { bottom: 0, left: 0, position: "absolute", right: 0, top: 0 },
+  controls: { backgroundColor: colors.background, borderBottomColor: colors.border, borderBottomWidth: 1, zIndex: 20 },
   state: { ...shadows.subtle, alignSelf: "center", backgroundColor: colors.background, borderRadius: radius.md, marginTop: spacing.lg },
   empty: { ...shadows.subtle, alignSelf: "center", backgroundColor: colors.background, borderRadius: radius.md, margin: spacing.md, padding: spacing.md },
   emptyText: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: typography.size.sm, textAlign: "center", writingDirection: "rtl" },
-  preview: { bottom: spacing.md, left: spacing.sm, position: "absolute", right: spacing.sm },
-  quickActions: { alignItems: "flex-end", position: "absolute", right: spacing.md },
-  actionStack: { alignItems: "flex-end", gap: spacing.sm, marginBottom: spacing.sm },
+  preview: { bottom: spacing.md, left: spacing.sm, position: "absolute", right: spacing.sm, zIndex: 25 },
+  quickActions: { alignItems: "center", left: 0, position: "absolute", right: 0 },
+  actionStack: { alignItems: "center", gap: spacing.sm, marginBottom: spacing.sm },
   quickAction: { ...shadows.raised, alignItems: "center", backgroundColor: colors.background, borderColor: colors.border, borderRadius: radius.md, borderWidth: 1, flexDirection: "row-reverse", gap: spacing.sm, minHeight: 46, paddingHorizontal: spacing.md },
   quickActionLabel: { color: colors.text, fontFamily: typography.fontFamily, fontSize: typography.size.sm, fontWeight: typography.weight.bold, writingDirection: "rtl" },
   fab: { ...shadows.raised, alignItems: "center", backgroundColor: colors.primary, borderColor: colors.background, borderRadius: radius.round, borderWidth: 3, height: 62, justifyContent: "center", width: 62 },
