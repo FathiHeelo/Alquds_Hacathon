@@ -48,7 +48,11 @@ export function CustomerMapScreen() {
 
   return (
     <View style={styles.screen}>
-      <MapView initialRegion={jerusalemRegion} style={styles.map}>
+      <MapView
+        initialRegion={jerusalemRegion}
+        onPress={() => map.selectTechnician(undefined)}
+        style={styles.map}
+      >
         <Marker coordinate={map.location} pinColor={colors.tertiary} title={map.location.label} />
         {map.technicians.map((technician) => (
           <Marker coordinate={technician.location} key={technician.id} onPress={() => map.selectTechnician(technician.id)}>
