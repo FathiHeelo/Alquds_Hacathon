@@ -21,4 +21,5 @@ export class DemoOfferRepository implements OfferRepository {
     return { jobId: `demo-job-${id}`, requestId: selected.repairRequestId, offerId: id, technicianId: selected.technicianId };
   }
   private getAccepted(requestId: string) { return [...this.offers.values()].find(({ repairRequestId, status }) => repairRequestId === requestId && status === "accepted"); }
+  reset() { this.offers = new Map(demoOffers.map((offer) => [offer.id, clone(offer)])); }
 }

@@ -2,6 +2,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import { PlaceholderScreen } from "../../features/shell/screens/PlaceholderScreen";
+import { TechnicianAiAssistantScreen } from "../../features/technician/screens/TechnicianAiAssistantScreen";
 import { TechnicianHomeScreen } from "../../features/shell/screens/TechnicianHomeScreen";
 import { TechnicianRequestScreen } from "../../features/technician/screens/TechnicianRequestScreen";
 import { TechnicianOfferScreen } from "../../features/technician/screens/TechnicianOfferScreen";
@@ -52,7 +53,7 @@ export function TechnicianNavigator() {
       <Stack.Screen name="TechnicianRequestDetails" component={TechnicianRequestScreen} options={{ title: "تفاصيل الطلب" }} />
       <Stack.Screen name="TechnicianCreateOffer" component={TechnicianOfferScreen} options={{ title: "إنشاء عرض" }} />
       <Stack.Screen name="TechnicianAiAssistant" options={{ title: uiText.technician.aiAssistant }}>
-        {() => <PlaceholderScreen title={uiText.technician.aiAssistant} />}
+        {({ route, navigation }) => <TechnicianAiAssistantScreen route={route} navigation={navigation} />}
       </Stack.Screen>
     </Stack.Navigator>
   );

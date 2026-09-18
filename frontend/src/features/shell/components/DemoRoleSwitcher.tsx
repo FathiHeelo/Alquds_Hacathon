@@ -5,6 +5,7 @@ import { useDemoSession } from "../../../app/providers/DemoSessionProvider";
 import { UserRole, type UserRole as UserRoleValue } from "../../../domain/enums/status";
 import { uiText } from "../../../shared/constants/uiText";
 import { colors, radius, spacing, typography } from "../../../shared/theme";
+import { resetDemoState } from "../../../demo/resetDemoState";
 
 const roles: ReadonlyArray<{ role: UserRoleValue; label: string }> = [
   { role: UserRole.Customer, label: uiText.demo.customer },
@@ -18,7 +19,7 @@ export function DemoRoleSwitcher() {
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
       <View style={styles.header}>
-        <Text style={styles.brand}>{uiText.brand}</Text>
+        <Pressable onLongPress={resetDemoState} accessibilityLabel="إعادة ضبط العرض"><Text style={styles.brand}>{uiText.brand}</Text></Pressable>
         <View accessibilityLabel={uiText.demo.label} style={styles.switcher}>
           {roles.map(({ label, role }) => {
             const active = activeRole === role;

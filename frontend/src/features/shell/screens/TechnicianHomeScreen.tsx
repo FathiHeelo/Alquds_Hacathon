@@ -18,7 +18,8 @@ export function TechnicianHomeScreen() {
         <View style={styles.actions}>
           <Button onPress={() => navigation.navigate("TechnicianProfile")} variant="outlined">{uiText.technician.profile}</Button>
           <Button onPress={() => navigation.navigate("TechnicianPro")} variant="secondary">{uiText.technician.pro}</Button>
-          <Button onPress={() => navigation.navigate("TechnicianAiAssistant")}>{uiText.technician.aiAssistant}</Button>
+          <Button onPress={() => navigation.navigate("TechnicianAiAssistant", { requestId: "old_city_plumbing_leak" })}>{uiText.technician.aiAssistant}</Button>
+          <Button variant="outlined" onPress={() => navigation.navigate("TechnicianAiAssistant", { requestId: "old_city_plumbing_leak", isPro: false })}>عرض حالة الفني المجاني</Button>
         </View>
       </Card>
     </ScreenContainer>

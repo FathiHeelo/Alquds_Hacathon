@@ -7,3 +7,4 @@ export class DemoJobRepository implements JobRepository {
   async updateStatus(id: string, status: JobStatus) { const job = await this.getJob(id); if (!job) throw new Error("Job not found"); const updated = { ...job, status }; jobs.set(id, updated); return updated; }
 }
 export const jobRepository = new DemoJobRepository();
+export function resetDemoJobs() { jobs.clear(); }
