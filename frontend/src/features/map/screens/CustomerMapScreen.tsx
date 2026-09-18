@@ -102,7 +102,7 @@ export function CustomerMapScreen() {
 }
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#FAF9F6" },
-  map: { position: "absolute", left: 0, right: 0, top: 0 },
+  map: { position: "absolute", left: 0, right: 0, top: 0, bottom: 0 },
   controls: { zIndex: 20 },
   state: { ...shadows.subtle, backgroundColor: "white", borderRadius: 14, margin: 12 },
   empty: { padding: 14, textAlign: "center", color: colors.textMuted },
