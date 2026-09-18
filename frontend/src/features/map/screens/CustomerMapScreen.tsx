@@ -32,7 +32,7 @@ export function CustomerMapScreen() {
 
   return (
     <View style={styles.screen}>
-      <MapView initialRegion={jerusalemRegion} style={StyleSheet.absoluteFillObject}>
+      <MapView initialRegion={jerusalemRegion} style={styles.map}>
         <Marker coordinate={map.location} pinColor={colors.tertiary} title={map.location.label} />
         {map.technicians.map((technician) => (
           <Marker coordinate={technician.location} key={technician.id} onPress={() => map.selectTechnician(technician.id)}>
@@ -73,6 +73,7 @@ export function CustomerMapScreen() {
 
 const styles = StyleSheet.create({
   screen: { backgroundColor: colors.surface, flex: 1 },
+  map: { bottom: 0, left: 0, position: "absolute", right: 0, top: 0 },
   state: { ...shadows.subtle, alignSelf: "center", backgroundColor: colors.background, borderRadius: radius.md, marginTop: spacing.lg },
   empty: { ...shadows.subtle, alignSelf: "center", backgroundColor: colors.background, borderRadius: radius.md, margin: spacing.md, padding: spacing.md },
   emptyText: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: typography.size.sm, textAlign: "center", writingDirection: "rtl" },

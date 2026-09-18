@@ -8,10 +8,12 @@ export type CustomerTabParamList = {
 
 export type CustomerStackParamList = {
   CustomerTabs: undefined;
-  CustomerTechnicianProfile: { technicianId: string };
+  CustomerTechnicianProfile: { technicianId: string; requestId?: string; offerId?: string };
   CustomerRepairRequest: { technicianId?: string };
   CustomerAiEntry: { requestId: string };
   CustomerOffersEntry: { requestId: string; technicianId?: string };
+  CustomerOfferDetails: { requestId: string; offerId: string; technicianId?: string };
+  CustomerJobEntry: { jobId: string; requestId: string; offerId: string; technicianId: string };
 };
 
 export type TechnicianTabParamList = {

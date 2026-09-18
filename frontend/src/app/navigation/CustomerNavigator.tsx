@@ -5,6 +5,10 @@ import { CustomerMapScreen } from "../../features/map/screens/CustomerMapScreen"
 import { RepairRequestScreen } from "../../features/repair-request/screens/RepairRequestScreen";
 import { AiCustomerFlowScreen } from "../../features/ai-diagnosis/screens/AiCustomerFlowScreen";
 import { CustomerOffersEntryScreen } from "../../features/ai-diagnosis/screens/CustomerOffersEntryScreen";
+import { OffersScreen } from "../../features/offers/screens/OffersScreen";
+import { OfferDetailsScreen } from "../../features/offers/screens/OfferDetailsScreen";
+import { TechnicianProfileScreen } from "../../features/offers/screens/TechnicianProfileScreen";
+import { CustomerJobEntryScreen } from "../../features/offers/screens/CustomerJobEntryScreen";
 import { PlaceholderScreen } from "../../features/shell/screens/PlaceholderScreen";
 import { uiText } from "../../shared/constants/uiText";
 import { colors, typography } from "../../shared/theme";
@@ -46,12 +50,12 @@ export function CustomerNavigator() {
       }}
     >
       <Stack.Screen name="CustomerTabs" component={CustomerTabs} options={{ headerShown: false }} />
-      <Stack.Screen name="CustomerTechnicianProfile" options={{ title: uiText.map.profile }}>
-        {() => <PlaceholderScreen title={uiText.map.profile} />}
-      </Stack.Screen>
+      <Stack.Screen name="CustomerTechnicianProfile" component={TechnicianProfileScreen} options={{ title: uiText.map.profile }} />
       <Stack.Screen name="CustomerRepairRequest" component={RepairRequestScreen} options={{ title: uiText.map.repairRequest }} />
       <Stack.Screen name="CustomerAiEntry" component={AiCustomerFlowScreen} options={{ title: "التشخيص الذكي" }} />
-      <Stack.Screen name="CustomerOffersEntry" component={CustomerOffersEntryScreen} options={{ title: "العروض وملف الفني" }} />
+      <Stack.Screen name="CustomerOffersEntry" component={OffersScreen} options={{ title: "عروض الفنيين" }} />
+      <Stack.Screen name="CustomerOfferDetails" component={OfferDetailsScreen} options={{ title: "تفاصيل العرض" }} />
+      <Stack.Screen name="CustomerJobEntry" component={CustomerJobEntryScreen} options={{ title: "تأكيد المهمة" }} />
     </Stack.Navigator>
   );
 }
