@@ -1,0 +1,6 @@
+import type { RewardRepository } from "../../domain/contracts/rewardRepository";
+import type { Reward, RewardAccount } from "../../domain/models/reward";
+const rewards: Reward[] = [{ id: "reward-cafe", partner: "محمصة القدس", title: "قسيمة قهوة عربية", description: "استبدلها من أحد فروعنا في القدس.", pointsCost: 100 }, { id: "reward-tools", partner: "بيت العدد", title: "خصم 15% على العدد", description: "خصم خاص على مستلزمات الصيانة.", pointsCost: 180 }];
+let account: RewardAccount = { balance: 240, history: [{ id: "earned-1", label: "إكمال وتقييم مهمة التسريب", points: 240 }] };
+export class DemoRewardRepository implements RewardRepository { async getAccount() { return { ...account, history: [...account.history] }; } async getRewards() { return rewards; } async redeem(id: string) { const reward = rewards.find((item) => item.id === id); if (!reward || account.balance < reward.pointsCost) throw new Error("INSUFFICIENT_POINTS"); account = { balance: account.balance - reward.pointsCost, history: [{ id: `redeem-${id}`, label: `استبدال ${reward.title}`, points: -reward.pointsCost }, ...account.history] }; return this.getAccount(); } }
+export const rewardRepository = new DemoRewardRepository();

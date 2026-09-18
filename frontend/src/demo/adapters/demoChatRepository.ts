@@ -1,0 +1,4 @@
+import type { ChatMessage, ChatRepository } from "../../domain/contracts/chatRepository";
+const messages = new Map<string, ChatMessage[]>([["default", [{ id: "m1", sender: "technician", text: "أهلاً، أنا في الطريق إلى البلدة القديمة.", createdAt: "10:05" }]]]);
+export class DemoChatRepository implements ChatRepository { async getMessages(jobId: string) { return [...(messages.get(jobId) ?? messages.get("default")!)]; } async send(jobId: string, text: string) { const message = { id: `m-${Date.now()}`, sender: "customer" as const, text, createdAt: "الآن" }; const list = messages.get(jobId) ?? []; list.push(message); messages.set(jobId, list); return message; } }
+export const chatRepository = new DemoChatRepository();

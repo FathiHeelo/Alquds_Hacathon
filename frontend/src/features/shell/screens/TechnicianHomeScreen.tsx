@@ -13,6 +13,7 @@ export function TechnicianHomeScreen() {
   return (
     <ScreenContainer>
       <Text style={styles.title}>{uiText.technician.requests}</Text>
+      <Card><Text style={styles.title}>طلب متاح: تسريب مياه — البلدة القديمة</Text><Text style={styles.title}>4.9 ★ · السعر العادل 110–150 ₪</Text><Button onPress={() => navigation.navigate("TechnicianRequestDetails", { requestId: "old_city_plumbing_leak" })}>عرض التفاصيل وإنشاء عرض</Button></Card>
       <Card>
         <View style={styles.actions}>
           <Button onPress={() => navigation.navigate("TechnicianProfile")} variant="outlined">{uiText.technician.profile}</Button>

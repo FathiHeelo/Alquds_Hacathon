@@ -14,6 +14,9 @@ export type CustomerStackParamList = {
   CustomerOffersEntry: { requestId: string; technicianId?: string };
   CustomerOfferDetails: { requestId: string; offerId: string; technicianId?: string };
   CustomerJobEntry: { jobId: string; requestId: string; offerId: string; technicianId: string };
+  CustomerJob: { jobId: string; requestId: string; offerId: string; technicianId: string };
+  CustomerRating: { jobId: string; technicianId: string };
+  CustomerNotifications: undefined;
 };
 
 export type TechnicianTabParamList = {
@@ -28,8 +31,13 @@ export type TechnicianStackParamList = {
   TechnicianProfile: undefined;
   TechnicianPro: undefined;
   TechnicianAiAssistant: undefined;
+  TechnicianRequestDetails: { requestId: string };
+  TechnicianCreateOffer: { requestId: string };
 };
 
 export type AdminStackParamList = {
   AdminDashboard: undefined;
+  AdminVerification: undefined;
+  AdminReports: undefined;
+  AdminRisk: undefined;
 };

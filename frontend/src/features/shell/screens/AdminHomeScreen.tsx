@@ -1,6 +1,9 @@
 import { StyleSheet, Text, View } from "react-native";
 
-import { Card, ScreenContainer } from "../../../shared/components";
+import { Button, Card, ScreenContainer } from "../../../shared/components";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { AdminStackParamList } from "../../../app/navigation/navigation.types";
 import { uiText } from "../../../shared/constants/uiText";
 import { colors, spacing, typography } from "../../../shared/theme";
 
@@ -12,12 +15,14 @@ const entries = [
 ] as const;
 
 export function AdminHomeScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<AdminStackParamList>>();
   return (
     <ScreenContainer>
       <View style={styles.grid}>
         {entries.map((entry) => (
           <Card key={entry}>
             <Text style={styles.label}>{entry}</Text>
+            <Button variant="outlined" onPress={() => entry === uiText.admin.verification ? navigation.navigate("AdminVerification") : entry === uiText.admin.reports ? navigation.navigate("AdminReports") : entry === uiText.admin.risk ? navigation.navigate("AdminRisk") : undefined}>فتح</Button>
           </Card>
         ))}
       </View>

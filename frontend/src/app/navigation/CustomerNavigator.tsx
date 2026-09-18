@@ -9,6 +9,10 @@ import { OffersScreen } from "../../features/offers/screens/OffersScreen";
 import { OfferDetailsScreen } from "../../features/offers/screens/OfferDetailsScreen";
 import { TechnicianProfileScreen } from "../../features/offers/screens/TechnicianProfileScreen";
 import { CustomerJobEntryScreen } from "../../features/offers/screens/CustomerJobEntryScreen";
+import { CustomerJobScreen } from "../../features/jobs/screens/CustomerJobScreen";
+import { CustomerRatingScreen } from "../../features/jobs/screens/CustomerRatingScreen";
+import { RewardsScreen } from "../../features/rewards/screens/RewardsScreen";
+import { NotificationsScreen } from "../../features/notifications/screens/NotificationsScreen";
 import { PlaceholderScreen } from "../../features/shell/screens/PlaceholderScreen";
 import { uiText } from "../../shared/constants/uiText";
 import { colors, typography } from "../../shared/theme";
@@ -28,9 +32,7 @@ function CustomerTabs() {
       <Tab.Screen name="CustomerMessages" options={{ ...tabOptions("chatbubble-ellipses-outline"), title: uiText.customer.messages }}>
         {() => <PlaceholderScreen title={uiText.customer.messages} />}
       </Tab.Screen>
-      <Tab.Screen name="CustomerRewards" options={{ ...tabOptions("star-outline"), title: uiText.customer.rewards }}>
-        {() => <PlaceholderScreen title={uiText.customer.rewards} />}
-      </Tab.Screen>
+      <Tab.Screen name="CustomerRewards" component={RewardsScreen} options={{ ...tabOptions("star-outline"), title: uiText.customer.rewards }} />
       <Tab.Screen name="CustomerAccount" options={{ ...tabOptions("person-outline"), title: uiText.customer.account }}>
         {() => <PlaceholderScreen title={uiText.customer.account} />}
       </Tab.Screen>
@@ -56,6 +58,9 @@ export function CustomerNavigator() {
       <Stack.Screen name="CustomerOffersEntry" component={OffersScreen} options={{ title: "عروض الفنيين" }} />
       <Stack.Screen name="CustomerOfferDetails" component={OfferDetailsScreen} options={{ title: "تفاصيل العرض" }} />
       <Stack.Screen name="CustomerJobEntry" component={CustomerJobEntryScreen} options={{ title: "تأكيد المهمة" }} />
+      <Stack.Screen name="CustomerJob" component={CustomerJobScreen} options={{ title: "المهمة النشطة" }} />
+      <Stack.Screen name="CustomerRating" component={CustomerRatingScreen} options={{ title: "تقييم الفني" }} />
+      <Stack.Screen name="CustomerNotifications" component={NotificationsScreen} options={{ title: "التنبيهات" }} />
     </Stack.Navigator>
   );
 }
