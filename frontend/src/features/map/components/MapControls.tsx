@@ -15,6 +15,7 @@ interface MapControlsProps {
   location: CustomerLocation;
   resultCount: number;
   onNotifications(): void;
+  onAccount(): void;
   onTechnicianMode(): void;
   onVoice(): void;
   setAvailableOnly(value: boolean): void;
@@ -29,6 +30,7 @@ export function MapControls({
   location,
   resultCount,
   onNotifications,
+  onAccount,
   onTechnicianMode,
   onVoice,
   setAvailableOnly,
@@ -55,9 +57,9 @@ export function MapControls({
         <View style={{ flex: 1 }} />
         <View accessibilityLabel={location.label} style={styles.locationPill}>
           <View><Text style={styles.locationLabel}>عَمِّرها القدس</Text><Text style={styles.tagline}>من قلب القدس نبنيها بأيدينا</Text></View>
-          <View accessibilityLabel="صورة صاحب الحساب الافتراضية" style={styles.accountAvatar}>
+          <Pressable accessibilityLabel="فتح حسابي" accessibilityRole="button" hitSlop={8} onPress={onAccount} style={({ pressed }) => [styles.accountAvatar, pressed && styles.accountAvatarPressed]}>
             <Ionicons color={colors.primaryPressed} name="person" size={17} />
-          </View>
+          </Pressable>
         </View>
       </View>
 
@@ -133,6 +135,7 @@ const styles = StyleSheet.create({
   locationLabel: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 11, fontWeight: typography.weight.bold, textAlign: "right", writingDirection: "rtl" },
   tagline: { color: "#B29243", fontFamily: typography.fontFamily, fontSize: 8, textAlign: "right" },
   accountAvatar: { alignItems: "center", backgroundColor: "#F6F1E4", borderColor: "#E8D8A5", borderRadius: 15, borderWidth: 1, height: 30, justifyContent: "center", width: 30 },
+  accountAvatarPressed: { opacity: 0.65, transform: [{ scale: 0.92 }] },
   voice: { flexDirection: "row-reverse", alignItems: "center", gap: 3, backgroundColor: "#FCF9F0", borderRadius: 12, borderWidth: 1, borderColor: colors.border, minHeight: 30, paddingHorizontal: 6 },
   voiceLabel: { color: colors.primaryPressed, fontSize: 11, fontFamily: typography.fontFamily },
   searchControl: { minHeight: 40, justifyContent: "center", width: 26, alignItems: "center" },

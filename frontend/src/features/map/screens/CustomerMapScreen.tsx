@@ -84,6 +84,7 @@ export function CustomerMapScreen() {
       </MapView>
       <View pointerEvents="box-none" style={[styles.controls, { paddingTop: insets.top + 10 }]}>
         <MapControls filters={map.filters} location={map.location} resultCount={map.technicians.length}
+          onAccount={() => navigation.navigate("CustomerAccount")}
           onNotifications={() => navigation.navigate("CustomerNotifications")}
           onTechnicianMode={() => switchRole(UserRole.Technician)} onVoice={requestRepair}
           setAvailableOnly={map.setAvailableOnly} setCategoryId={map.setCategoryId}
