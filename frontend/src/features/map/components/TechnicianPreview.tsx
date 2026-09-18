@@ -1,5 +1,6 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { ReactNode } from "react";
+import { Ionicons } from "@expo/vector-icons";
 
 import type { Technician } from "../../../domain/models/technician";
 import { Badge, Button } from "../../../shared/components";
@@ -9,14 +10,18 @@ import { colors, radius, shadows, spacing, typography } from "../../../shared/th
 interface TechnicianPreviewProps {
   onProfile(): void;
   onRepairRequest(): void;
+  onDismiss?(): void;
   technician: Technician;
   actionLabel?: string;
   children?: ReactNode;
 }
 
-export function TechnicianPreview({ onProfile, onRepairRequest, technician, actionLabel = uiText.map.repairRequest, children }: TechnicianPreviewProps) {
+export function TechnicianPreview({ onProfile, onRepairRequest, onDismiss, technician, actionLabel = uiText.map.repairRequest, children }: TechnicianPreviewProps) {
   return (
     <View style={styles.card}>
+      <Pressable accessibilityLabel="إغلاق معلومات الفني" onPress={onDismiss} style={styles.closeButton}>
+        <Ionicons color="#A9B4BF" name="close" size={17} />
+      </Pressable>
       <View style={styles.header}>
         <View style={styles.avatar}><Text style={styles.avatarText}>{technician.name.slice(0, 1)}</Text></View>
         <View style={styles.identity}>
@@ -46,7 +51,8 @@ export function TechnicianPreview({ onProfile, onRepairRequest, technician, acti
 }
 
 const styles = StyleSheet.create({
-  card: { ...shadows.raised, backgroundColor: colors.background, borderColor: colors.border, borderRadius: 16, borderWidth: 1, padding: spacing.md },
+  card: { ...shadows.raised, backgroundColor: colors.background, borderColor: colors.border, borderRadius: 16, borderWidth: 1, padding: spacing.md, paddingTop: spacing.sm },
+  closeButton: { alignItems: "center", alignSelf: "flex-start", backgroundColor: colors.surface, borderRadius: radius.round, height: 24, justifyContent: "center", marginBottom: -4, width: 24 },
   header: { alignItems: "center", flexDirection: "row-reverse", gap: spacing.sm },
   avatar: { alignItems: "center", backgroundColor: colors.primary, borderRadius: radius.lg, height: 56, justifyContent: "center", width: 56 },
   avatarText: { color: colors.neutral, fontSize: typography.size.lg, fontWeight: typography.weight.bold },

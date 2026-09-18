@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import type { CustomerLocation } from "../../../domain/models/location";
 import type { ServiceCategoryId } from "../../../domain/models/technician";
@@ -32,15 +32,19 @@ export function MapControls({
 }: MapControlsProps) {
   return (
     <View style={styles.container}>
-      <View style={styles.locationRow}>
-        <View style={styles.locationIcon}>
-          <Ionicons color={colors.primaryPressed} name="location" size={18} />
+      <View style={styles.topRow}>
+        <Pressable style={styles.modeButton}>
+          <Ionicons color={colors.primaryPressed} name="swap-horizontal" size={14} />
+          <Text style={styles.modeLabel}>وضع الفني</Text>
+        </Pressable>
+        <Pressable accessibilityLabel="التنبيهات" style={styles.notificationButton}>
+          <Ionicons color={colors.textMuted} name="notifications-outline" size={18} />
+          <View style={styles.notificationDot} />
+        </Pressable>
+        <View style={styles.locationPill}>
+          <Text numberOfLines={1} style={styles.locationLabel}>{location.label || "القدس"}</Text>
+          <Ionicons color={colors.primaryPressed} name="location" size={15} />
         </View>
-        <View style={styles.locationText}>
-          <Text style={styles.eyebrow}>{location.source === "device" ? uiText.map.currentLocation : uiText.map.demoLocation}</Text>
-          <Text numberOfLines={1} style={styles.locationLabel}>{location.label}</Text>
-        </View>
-        <Text style={styles.resultCount}>{resultCount} {uiText.map.techniciansFound}</Text>
       </View>
 
       <View style={styles.searchBox}>
@@ -90,22 +94,27 @@ export function MapControls({
 
 const styles = StyleSheet.create({
   container: { backgroundColor: colors.background, gap: spacing.sm, paddingHorizontal: spacing.md, paddingBottom: spacing.sm },
-  locationRow: {
+  topRow: { alignItems: "center", flexDirection: "row-reverse", gap: spacing.sm, justifyContent: "space-between" },
+  modeButton: { alignItems: "center", backgroundColor: colors.secondary, borderRadius: radius.round, flexDirection: "row-reverse", gap: 4, paddingHorizontal: 10, paddingVertical: 7 },
+  modeLabel: { color: colors.invertedText, fontFamily: typography.fontFamily, fontSize: 11, fontWeight: typography.weight.bold, writingDirection: "rtl" },
+  notificationButton: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.round, height: 32, justifyContent: "center", width: 32 },
+  notificationDot: { backgroundColor: colors.primary, borderColor: colors.background, borderRadius: radius.round, borderWidth: 1, height: 7, position: "absolute", right: 5, top: 5, width: 7 },
+  locationPill: {
     ...shadows.subtle,
     alignItems: "center",
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
     borderColor: colors.border,
-    borderRadius: radius.lg,
+    borderRadius: radius.round,
     borderWidth: 1,
+    flex: 1,
     flexDirection: "row-reverse",
     gap: spacing.sm,
-    padding: spacing.sm
+    justifyContent: "center",
+    maxWidth: 150,
+    paddingHorizontal: 10,
+    paddingVertical: 7
   },
-  locationIcon: { alignItems: "center", backgroundColor: "#F5E6BE", borderRadius: radius.md, height: 36, justifyContent: "center", width: 36 },
-  locationText: { flex: 1 },
-  eyebrow: { color: colors.primaryPressed, fontFamily: typography.fontFamily, fontSize: typography.size.xs, fontWeight: typography.weight.bold, textAlign: "right" },
-  locationLabel: { color: colors.text, fontFamily: typography.fontFamily, fontSize: typography.size.sm, textAlign: "right", writingDirection: "rtl" },
-  resultCount: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: typography.size.xs, textAlign: "left" },
+  locationLabel: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 11, fontWeight: typography.weight.bold, textAlign: "right", writingDirection: "rtl" },
   searchBox: {
     ...shadows.subtle,
     alignItems: "center",

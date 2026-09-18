@@ -83,10 +83,23 @@ export function CustomerMapScreen() {
       {map.selectedTechnician ? (
         <View style={styles.preview}>
           <TechnicianPreview
+            onDismiss={() => map.selectTechnician(undefined)}
             onProfile={() => navigation.navigate("CustomerTechnicianProfile", { technicianId: map.selectedTechnician!.id })}
             onRepairRequest={() => navigation.navigate("CustomerRepairRequest", { technicianId: map.selectedTechnician!.id })}
             technician={map.selectedTechnician}
           />
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => navigation.navigate("CustomerRepairRequest", { technicianId: map.selectedTechnician!.id })}
+            style={({ pressed }) => [styles.aiCta, pressed && styles.aiCtaPressed]}
+          >
+            <Ionicons color={colors.primary} name="mic" size={18} />
+            <View style={styles.aiCtaCopy}>
+              <Text style={styles.aiCtaTitle}>احكِ المشكلة بصوتك أو صوّرها</Text>
+              <Text style={styles.aiCtaSubtitle}>تشخيص ذكي وسعر عادل من أقرب فني</Text>
+            </View>
+            <Ionicons color={colors.primary} name="arrow-back" size={18} />
+          </Pressable>
         </View>
       ) : null}
 
@@ -116,7 +129,12 @@ const styles = StyleSheet.create({
   state: { ...shadows.subtle, alignSelf: "center", backgroundColor: colors.background, borderRadius: radius.md, marginTop: spacing.lg },
   empty: { ...shadows.subtle, alignSelf: "center", backgroundColor: colors.background, borderRadius: radius.md, margin: spacing.md, padding: spacing.md },
   emptyText: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: typography.size.sm, textAlign: "center", writingDirection: "rtl" },
-  preview: { bottom: spacing.md, left: spacing.sm, position: "absolute", right: spacing.sm, zIndex: 25 },
+  preview: { bottom: spacing.md, gap: spacing.sm, left: spacing.sm, position: "absolute", right: spacing.sm, zIndex: 25 },
+  aiCta: { alignItems: "center", backgroundColor: colors.secondary, borderRadius: radius.lg, flexDirection: "row-reverse", gap: spacing.sm, minHeight: 54, paddingHorizontal: spacing.md },
+  aiCtaPressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },
+  aiCtaCopy: { flex: 1 },
+  aiCtaTitle: { color: colors.invertedText, fontFamily: typography.fontFamily, fontSize: 12, fontWeight: typography.weight.bold, textAlign: "right", writingDirection: "rtl" },
+  aiCtaSubtitle: { color: "#EFD477", fontFamily: typography.fontFamily, fontSize: 10, marginTop: 2, textAlign: "right", writingDirection: "rtl" },
   quickActions: { alignItems: "center", left: 0, position: "absolute", right: 0 },
   actionStack: { alignItems: "center", gap: spacing.sm, marginBottom: spacing.sm },
   quickAction: { ...shadows.raised, alignItems: "center", backgroundColor: colors.background, borderColor: colors.border, borderRadius: radius.md, borderWidth: 1, flexDirection: "row-reverse", gap: spacing.sm, minHeight: 46, paddingHorizontal: spacing.md },
