@@ -8,7 +8,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { CustomerStackParamList } from "../../../app/navigation/navigation.types";
-import { chatRepository } from "../../../demo/adapters/demoChatRepository";
+import { customerChatRepository as chatRepository } from "../../../services/repositories";
 import { demoTechnicians } from "../../../demo/fixtures/technicians";
 import type { ChatMessage } from "../../../domain/contracts/chatRepository";
 import { ErrorState, LoadingState } from "../../../shared/components";

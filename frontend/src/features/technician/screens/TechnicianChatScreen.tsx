@@ -8,7 +8,7 @@ import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleShee
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { TechnicianStackParamList } from "../../../app/navigation/navigation.types";
-import { chatRepository } from "../../../demo/adapters/demoChatRepository";
+import { technicianChatRepository as chatRepository } from "../../../services/repositories";
 import type { ChatMessage } from "../../../domain/contracts/chatRepository";
 import { colors, shadows, typography } from "../../../shared/theme";
 
@@ -31,7 +31,7 @@ export function TechnicianChatScreen({ route, navigation }: NativeStackScreenPro
       Alert.alert("حماية الخصوصية", "لا يمكن مشاركة رقم هاتف أو طلب تواصل خارج عَمِّرها. أرسل كل التفاصيل والاتفاقات داخل المحادثة.");
       return;
     }
-    const stored = await chatRepository.sendAs(route.params.conversationId, value, "technician");
+    const stored = await chatRepository.send(route.params.conversationId, value);
     setMessages((current) => [...(current ?? []), stored]);
     setText("");
     requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));

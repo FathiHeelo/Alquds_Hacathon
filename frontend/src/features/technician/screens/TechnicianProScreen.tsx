@@ -2,11 +2,14 @@ import { LocalizedText } from "../../../shared/i18n/LocalizedText";
 import { createAdaptiveStyleSheet } from "../../../shared/theme/adaptiveStyles";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { TechnicianStackParamList } from "../../../app/navigation/navigation.types";
 import { colors, shadows, typography } from "../../../shared/theme";
+import { appConfig } from "../../../app/config/appConfig";
+import { subscriptionApi } from "../../../services/api/subscriptionApi";
 
 type Props = { navigation: NativeStackNavigationProp<TechnicianStackParamList, "TechnicianPro"> };
 
@@ -19,15 +22,17 @@ const features = [
 ] as const;
 
 export function TechnicianProScreen({ navigation }: Props) {
+  const [isPro, setIsPro] = useState(true);
+  useEffect(() => { if (!appConfig.demoMode) void subscriptionApi.getMine().then((value) => setIsPro(value.isPro)).catch(() => undefined); }, []);
   return <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
     <View style={styles.header}><Pressable onPress={() => navigation.goBack()} style={styles.back}><Ionicons name="arrow-forward" size={18} color="#475569" /></Pressable><LocalizedText style={styles.headerTitle}>عَمِّرها Pro</LocalizedText><View style={styles.space} /></View>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.hero}><View style={styles.crown}><Ionicons name="star" size={29} color="#FCD34D" /></View><LocalizedText style={styles.heroTitle}>تميّز ووصل لطلبات أكثر</LocalizedText><LocalizedText style={styles.heroText}>أدوات مهنية تزيد ظهورك وتساعدك ترسل عروض أوضح وأسرع.</LocalizedText><View style={styles.priceRow}><LocalizedText style={styles.price}>49</LocalizedText><View><LocalizedText style={styles.currency}>₪ / شهر</LocalizedText><LocalizedText style={styles.cancel}>إلغاء في أي وقت</LocalizedText></View></View></View>
-      <View style={styles.active}><Ionicons name="checkmark-circle" size={19} color="#047857" /><View style={styles.activeCopy}><LocalizedText style={styles.activeTitle}>اشتراكك Pro فعّال</LocalizedText><LocalizedText style={styles.activeText}>يتجدد في 18 تشرين الأول 2026</LocalizedText></View><View style={styles.badge}><LocalizedText style={styles.badgeText}>PRO</LocalizedText></View></View>
+      <View style={styles.active}><Ionicons name={isPro ? "checkmark-circle" : "information-circle"} size={19} color="#047857" /><View style={styles.activeCopy}><LocalizedText style={styles.activeTitle}>{isPro ? "اشتراكك Pro فعّال" : "الخطة المجانية فعّالة"}</LocalizedText><LocalizedText style={styles.activeText}>{isPro ? "المساعد الذكي متاح لحسابك" : "فعّل Pro للوصول إلى مساعد العروض"}</LocalizedText></View><View style={styles.badge}><LocalizedText style={styles.badgeText}>{isPro ? "PRO" : "FREE"}</LocalizedText></View></View>
       <LocalizedText style={styles.sectionTitle}>شو بتحصل مع Pro؟</LocalizedText>
       <View style={styles.table}><View style={styles.tableHead}><LocalizedText style={[styles.headText, styles.featureCol]}>الميزة</LocalizedText><LocalizedText style={styles.headText}>Pro</LocalizedText><LocalizedText style={styles.headText}>عادي</LocalizedText></View>{features.map(([label, pro, regular], index) => <View key={label} style={[styles.row, index === features.length - 1 && styles.last]}><LocalizedText style={[styles.rowText, styles.featureCol]}>{label}</LocalizedText><Ionicons name={pro ? "checkmark-circle" : "close-circle"} size={18} color={pro ? "#047857" : "#CBD5E1"} /><Ionicons name={regular ? "checkmark-circle" : "close-circle"} size={18} color={regular ? "#047857" : "#CBD5E1"} /></View>)}</View>
       <View style={styles.tip}><Ionicons name="sparkles" size={18} color="#8C6D14" /><LocalizedText style={styles.tipText}>حسب تصميم Stitch، المساعد الذكي يقترح تشخيصاً وسعراً عادلاً ورسالة عرض جاهزة.</LocalizedText></View>
-      <Pressable onPress={() => navigation.navigate("TechnicianAiAssistant", { requestId: "old_city_plumbing_leak", isPro: true })} style={styles.primary}><Ionicons name="sparkles" size={18} color={colors.text} /><LocalizedText style={styles.primaryText}>جرّب المساعد الذكي</LocalizedText></Pressable>
+      <Pressable onPress={() => isPro ? navigation.navigate("TechnicianAiAssistant", { requestId: "old_city_plumbing_leak", isPro: true }) : Alert.alert("عَمِّرها Pro", "مساعد العروض الذكي متاح لمشتركي Pro.")} style={styles.primary}><Ionicons name="sparkles" size={18} color={colors.text} /><LocalizedText style={styles.primaryText}>جرّب المساعد الذكي</LocalizedText></Pressable>
       <Pressable onPress={() => Alert.alert("إدارة الاشتراك", "اشتراكك فعّال. يمكنك تغيير وسيلة الدفع أو إيقاف التجديد من هنا.")} style={styles.secondary}><LocalizedText style={styles.secondaryText}>إدارة الاشتراك والدفع</LocalizedText></Pressable>
     </ScrollView>
   </SafeAreaView>;

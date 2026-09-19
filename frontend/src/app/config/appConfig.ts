@@ -10,8 +10,9 @@ function readAiMode(value: string | undefined): AiMode {
 }
 
 export const appConfig = Object.freeze({
-  apiUrl: process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000",
+  apiBaseUrl: (process.env.EXPO_PUBLIC_API_BASE_URL ?? process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000/api/v1").replace(/\/$/, ""),
   aiMode: readAiMode(process.env.EXPO_PUBLIC_AI_MODE),
   demoMode: readBoolean(process.env.EXPO_PUBLIC_DEMO_MODE, true),
+  apiFallbackToDemo: readBoolean(process.env.EXPO_PUBLIC_API_FALLBACK_TO_DEMO, true),
   logLevel: process.env.EXPO_PUBLIC_LOG_LEVEL ?? "info"
 });

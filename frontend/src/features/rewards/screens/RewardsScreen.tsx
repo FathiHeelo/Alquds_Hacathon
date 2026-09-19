@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { rewardRepository } from "../../../demo/adapters/demoRewardRepository";
+import { rewardRepository } from "../../../services/repositories";
 import type { Reward, RewardAccount } from "../../../domain/models/reward";
 import { LoadingState } from "../../../shared/components";
 import { useI18n } from "../../../shared/i18n/I18nProvider";

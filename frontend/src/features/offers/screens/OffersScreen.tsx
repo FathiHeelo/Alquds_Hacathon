@@ -3,7 +3,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Text, View } from "react-native";
 import type { CustomerStackParamList } from "../../../app/navigation/navigation.types";
 import { Button, EmptyState, ErrorState, LoadingState, ScreenContainer } from "../../../shared/components";
-import { DemoTechnicianRepository } from "../../../demo/adapters/DemoTechnicianRepository";
+import { technicianRepository } from "../../../services/repositories";
 import { aiStyles, PriceCard } from "../../ai-diagnosis/components/AiResults";
 import { useOffers } from "../hooks/useOffers";
 import { OfferCard } from "../components/OfferCard";
@@ -15,7 +15,7 @@ import { repairRequestRepository } from "../../repair-request/services/requestSe
 
 export function OffersScreen({ route, navigation }: NativeStackScreenProps<CustomerStackParamList, "CustomerOffersEntry">) {
   const state = useOffers(route.params.requestId); const [request, setRequest] = useState<RepairRequest>(); const [technicians, setTechnicians] = useState<readonly Technician[]>([]);
-  useEffect(() => { void repairRequestRepository.getRequest(route.params.requestId).then(setRequest); void new DemoTechnicianRepository().findNearby({ latitude: 31.78, longitude: 35.23 }).then(setTechnicians); }, [route.params.requestId]);
+  useEffect(() => { void repairRequestRepository.getRequest(route.params.requestId).then(setRequest); void technicianRepository.findNearby({ latitude: 31.78, longitude: 35.23 }).then(setTechnicians); }, [route.params.requestId]);
   const fairPrice = request?.category === "plumbing" ? { min: 110, max: 150 } : undefined;
   return <ScreenContainer><LocalizedText style={[aiStyles.text, aiStyles.title]}>العروض المتاحة ({state.offers.length})</LocalizedText>
     {fairPrice ? <View style={{ marginVertical: 16 }}><PriceCard result={{ ...fairPrice, currency: "ILS", rationale: "بحسب سياق السعر العادل من التشخيص." }} /></View> : <LocalizedText style={aiStyles.text}>السعر العادل غير متاح لهذا الطلب.</LocalizedText>}

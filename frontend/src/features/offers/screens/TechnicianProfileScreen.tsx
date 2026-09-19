@@ -7,8 +7,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { CustomerStackParamList } from "../../../app/navigation/navigation.types";
-import { DemoTechnicianRepository } from "../../../demo/adapters/DemoTechnicianRepository";
-import { reviewRepository } from "../../../demo/adapters/demoReviewRepository";
+import { reviewRepository, technicianRepository } from "../../../services/repositories";
 import type { Review } from "../../../domain/models/review";
 import type { Technician } from "../../../domain/models/technician";
 import { ErrorState, LoadingState } from "../../../shared/components";
@@ -25,7 +24,7 @@ export function TechnicianProfileScreen({ route, navigation }: Props) {
   const [reviews, setReviews] = useState<readonly Review[]>([]);
 
   useEffect(() => {
-    void new DemoTechnicianRepository().getById(route.params.technicianId).then(setTechnician);
+    void technicianRepository.getById(route.params.technicianId).then(setTechnician);
     void reviewRepository.getForTechnician(route.params.technicianId).then(setReviews);
   }, [route.params.technicianId]);
 

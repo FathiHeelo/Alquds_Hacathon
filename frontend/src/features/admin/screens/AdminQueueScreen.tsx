@@ -3,7 +3,7 @@ import { createAdaptiveStyleSheet } from "../../../shared/theme/adaptiveStyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -11,6 +11,7 @@ import type { AdminStackParamList } from "../../../app/navigation/navigation.typ
 import { colors, shadows, typography } from "../../../shared/theme";
 import { adminCases, type AdminCaseKind } from "../adminData";
 import { AdminHeader } from "../components/AdminHeader";
+import { applyAdminDecision, loadAdminCases } from "../services/adminIntegration";
 
 type Kind = "verification" | "reports" | "risk";
 type Navigation = NativeStackNavigationProp<AdminStackParamList>;
@@ -25,8 +26,10 @@ export function AdminQueueScreen({ kind }: { kind: Kind }) {
   const details = config[kind];
   const [filter, setFilter] = useState<"all" | "open" | "resolved">("all");
   const [statuses, setStatuses] = useState<Record<string, string>>({});
-  const data = useMemo(() => adminCases.filter((item) => item.kind === details.kind).filter((item) => filter === "all" || (filter === "resolved" ? Boolean(statuses[item.id]) : !statuses[item.id])), [details.kind, filter, statuses]);
-  const act = (id: string, value: string) => { setStatuses((current) => ({ ...current, [id]: value })); Alert.alert("تم توثيق الإجراء", value); };
+  const [cases, setCases] = useState(() => adminCases.filter((item) => item.kind === details.kind));
+  useEffect(() => { void loadAdminCases(kind).then((value) => setCases([...value])); }, [kind]);
+  const data = useMemo(() => cases.filter((item) => filter === "all" || (filter === "resolved" ? Boolean(statuses[item.id]) : !statuses[item.id])), [cases, filter, statuses]);
+  const act = (id: string, value: string) => { void applyAdminDecision(kind, id, true).then(() => { setStatuses((current) => ({ ...current, [id]: value })); Alert.alert("تم توثيق الإجراء", value); }).catch(() => Alert.alert("تعذر تنفيذ الإجراء", "تحقق من اتصال الخادم وحاول مرة أخرى.")); };
   return <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
     <AdminHeader title={details.title} subtitle={details.subtitle} onBack={() => navigation.goBack()} />
     <View style={styles.summary}><View style={[styles.summaryIcon, { backgroundColor: `${details.color}18` }]}><Ionicons name={details.icon} size={23} color={details.color} /></View><View style={styles.summaryCopy}><LocalizedText style={styles.summaryValue}>{adminCases.filter((item) => item.kind === details.kind).length}</LocalizedText><LocalizedText style={styles.summaryLabel}>حالات في الطابور</LocalizedText></View><View style={styles.summaryMetric}><LocalizedText style={styles.summaryMetricValue}>{kind === "risk" ? "98.2%" : kind === "verification" ? "14 د" : "22 د"}</LocalizedText><LocalizedText style={styles.summaryMetricLabel}>{kind === "risk" ? "مؤشر الأمان" : "متوسط الاستجابة"}</LocalizedText></View></View>

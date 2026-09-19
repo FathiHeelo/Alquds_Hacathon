@@ -35,4 +35,6 @@ export const auditEntries = [
   { action: "إغلاق بلاغ عميل", actor: "فريق السلامة", target: "البلاغ AM-2387", time: "أمس • 2:05 م", color: "#1D4ED8" }
 ] as const;
 
-export function getAdminCase(id: string) { return adminCases.find((item) => item.id === id); }
+let apiCases: readonly AdminCase[] = [];
+export function cacheAdminCases(items: readonly AdminCase[]) { apiCases = items; }
+export function getAdminCase(id: string) { return apiCases.find((item) => item.id === id) ?? adminCases.find((item) => item.id === id); }

@@ -2,16 +2,19 @@ import { LocalizedText } from "../../../shared/i18n/LocalizedText";
 import { createAdaptiveStyleSheet } from "../../../shared/theme/adaptiveStyles";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { CustomerStackParamList } from "../../../app/navigation/navigation.types";
 import { colors, shadows, typography } from "../../../shared/theme";
+import { notificationRepository } from "../../../services/repositories";
 
 type Props = NativeStackScreenProps<CustomerStackParamList, "CustomerNotifications">;
 
-const notifications = [
+type NotificationCardItem = { id: string; icon: "star" | "pricetag" | "bicycle" | "notifications" | "shield-checkmark"; title: string; detail: string; time: string; tone: keyof typeof tones };
+
+const demoNotifications: NotificationCardItem[] = [
   { id: "tracking", icon: "bicycle" as const, title: "طارق في طريقه إليك الآن!", detail: "المسافة المتبقية 400 متر فقط نحو عقبة الخالدية.", time: "منذ 3 دقائق", tone: "gold" as const },
   { id: "reward", icon: "star" as const, title: "مبروك! كسبت 50 نقطة عَمِّرها", detail: "شكراً لتقييمك الصيانة. يمكنك استبدالها بخصم لدى شركائنا.", time: "منذ 25 دقيقة", tone: "green" as const },
   { id: "safety", icon: "shield-checkmark" as const, title: "أمان بيوت القدس أولاً", detail: "أبقِ جميع الاتفاقات المالية داخل تطبيق عَمِّرها لضمان حقك.", time: "أمس", tone: "slate" as const },
@@ -26,9 +29,12 @@ const tones = {
 };
 
 export function NotificationsScreen({ navigation }: Props) {
+  const [notifications, setNotifications] = useState(demoNotifications);
   const [readIds, setReadIds] = useState<string[]>(["safety", "offer"]);
+  useEffect(() => { void notificationRepository.list().then((feed) => { setNotifications(feed.items.map((item) => ({ id: item.id, icon: (item.type === "reward" ? "star" : item.type === "new_offer" ? "pricetag" : item.type === "on_the_way" ? "bicycle" : "notifications") as "star" | "pricetag" | "bicycle" | "notifications", title: item.title, detail: item.body ?? "", time: new Date(item.createdAt).toLocaleString(), tone: (item.type === "reward" ? "green" : item.type === "new_offer" ? "blue" : item.type === "on_the_way" ? "gold" : "slate") as "green" | "blue" | "gold" | "slate" }))); setReadIds(feed.items.filter((item) => item.read).map((item) => item.id)); }).catch(() => undefined); }, []);
   const open = (id: string) => {
     setReadIds((current) => current.includes(id) ? current : [...current, id]);
+    void notificationRepository.markRead(id);
     if (id === "tracking") navigation.navigate("CustomerRequestDetails", { requestId: "old_city_plumbing_leak" });
     if (id === "reward") navigation.navigate("CustomerTabs", { screen: "CustomerRewards" });
     if (id === "offer") navigation.navigate("CustomerOffersEntry", { requestId: "old_city_plumbing_leak" });
@@ -38,7 +44,7 @@ export function NotificationsScreen({ navigation }: Props) {
     <View style={styles.header}>
       <Pressable accessibilityLabel="العودة" onPress={() => navigation.goBack()} style={styles.backButton}><Ionicons name="arrow-forward" size={18} color="#475569" /></Pressable>
       <View style={styles.headerCopy}><LocalizedText style={styles.title}>مركز الإشعارات</LocalizedText><LocalizedText style={styles.subtitle}>كل جديد في طلباتك ومكافآتك</LocalizedText></View>
-      <Pressable onPress={() => setReadIds(notifications.map(({ id }) => id))} style={styles.markRead}><LocalizedText style={styles.markReadText}>قراءة الكل</LocalizedText></Pressable>
+      <Pressable onPress={() => { setReadIds(notifications.map(({ id }) => id)); void notificationRepository.markAllRead(); }} style={styles.markRead}><LocalizedText style={styles.markReadText}>قراءة الكل</LocalizedText></Pressable>
     </View>
 
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -52,7 +58,7 @@ export function NotificationsScreen({ navigation }: Props) {
   </SafeAreaView>;
 }
 
-function NotificationCard({ item, read, onPress }: { item: (typeof notifications)[number]; read: boolean; onPress(): void }) {
+function NotificationCard({ item, read, onPress }: { item: NotificationCardItem; read: boolean; onPress(): void }) {
   const tone = tones[item.tone];
   return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.card, { backgroundColor: read ? "white" : tone.background, borderColor: tone.border }, pressed && styles.pressed]}>
     <View style={[styles.icon, { backgroundColor: tone.iconBackground }]}><Ionicons name={item.icon} size={20} color={tone.icon} /></View>
