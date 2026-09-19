@@ -1,12 +1,13 @@
 import type { AiService } from "./AiService";
 import { createSimulationAiService } from "./simulationAiService";
+import { structureVoiceRequest as structureVoiceRequestWithEngine } from "../engines/voice/voiceEngine";
 
 export function createMockAiService(): AiService {
   const simulation = createSimulationAiService();
 
   return {
-    structureVoiceRequest: (input) =>
-      simulation.structureVoiceRequest(input),
+    structureVoiceRequest: async (input) =>
+        structureVoiceRequestWithEngine(input),
 
     diagnoseProblem: (input) =>
       simulation.diagnoseProblem(input),
