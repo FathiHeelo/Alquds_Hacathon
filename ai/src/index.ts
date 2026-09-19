@@ -1,3 +1,4 @@
+export { createMockAiService } from "./services/MockAiService";
 export type { AiService } from "./services/AiService";
 export { createSimulationAiService } from "./services/simulationAiService";
 export type { DiagnosisInput, DiagnosisResult } from "./contracts/diagnosis.types";
