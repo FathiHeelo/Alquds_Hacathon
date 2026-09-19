@@ -1,2 +1,2 @@
-export interface Reward { id: string; partner: string; title: string; description: string; pointsCost: number; }
-export interface RewardAccount { balance: number; history: { id: string; label: string; points: number }[]; }
+export interface Reward { id: string; partnerKey: string; titleKey: string; descriptionKey: string; categoryKey: string; benefitKey: string; pointsCost: number; }
+export interface RewardAccount { balance: number; history: { id: string; labelKey: string; points: number }[]; }

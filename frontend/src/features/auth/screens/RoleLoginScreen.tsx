@@ -4,27 +4,32 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useDemoSession } from "../../../app/providers/DemoSessionProvider";
 import { UserRole, type UserRole as UserRoleValue } from "../../../domain/enums/status";
-import { colors, shadows, typography } from "../../../shared/theme";
+import { useI18n } from "../../../shared/i18n/I18nProvider";
+import { shadows, typography, useTheme } from "../../../shared/theme";
 
-const roles: ReadonlyArray<{ role: UserRoleValue; title: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap; color: string; background: string }> = [
-  { role: UserRole.Customer, title: "الدخول كعميل", subtitle: "اطلب صيانة وتابع الفني والعروض", icon: "person", color: "#8C6D14", background: "#FFF4C8" },
-  { role: UserRole.Technician, title: "الدخول كفني", subtitle: "شاهد الطلبات وأعمالك ورسائلك", icon: "construct", color: "#047857", background: "#D1FAE5" },
-  { role: UserRole.Admin, title: "الدخول للإدارة", subtitle: "راقب المنصة والتوثيق والمخاطر", icon: "shield-checkmark", color: "#BE123C", background: "#FFF1F2" }
+const roles: ReadonlyArray<{ role: UserRoleValue; titleKey: string; subtitleKey: string; icon: keyof typeof Ionicons.glyphMap }> = [
+  { role: UserRole.Customer, titleKey: "login.customer", subtitleKey: "login.customerHint", icon: "person" },
+  { role: UserRole.Technician, titleKey: "login.technician", subtitleKey: "login.technicianHint", icon: "construct" },
+  { role: UserRole.Admin, titleKey: "login.admin", subtitleKey: "login.adminHint", icon: "shield-checkmark" }
 ];
 
 export function RoleLoginScreen() {
   const { switchRole } = useDemoSession();
-  return <SafeAreaView style={styles.safe}>
+  const { t, isRTL } = useI18n();
+  const { theme, textScale, isHighContrast, reduceMotion } = useTheme();
+  const direction = isRTL ? "row-reverse" : "row";
+  const align = isRTL ? "right" : "left";
+  return <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <View style={styles.brand}><Image source={require("../../../../assets/brand/ammerha-logo.png")} style={styles.logo} /><Text style={styles.welcome}>أهلاً بك في عَمِّرها</Text><Text style={styles.tagline}>من قلب القدس نبنيها بأيدينا</Text></View>
-      <View style={styles.panel}><Text style={styles.title}>اختر طريقة الدخول</Text><Text style={styles.subtitle}>نسخة العرض لا تحتاج كلمة مرور أو إنشاء حساب</Text>
-        <View style={styles.roles}>{roles.map((item) => <Pressable accessibilityRole="button" key={item.role} onPress={() => switchRole(item.role)} style={({ pressed }) => [styles.role, pressed && styles.pressed]}><View style={[styles.roleIcon, { backgroundColor: item.background }]}><Ionicons name={item.icon} size={25} color={item.color} /></View><View style={styles.roleCopy}><Text style={styles.roleTitle}>{item.title}</Text><Text style={styles.roleSubtitle}>{item.subtitle}</Text></View><Ionicons name="arrow-back" size={19} color="#94A3B8" /></Pressable>)}</View>
+      <View style={styles.brand}><Image accessibilityLabel="AMMERHA" source={require("../../../../assets/brand/ammerha-logo.png")} style={styles.logo} /><Text style={[styles.welcome, { color: theme.text, fontSize: 23 * textScale }]}>{t("login.welcome")}</Text><Text style={[styles.tagline, { color: theme.primaryPressed, fontSize: 10 * textScale }]}>{t("login.tagline")}</Text></View>
+      <View style={[styles.panel, { backgroundColor: theme.cardBackground, borderColor: theme.border, borderWidth: isHighContrast ? 2 : 1 }]}><Text style={[styles.title, { color: theme.text, fontSize: 17 * textScale, textAlign: align }]}>{t("login.choose")}</Text><Text style={[styles.subtitle, { color: theme.textMuted, fontSize: 9 * textScale, textAlign: align }]}>{t("login.noAuth")}</Text>
+        <View style={styles.roles}>{roles.map((item) => <Pressable accessibilityHint={t(item.subtitleKey)} accessibilityLabel={t(item.titleKey)} accessibilityRole="button" key={item.role} onPress={() => switchRole(item.role)} style={({ pressed }) => [styles.role, { backgroundColor: theme.surfaceElevated, borderColor: theme.border, borderWidth: isHighContrast ? 2 : 1, flexDirection: direction }, pressed && { opacity: 0.72, transform: reduceMotion ? undefined : [{ scale: 0.985 }] }]}><View style={[styles.roleIcon, { backgroundColor: theme.primarySoft }]}><Ionicons name={item.icon} size={25} color={theme.primaryPressed} /></View><View style={styles.roleCopy}><Text style={[styles.roleTitle, { color: theme.text, fontSize: 12 * textScale, textAlign: align }]}>{t(item.titleKey)}</Text><Text style={[styles.roleSubtitle, { color: theme.textMuted, fontSize: 8 * textScale, textAlign: align }]}>{t(item.subtitleKey)}</Text></View><Ionicons name={isRTL ? "arrow-back" : "arrow-forward"} size={19} color={theme.textMuted} /></Pressable>)}</View>
       </View>
-      <View style={styles.safeNote}><Ionicons name="sparkles" size={15} color="#8C6D14" /><Text style={styles.safeText}>اختر أي دور لتجربة صفحاته مباشرة.</Text></View>
+      <View style={[styles.safeNote, { backgroundColor: theme.primarySoft, flexDirection: direction }]}><Ionicons name="sparkles" size={15} color={theme.primaryPressed} /><Text style={[styles.safeText, { color: theme.primaryPressed, fontSize: 8 * textScale }]}>{t("login.hint")}</Text></View>
     </ScrollView>
   </SafeAreaView>;
 }
 
 const styles = StyleSheet.create({
-  safe: { backgroundColor: "#F8F7F4", flex: 1 }, content: { flexGrow: 1, justifyContent: "center", padding: 20 }, brand: { alignItems: "center", marginBottom: 18 }, logo: { height: 150, resizeMode: "contain", width: 150 }, welcome: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 23, fontWeight: "800", marginTop: 4 }, tagline: { color: "#A17A16", fontFamily: typography.fontFamily, fontSize: 10, marginTop: 3 }, panel: { ...shadows.raised, backgroundColor: "white", borderColor: "#ECE7DC", borderRadius: 24, borderWidth: 1, padding: 15 }, title: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 17, fontWeight: "800", textAlign: "right" }, subtitle: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 9, marginTop: 3, textAlign: "right" }, roles: { gap: 9, marginTop: 15 }, role: { alignItems: "center", backgroundColor: "#FBFBFA", borderColor: "#ECE7DC", borderRadius: 16, borderWidth: 1, flexDirection: "row-reverse", gap: 10, minHeight: 76, padding: 11 }, pressed: { opacity: 0.72, transform: [{ scale: 0.985 }] }, roleIcon: { alignItems: "center", borderRadius: 13, height: 48, justifyContent: "center", width: 48 }, roleCopy: { flex: 1 }, roleTitle: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 12, fontWeight: "800", textAlign: "right" }, roleSubtitle: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 8, lineHeight: 14, marginTop: 3, textAlign: "right" }, safeNote: { alignItems: "center", alignSelf: "center", backgroundColor: "#FFF8E3", borderRadius: 11, flexDirection: "row-reverse", gap: 5, marginTop: 14, paddingHorizontal: 11, paddingVertical: 8 }, safeText: { color: "#8C6D14", fontFamily: typography.fontFamily, fontSize: 8 }
+  safe: { flex: 1 }, content: { flexGrow: 1, justifyContent: "center", padding: 20 }, brand: { alignItems: "center", marginBottom: 18 }, logo: { height: 150, resizeMode: "contain", width: 150 }, welcome: { fontFamily: typography.fontFamily, fontWeight: "800", marginTop: 4 }, tagline: { fontFamily: typography.fontFamily, marginTop: 3 }, panel: { ...shadows.raised, borderRadius: 24, padding: 15 }, title: { fontFamily: typography.fontFamily, fontWeight: "800" }, subtitle: { fontFamily: typography.fontFamily, marginTop: 3 }, roles: { gap: 9, marginTop: 15 }, role: { alignItems: "center", borderRadius: 16, gap: 10, minHeight: 76, padding: 11 }, pressed: { opacity: 0.72 }, roleIcon: { alignItems: "center", borderRadius: 13, height: 48, justifyContent: "center", width: 48 }, roleCopy: { flex: 1 }, roleTitle: { fontFamily: typography.fontFamily, fontWeight: "800" }, roleSubtitle: { fontFamily: typography.fontFamily, lineHeight: 14, marginTop: 3 }, safeNote: { alignItems: "center", alignSelf: "center", borderRadius: 11, gap: 5, marginTop: 14, paddingHorizontal: 11, paddingVertical: 8 }, safeText: { fontFamily: typography.fontFamily }
 });

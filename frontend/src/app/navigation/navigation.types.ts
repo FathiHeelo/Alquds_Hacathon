@@ -21,6 +21,7 @@ export type CustomerStackParamList = {
   CustomerNotifications: undefined;
   CustomerChat: { jobId: string; requestId: string; technicianId: string };
   CustomerRequestDetails: { requestId: string };
+  CustomerSettings: undefined;
 };
 
 export type TechnicianTabParamList = {
@@ -40,6 +41,7 @@ export type TechnicianStackParamList = {
   TechnicianChat: { conversationId: string; requestId: string; customerName: string; problem: string };
   TechnicianJobDetails: { jobId: string };
   TechnicianAccountDetail: { section: "earnings" | "services" | "verification" | "settings" | "support" };
+  TechnicianPreferences: undefined;
 };
 
 export type AdminStackParamList = {

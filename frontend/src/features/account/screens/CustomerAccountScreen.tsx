@@ -1,14 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
+import type { CompositeNavigationProp } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import type { CustomerTabParamList } from "../../../app/navigation/navigation.types";
+import type { CustomerStackParamList, CustomerTabParamList } from "../../../app/navigation/navigation.types";
 import { useDemoSession } from "../../../app/providers/DemoSessionProvider";
 import { colors, shadows, typography } from "../../../shared/theme";
 
-type AccountNavigation = BottomTabNavigationProp<CustomerTabParamList, "CustomerAccount">;
+type AccountNavigation = CompositeNavigationProp<BottomTabNavigationProp<CustomerTabParamList, "CustomerAccount">, NativeStackNavigationProp<CustomerStackParamList>>;
 
 const menuItems = [
   { icon: "person-outline", title: "المعلومات الشخصية", subtitle: "الاسم ورقم الهاتف", color: "#8C6D14", background: "#FFF4C8" },
@@ -23,7 +25,7 @@ export function CustomerAccountScreen() {
   const navigation = useNavigation<AccountNavigation>();
   const { logout } = useDemoSession();
   return <SafeAreaView edges={["top"]} style={styles.safe}>
-    <View style={styles.header}><View><Text style={styles.title}>حسابي</Text><Text style={styles.subtitle}>إدارة بياناتك وخدماتك في عَمِّرها</Text></View><Pressable onPress={() => Alert.alert("الإعدادات", "إعدادات الحساب جاهزة للتخصيص.")} style={styles.headerIcon}><Ionicons name="settings-outline" size={21} color={colors.primaryPressed} /></Pressable></View>
+    <View style={styles.header}><View><Text style={styles.title}>حسابي</Text><Text style={styles.subtitle}>إدارة بياناتك وخدماتك في عَمِّرها</Text></View><Pressable accessibilityLabel="إمكانية الوصول والمظهر" accessibilityRole="button" onPress={() => navigation.navigate("CustomerSettings")} style={styles.headerIcon}><Ionicons name="settings-outline" size={21} color={colors.primaryPressed} /></Pressable></View>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.profileCard}>
         <View style={styles.profileGlow} />

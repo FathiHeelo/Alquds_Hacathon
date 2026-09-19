@@ -1,13 +1,14 @@
 import type { PropsWithChildren } from "react";
 import { ScrollView, StyleSheet } from "react-native";
 
-import { colors, spacing } from "../theme";
+import { spacing, useTheme } from "../theme";
 
 export function ScreenContainer({ children }: PropsWithChildren) {
+  const { theme } = useTheme();
   return (
     <ScrollView
       contentContainerStyle={styles.content}
-      style={styles.screen}
+      style={[styles.screen, { backgroundColor: theme.background }]}
       contentInsetAdjustmentBehavior="automatic"
     >
       {children}
@@ -16,6 +17,6 @@ export function ScreenContainer({ children }: PropsWithChildren) {
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: colors.surface, flex: 1 },
+  screen: { flex: 1 },
   content: { flexGrow: 1, padding: spacing.md }
 });

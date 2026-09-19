@@ -6,73 +6,37 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { rewardRepository } from "../../../demo/adapters/demoRewardRepository";
 import type { Reward, RewardAccount } from "../../../domain/models/reward";
 import { LoadingState } from "../../../shared/components";
-import { colors, shadows, typography } from "../../../shared/theme";
+import { useI18n } from "../../../shared/i18n/I18nProvider";
+import { radius, spacing, typography, useTheme } from "../../../shared/theme";
 
-const rewardIcons: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: string; background: string }> = {
-  "reward-electric": { icon: "flash", color: "#A16207", background: "#FEF3C7" },
-  "reward-plumbing": { icon: "water", color: "#1D4ED8", background: "#DBEAFE" },
-  "reward-stone": { icon: "business", color: "#57534E", background: "#E7E5E4" }
-};
+const rewardIcons: Record<string, keyof typeof Ionicons.glyphMap> = { "reward-electric": "flash", "reward-plumbing": "water", "reward-stone": "business", "reward-tools": "hammer" };
 
 export function RewardsScreen() {
   const [account, setAccount] = useState<RewardAccount>();
   const [rewards, setRewards] = useState<readonly Reward[]>([]);
-
-  useEffect(() => {
-    void Promise.all([rewardRepository.getAccount(), rewardRepository.getRewards()]).then(([nextAccount, nextRewards]) => { setAccount(nextAccount); setRewards(nextRewards); });
-  }, []);
-
-  if (!account) return <SafeAreaView style={styles.safe}><LoadingState /></SafeAreaView>;
-
-  const redeem = async (reward: Reward) => {
-    try {
-      setAccount(await rewardRepository.redeem(reward.id));
-      Alert.alert("تم الاستبدال بنجاح", `تمت إضافة قسيمة ${reward.partner} إلى حسابك.`);
-    } catch {
-      Alert.alert("الرصيد غير كافٍ", "أكمل طلبات صيانة وقيّم الفنيين لجمع نقاط إضافية.");
-    }
-  };
-
-  return <SafeAreaView edges={["top"]} style={styles.safe}>
-    <View style={styles.header}><View><Text style={styles.title}>مكافآت القدس</Text><Text style={styles.subtitle}>نقاط عَمِّرها وقسائم الشركاء المحليين</Text></View><View style={styles.headerIcon}><Ionicons name="star" size={21} color={colors.primaryPressed} /></View></View>
+  const { t, isRTL } = useI18n();
+  const { theme, textScale, isHighContrast } = useTheme();
+  const direction = isRTL ? "row-reverse" : "row";
+  const align = isRTL ? "right" : "left";
+  useEffect(() => { void Promise.all([rewardRepository.getAccount(), rewardRepository.getRewards()]).then(([nextAccount, nextRewards]) => { setAccount(nextAccount); setRewards(nextRewards); }); }, []);
+  if (!account) return <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}><LoadingState /></SafeAreaView>;
+  const redeem = async (reward: Reward) => { try { setAccount(await rewardRepository.redeem(reward.id)); Alert.alert(t("rewards.successTitle"), t("rewards.successBody")); } catch { Alert.alert(t("rewards.insufficient"), t("rewards.earnBody")); } };
+  const size = (value: number) => value * textScale;
+  return <SafeAreaView edges={["top"]} style={[styles.safe, { backgroundColor: theme.background }]}>
+    <View style={[styles.header, { flexDirection: direction }]}><View style={styles.headerCopy}><Text style={[styles.title, { color: theme.text, fontSize: size(22), textAlign: align }]}>{t("rewards.title")}</Text><Text style={[styles.subtitle, { color: theme.textMuted, fontSize: size(10), textAlign: align }]}>{t("rewards.subtitle")}</Text></View><View style={[styles.headerIcon, { backgroundColor: theme.primarySoft }]}><Ionicons name="star" size={21} color={theme.primaryPressed} /></View></View>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <View style={styles.balanceCard}>
-        <View style={styles.coinGhost}><Ionicons name="star" size={72} color="rgba(19,42,36,0.12)" /></View>
-        <Text style={styles.balanceLabel}>رصيدك الحالي من نقاط عَمِّرها</Text>
-        <View style={styles.balanceRow}><Text style={styles.balance}>{account.balance}</Text><Text style={styles.balanceUnit}>نقطة ذهبية</Text></View>
-        <Text style={styles.balanceNote}>جمعت 50 نقطة جديدة من تقييم صيانة السباكة بالبلدة القديمة.</Text>
-        <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${Math.min(100, (account.balance / 1000) * 100)}%` }]} /></View>
-        <Text style={styles.progressText}>{1000 - account.balance > 0 ? `باقي ${1000 - account.balance} نقطة لتصل للمستوى الذهبي` : "وصلت للمستوى الذهبي"}</Text>
-      </View>
-
-      <View style={styles.sectionHeading}><View><Text style={styles.sectionTitle}>قسائم خصم في القدس</Text><Text style={styles.sectionSubtitle}>استخدم نقاطك عند شركائنا المعتمدين</Text></View><View style={styles.approved}><Ionicons name="shield-checkmark" size={13} color="#8C6D14" /><Text style={styles.approvedText}>متاجر معتمدة</Text></View></View>
-
-      <View style={styles.rewardsList}>
-        {rewards.map((reward) => {
-          const icon = rewardIcons[reward.id] ?? rewardIcons["reward-stone"];
-          const canRedeem = account.balance >= reward.pointsCost;
-          return <View key={reward.id} style={styles.rewardCard}>
-            <View style={styles.rewardTop}>
-              <View style={[styles.rewardIcon, { backgroundColor: icon.background }]}><Ionicons name={icon.icon} color={icon.color} size={21} /></View>
-              <View style={styles.rewardCopy}><Text style={styles.partner}>{reward.partner}</Text><Text style={styles.rewardTitle}>{reward.title}</Text><Text style={styles.rewardDescription}>{reward.description}</Text></View>
-            </View>
-            <View style={styles.rewardFooter}>
-              <View style={styles.cost}><Ionicons name="star" size={13} color="#B58100" /><Text style={styles.costText}>{reward.pointsCost} نقطة</Text></View>
-              <Pressable disabled={!canRedeem} onPress={() => void redeem(reward)} style={({ pressed }) => [styles.redeemButton, !canRedeem && styles.disabled, pressed && styles.pressed]}><Text style={styles.redeemText}>{canRedeem ? "استبدال" : "نقاط غير كافية"}</Text></Pressable>
-            </View>
-          </View>;
-        })}
-      </View>
-
-      <View style={styles.earnCard}><View style={styles.earnIcon}><Ionicons name="sparkles" size={20} color="#8C6D14" /></View><View style={styles.earnCopy}><Text style={styles.earnTitle}>كيف تجمع نقاطًا أكثر؟</Text><Text style={styles.earnText}>أكمل طلب صيانة واكتب تقييمًا موثوقًا لتحصل على 50 نقطة.</Text></View></View>
+      <View style={[styles.balanceCard, { backgroundColor: theme.primary, borderColor: theme.borderStrong, borderWidth: isHighContrast ? 2 : 0 }]}><Ionicons name="sparkles" size={26} color={theme.textInverse} /><Text style={[styles.balanceLabel, { color: theme.textInverse, fontSize: size(11), textAlign: align }]}>{t("rewards.balance")}</Text><View style={[styles.balanceRow, { flexDirection: direction }]}><Text style={[styles.balance, { color: theme.textInverse, fontSize: size(36) }]}>{account.balance}</Text><Text style={[styles.balanceUnit, { color: theme.textInverse, fontSize: size(12) }]}>{t("rewards.points")}</Text></View></View>
+      <View style={[styles.notice, { backgroundColor: theme.primarySoft, borderColor: theme.border, flexDirection: direction }]}><Ionicons name="information-circle" size={18} color={theme.primaryPressed} /><Text style={[styles.noticeText, { color: theme.textSecondary, fontSize: size(10), textAlign: align }]}>{t("rewards.notCash")}</Text></View>
+      <View style={[styles.sectionHeading, { flexDirection: direction }]}><Text style={[styles.sectionTitle, { color: theme.text, fontSize: size(15), textAlign: align }]}>{t("rewards.offers")}</Text><Text style={[styles.approved, { color: theme.primaryPressed, fontSize: size(9) }]}>{t("rewards.approved")}</Text></View>
+      <View style={styles.list}>{rewards.map((reward) => { const canRedeem = account.balance >= reward.pointsCost; return <View key={reward.id} style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.border, borderWidth: isHighContrast ? 2 : 1 }]}>
+        <View style={[styles.cardTop, { flexDirection: direction }]}><View style={[styles.rewardIcon, { backgroundColor: theme.primarySoft }]}><Ionicons name={rewardIcons[reward.id] ?? "gift"} size={23} color={theme.primaryPressed} /></View><View style={styles.cardCopy}><View style={[styles.categoryRow, { flexDirection: direction }]}><Text style={[styles.partner, { color: theme.text, fontSize: size(12), textAlign: align }]}>{t(reward.partnerKey)}</Text><Text style={[styles.category, { color: theme.primaryPressed, fontSize: size(8) }]}>{t(reward.categoryKey)}</Text></View><Text style={[styles.rewardTitle, { color: theme.textSecondary, fontSize: size(11), textAlign: align }]}>{t(reward.titleKey)}</Text><Text style={[styles.description, { color: theme.textMuted, fontSize: size(9), textAlign: align }]}>{t(reward.descriptionKey)}</Text></View></View>
+        <View style={[styles.footer, { borderTopColor: theme.border, flexDirection: direction }]}><View><Text style={[styles.benefit, { color: theme.success, fontSize: size(11), textAlign: align }]}>{t(reward.benefitKey)}</Text><Text style={[styles.cost, { color: theme.textMuted, fontSize: size(9), textAlign: align }]}>{reward.pointsCost} {t("rewards.points")}</Text></View><Pressable accessibilityRole="button" accessibilityState={{ disabled: !canRedeem }} onPress={() => void redeem(reward)} style={({ pressed }) => [styles.redeem, { backgroundColor: canRedeem ? theme.primary : theme.surfaceSecondary, borderColor: theme.borderStrong, opacity: pressed ? 0.72 : 1 }]}><Text style={[styles.redeemText, { color: canRedeem ? theme.textInverse : theme.textMuted, fontSize: size(10) }]}>{t(canRedeem ? "rewards.redeem" : "rewards.insufficient")}</Text></Pressable></View>
+      </View>; })}</View>
+      <Text style={[styles.sectionTitle, { color: theme.text, fontSize: size(15), textAlign: align }]}>{t("rewards.history")}</Text>
+      <View style={[styles.history, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>{account.history.map((item) => <View key={item.id} style={[styles.historyRow, { borderBottomColor: theme.border, flexDirection: direction }]}><Text style={[styles.historyLabel, { color: theme.textSecondary, fontSize: size(10), textAlign: align }]}>{t(item.labelKey)}</Text><Text style={[styles.historyPoints, { color: item.points >= 0 ? theme.success : theme.warning, fontSize: size(11) }]}>{item.points > 0 ? "+" : ""}{item.points}</Text></View>)}</View>
+      <View style={[styles.earn, { backgroundColor: theme.surfaceSecondary, borderColor: theme.border, flexDirection: direction }]}><Ionicons name="star-outline" size={22} color={theme.primaryPressed} /><View style={styles.earnCopy}><Text style={[styles.earnTitle, { color: theme.text, fontSize: size(11), textAlign: align }]}>{t("rewards.earn")}</Text><Text style={[styles.earnText, { color: theme.textMuted, fontSize: size(9), textAlign: align }]}>{t("rewards.earnBody")}</Text></View></View>
     </ScrollView>
   </SafeAreaView>;
 }
 
-const styles = StyleSheet.create({
-  safe: { backgroundColor: "#F8F7F4", flex: 1 }, header: { alignItems: "center", flexDirection: "row-reverse", justifyContent: "space-between", paddingBottom: 12, paddingHorizontal: 16, paddingTop: 10 }, title: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 22, fontWeight: "800", textAlign: "right" }, subtitle: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 10, textAlign: "right" }, headerIcon: { alignItems: "center", backgroundColor: "#FFF4C8", borderRadius: 13, height: 42, justifyContent: "center", width: 42 },
-  content: { padding: 14, paddingBottom: 30 }, balanceCard: { ...shadows.raised, backgroundColor: colors.primary, borderRadius: 24, overflow: "hidden", padding: 18 }, coinGhost: { bottom: -12, left: -8, position: "absolute" }, balanceLabel: { color: "rgba(19,42,36,0.78)", fontFamily: typography.fontFamily, fontSize: 11, fontWeight: "700", textAlign: "right" }, balanceRow: { alignItems: "baseline", flexDirection: "row-reverse", gap: 7, justifyContent: "flex-start", marginVertical: 2 }, balance: { color: colors.secondary, fontFamily: typography.fontFamily, fontSize: 36, fontWeight: "900" }, balanceUnit: { color: colors.secondary, fontFamily: typography.fontFamily, fontSize: 12, fontWeight: "800" }, balanceNote: { color: "rgba(19,42,36,0.84)", fontFamily: typography.fontFamily, fontSize: 10, lineHeight: 16, textAlign: "right", width: "84%" }, progressTrack: { backgroundColor: "rgba(255,255,255,0.45)", borderRadius: 4, height: 6, marginTop: 13, overflow: "hidden" }, progressFill: { backgroundColor: colors.secondary, borderRadius: 4, height: 6 }, progressText: { color: "rgba(19,42,36,0.75)", fontFamily: typography.fontFamily, fontSize: 8, marginTop: 4, textAlign: "right" },
-  sectionHeading: { alignItems: "center", flexDirection: "row-reverse", justifyContent: "space-between", marginBottom: 10, marginTop: 19 }, sectionTitle: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 14, fontWeight: "800", textAlign: "right" }, sectionSubtitle: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 9, textAlign: "right" }, approved: { alignItems: "center", backgroundColor: "#FFF8E3", borderRadius: 9, flexDirection: "row-reverse", gap: 3, paddingHorizontal: 7, paddingVertical: 5 }, approvedText: { color: "#8C6D14", fontFamily: typography.fontFamily, fontSize: 8, fontWeight: "700" }, rewardsList: { gap: 10 },
-  rewardCard: { ...shadows.subtle, backgroundColor: "white", borderColor: "#ECE7DC", borderRadius: 18, borderWidth: 1, padding: 12 }, rewardTop: { alignItems: "center", flexDirection: "row-reverse", gap: 10 }, rewardIcon: { alignItems: "center", borderRadius: 13, height: 44, justifyContent: "center", width: 44 }, rewardCopy: { flex: 1 }, partner: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 12, fontWeight: "700", textAlign: "right" }, rewardTitle: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 10, marginTop: 2, textAlign: "right" }, rewardDescription: { color: "#94A3B8", fontFamily: typography.fontFamily, fontSize: 8, marginTop: 2, textAlign: "right" }, rewardFooter: { alignItems: "center", borderTopColor: "#F0ECE3", borderTopWidth: 1, flexDirection: "row-reverse", justifyContent: "space-between", marginTop: 10, paddingTop: 9 }, cost: { alignItems: "center", flexDirection: "row-reverse", gap: 4 }, costText: { color: "#8C6D14", fontFamily: typography.fontFamily, fontSize: 10, fontWeight: "700" }, redeemButton: { backgroundColor: colors.secondary, borderRadius: 11, minWidth: 82, paddingHorizontal: 11, paddingVertical: 8 }, redeemText: { color: colors.primary, fontFamily: typography.fontFamily, fontSize: 9, fontWeight: "800", textAlign: "center" }, disabled: { backgroundColor: "#CBD5E1" }, pressed: { opacity: 0.75, transform: [{ scale: 0.96 }] },
-  earnCard: { alignItems: "center", backgroundColor: "#FFF8E3", borderColor: "#EEDB9D", borderRadius: 16, borderWidth: 1, flexDirection: "row-reverse", gap: 9, marginTop: 14, padding: 12 }, earnIcon: { alignItems: "center", backgroundColor: "white", borderRadius: 11, height: 38, justifyContent: "center", width: 38 }, earnCopy: { flex: 1 }, earnTitle: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 11, fontWeight: "700", textAlign: "right" }, earnText: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 9, lineHeight: 15, textAlign: "right" }
-});
+const styles = StyleSheet.create({ safe: { flex: 1 }, header: { alignItems: "center", justifyContent: "space-between", padding: spacing.md }, headerCopy: { flex: 1 }, title: { fontFamily: typography.fontFamily, fontWeight: "900" }, subtitle: { fontFamily: typography.fontFamily, marginTop: 2 }, headerIcon: { alignItems: "center", borderRadius: 13, height: 42, justifyContent: "center", width: 42 }, content: { padding: 14, paddingBottom: 34 }, balanceCard: { borderRadius: 24, overflow: "hidden", padding: 18 }, balanceLabel: { fontFamily: typography.fontFamily, fontWeight: "700", marginTop: 10 }, balanceRow: { alignItems: "baseline", gap: 7 }, balance: { fontFamily: typography.fontFamily, fontWeight: "900" }, balanceUnit: { fontFamily: typography.fontFamily, fontWeight: "800" }, notice: { alignItems: "center", borderRadius: radius.md, borderWidth: 1, gap: 7, marginTop: 10, padding: 10 }, noticeText: { flex: 1, fontFamily: typography.fontFamily, lineHeight: 16 }, sectionHeading: { alignItems: "center", justifyContent: "space-between", marginBottom: 10, marginTop: 19 }, sectionTitle: { fontFamily: typography.fontFamily, fontWeight: "900", marginBottom: 10, marginTop: 18 }, approved: { fontFamily: typography.fontFamily, fontWeight: "800" }, list: { gap: 10 }, card: { borderRadius: 18, padding: 12 }, cardTop: { alignItems: "center", gap: 10 }, rewardIcon: { alignItems: "center", borderRadius: 13, height: 46, justifyContent: "center", width: 46 }, cardCopy: { flex: 1 }, categoryRow: { alignItems: "center", justifyContent: "space-between" }, partner: { flex: 1, fontFamily: typography.fontFamily, fontWeight: "800" }, category: { fontFamily: typography.fontFamily, fontWeight: "800" }, rewardTitle: { fontFamily: typography.fontFamily, fontWeight: "700", marginTop: 3 }, description: { fontFamily: typography.fontFamily, marginTop: 3 }, footer: { alignItems: "center", borderTopWidth: 1, justifyContent: "space-between", marginTop: 11, paddingTop: 10 }, benefit: { fontFamily: typography.fontFamily, fontWeight: "900" }, cost: { fontFamily: typography.fontFamily, marginTop: 2 }, redeem: { alignItems: "center", borderRadius: 11, borderWidth: 1, justifyContent: "center", minHeight: 40, minWidth: 100, paddingHorizontal: 10 }, redeemText: { fontFamily: typography.fontFamily, fontWeight: "900", textAlign: "center" }, history: { borderRadius: radius.lg, borderWidth: 1, overflow: "hidden" }, historyRow: { alignItems: "center", borderBottomWidth: 1, justifyContent: "space-between", minHeight: 48, paddingHorizontal: 12 }, historyLabel: { flex: 1, fontFamily: typography.fontFamily }, historyPoints: { fontFamily: typography.fontFamily, fontWeight: "900" }, earn: { alignItems: "center", borderRadius: radius.lg, borderWidth: 1, gap: 9, marginTop: 14, padding: 12 }, earnCopy: { flex: 1 }, earnTitle: { fontFamily: typography.fontFamily, fontWeight: "800" }, earnText: { fontFamily: typography.fontFamily, lineHeight: 15, marginTop: 2 } });

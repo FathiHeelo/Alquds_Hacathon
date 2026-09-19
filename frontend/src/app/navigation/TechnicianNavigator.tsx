@@ -14,31 +14,37 @@ import { TechnicianChatScreen } from "../../features/technician/screens/Technici
 import { TechnicianJobDetailsScreen } from "../../features/technician/screens/TechnicianJobDetailsScreen";
 import { TechnicianAccountDetailScreen } from "../../features/technician/screens/TechnicianAccountDetailScreen";
 import { uiText } from "../../shared/constants/uiText";
-import { colors, typography } from "../../shared/theme";
+import { typography, useTheme } from "../../shared/theme";
+import { useI18n } from "../../shared/i18n/I18nProvider";
 import type { TechnicianStackParamList, TechnicianTabParamList } from "./navigation.types";
 import { tabOptions } from "./tabOptions";
+import { AccessibilitySettingsScreen } from "../../features/settings/screens/AccessibilitySettingsScreen";
 
 const Tab = createBottomTabNavigator<TechnicianTabParamList>();
 const Stack = createNativeStackNavigator<TechnicianStackParamList>();
 
 function TechnicianTabs() {
+  const { theme } = useTheme();
+  const { t } = useI18n();
   return (
     <Tab.Navigator initialRouteName="TechnicianRequests" screenOptions={{ lazy: true }}>
-      <Tab.Screen name="TechnicianRequests" component={TechnicianHomeScreen} options={{ ...tabOptions("map-outline"), title: uiText.technician.requests }} />
-      <Tab.Screen name="TechnicianJobs" component={TechnicianJobsScreen} options={{ ...tabOptions("briefcase-outline"), title: uiText.technician.jobs }} />
-      <Tab.Screen name="TechnicianMessages" component={TechnicianMessagesScreen} options={{ ...tabOptions("chatbubble-ellipses-outline"), title: uiText.technician.messages }} />
-      <Tab.Screen name="TechnicianAccount" component={TechnicianAccountScreen} options={{ ...tabOptions("person-outline"), title: uiText.technician.account }} />
+      <Tab.Screen name="TechnicianRequests" component={TechnicianHomeScreen} options={{ ...tabOptions("map-outline", theme), title: t("navigation.mapRequests") }} />
+      <Tab.Screen name="TechnicianJobs" component={TechnicianJobsScreen} options={{ ...tabOptions("briefcase-outline", theme), title: t("navigation.jobs") }} />
+      <Tab.Screen name="TechnicianMessages" component={TechnicianMessagesScreen} options={{ ...tabOptions("chatbubble-ellipses-outline", theme), title: t("navigation.messages") }} />
+      <Tab.Screen name="TechnicianAccount" component={TechnicianAccountScreen} options={{ ...tabOptions("person-outline", theme), title: t("navigation.account") }} />
     </Tab.Navigator>
   );
 }
 
 export function TechnicianNavigator() {
+  const { theme } = useTheme();
+  const { t } = useI18n();
   return (
     <Stack.Navigator
       screenOptions={{
-        headerBackTitle: uiText.common.back,
-        headerStyle: { backgroundColor: colors.background },
-        headerTintColor: colors.text,
+        headerBackTitle: t("common.back"),
+        headerStyle: { backgroundColor: theme.navigationBackground },
+        headerTintColor: theme.text,
         headerTitleAlign: "center",
         headerTitleStyle: { fontFamily: typography.fontFamily, fontWeight: typography.weight.bold }
       }}
@@ -55,6 +61,7 @@ export function TechnicianNavigator() {
       <Stack.Screen name="TechnicianChat" component={TechnicianChatScreen} options={{ headerShown: false }} />
       <Stack.Screen name="TechnicianJobDetails" component={TechnicianJobDetailsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="TechnicianAccountDetail" component={TechnicianAccountDetailScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="TechnicianPreferences" component={AccessibilitySettingsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="TechnicianAiAssistant" options={{ headerShown: false }}>
         {({ route, navigation }) => <TechnicianAiAssistantScreen route={route} navigation={navigation} />}
       </Stack.Screen>

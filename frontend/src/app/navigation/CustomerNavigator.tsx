@@ -22,44 +22,50 @@ import { CustomerRequestsScreen } from "../../features/jobs/screens/CustomerRequ
 import { CustomerRequestDetailsScreen } from "../../features/jobs/screens/CustomerRequestDetailsScreen";
 import { CustomerAccountScreen } from "../../features/account/screens/CustomerAccountScreen";
 import { uiText } from "../../shared/constants/uiText";
-import { colors, typography } from "../../shared/theme";
+import { colors, typography, useTheme } from "../../shared/theme";
+import { useI18n } from "../../shared/i18n/I18nProvider";
 import type { CustomerStackParamList, CustomerTabParamList } from "./navigation.types";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { tabOptions } from "./tabOptions";
+import { AccessibilitySettingsScreen } from "../../features/settings/screens/AccessibilitySettingsScreen";
 
 const Tab = createBottomTabNavigator<CustomerTabParamList>();
 const Stack = createNativeStackNavigator<CustomerStackParamList>();
 
 function CustomerTabs() {
+  const { theme } = useTheme();
+  const { t } = useI18n();
   return (
     <Tab.Navigator initialRouteName="CustomerMap" screenOptions={{ lazy: true }} tabBar={(props) => <CustomerTabBar {...props} />}>
-      <Tab.Screen name="CustomerMap" component={CustomerMapScreen} options={{ ...tabOptions("map-outline"), title: uiText.customer.map }} />
-      <Tab.Screen name="CustomerRequests" component={CustomerRequestsScreen} options={{ ...tabOptions("document-text-outline"), title: uiText.customer.requests }} />
-      <Tab.Screen name="CustomerMessages" component={CustomerMessagesScreen} options={{ ...tabOptions("chatbubble-ellipses-outline"), title: uiText.customer.messages }} />
-      <Tab.Screen name="CustomerRewards" component={RewardsScreen} options={{ ...tabOptions("star-outline"), title: uiText.customer.rewards }} />
-      <Tab.Screen name="CustomerAccount" component={CustomerAccountScreen} options={{ ...tabOptions("person-outline"), title: uiText.customer.account }} />
+      <Tab.Screen name="CustomerMap" component={CustomerMapScreen} options={{ ...tabOptions("map-outline", theme), title: t("navigation.home") }} />
+      <Tab.Screen name="CustomerRequests" component={CustomerRequestsScreen} options={{ ...tabOptions("document-text-outline", theme), title: t("navigation.requests") }} />
+      <Tab.Screen name="CustomerMessages" component={CustomerMessagesScreen} options={{ ...tabOptions("chatbubble-ellipses-outline", theme), title: t("navigation.messages") }} />
+      <Tab.Screen name="CustomerRewards" component={RewardsScreen} options={{ ...tabOptions("star-outline", theme), title: t("navigation.rewards") }} />
+      <Tab.Screen name="CustomerAccount" component={CustomerAccountScreen} options={{ ...tabOptions("person-outline", theme), title: t("navigation.account") }} />
     </Tab.Navigator>
   );
 }
 
 function CustomerTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
+  const { t } = useI18n();
   const stackNavigation = navigation.getParent<NativeStackNavigationProp<CustomerStackParamList>>();
   const tabs = [
-    { route: "CustomerMap" as const, icon: "map-outline" as const, label: "الرئيسية" },
-    { route: "CustomerRequests" as const, icon: "document-text-outline" as const, label: uiText.customer.requests },
-    { route: "CustomerMessages" as const, icon: "chatbubbles-outline" as const, label: uiText.customer.messages },
-    { route: "CustomerRewards" as const, icon: "star-outline" as const, label: uiText.customer.rewards }
+    { route: "CustomerMap" as const, icon: "map-outline" as const, label: t("navigation.home") },
+    { route: "CustomerRequests" as const, icon: "document-text-outline" as const, label: t("navigation.requests") },
+    { route: "CustomerMessages" as const, icon: "chatbubbles-outline" as const, label: t("navigation.messages") },
+    { route: "CustomerRewards" as const, icon: "star-outline" as const, label: t("navigation.rewards") }
   ];
 
   return (
-    <View style={[footerStyles.footer, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+    <View style={[footerStyles.footer, { backgroundColor: theme.navigationBackground, borderTopColor: theme.border, paddingBottom: Math.max(insets.bottom, 8) }]}>
       {tabs.slice(0, 2).map((tab) => <CustomerTabButton descriptors={descriptors} key={tab.route} navigation={navigation} state={state} {...tab} />)}
       <Pressable
-        accessibilityLabel="طلب صيانة جديد"
+        accessibilityLabel={t("navigation.requests")}
         accessibilityRole="button"
         onPress={() => stackNavigation?.navigate("CustomerRepairRequest", {})}
-        style={({ pressed }) => [footerStyles.plusButton, pressed && footerStyles.plusPressed]}
+        style={({ pressed }) => [footerStyles.plusButton, { backgroundColor: theme.primary, borderColor: theme.primarySoft, shadowColor: theme.primaryPressed }, pressed && footerStyles.plusPressed]}
       >
         <Ionicons color={colors.neutral} name="add" size={26} />
       </Pressable>
@@ -102,12 +108,14 @@ const footerStyles = StyleSheet.create({
 });
 
 export function CustomerNavigator() {
+  const { theme } = useTheme();
+  const { t } = useI18n();
   return (
     <Stack.Navigator
       screenOptions={{
-        headerBackTitle: uiText.common.back,
-        headerStyle: { backgroundColor: colors.background },
-        headerTintColor: colors.text,
+        headerBackTitle: t("common.back"),
+        headerStyle: { backgroundColor: theme.navigationBackground },
+        headerTintColor: theme.text,
         headerTitleAlign: "center",
         headerTitleStyle: { fontFamily: typography.fontFamily, fontWeight: typography.weight.bold }
       }}
@@ -124,6 +132,7 @@ export function CustomerNavigator() {
       <Stack.Screen name="CustomerNotifications" component={NotificationsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CustomerChat" component={CustomerChatScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CustomerRequestDetails" component={CustomerRequestDetailsScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="CustomerSettings" component={AccessibilitySettingsScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

@@ -1,16 +1,7 @@
 import { DefaultTheme, type Theme } from "@react-navigation/native";
 
-import { colors } from "../../shared/theme";
+import type { SemanticTheme } from "../../shared/theme";
 
-export const navigationTheme: Theme = {
-  ...DefaultTheme,
-  colors: {
-    ...DefaultTheme.colors,
-    background: colors.surface,
-    border: colors.border,
-    card: colors.background,
-    notification: colors.primary,
-    primary: colors.primary,
-    text: colors.text
-  }
-};
+export function createNavigationTheme(theme: SemanticTheme): Theme {
+  return { ...DefaultTheme, dark: theme.background === "#000000" || theme.background === "#0D1411", colors: { ...DefaultTheme.colors, background: theme.background, border: theme.border, card: theme.navigationBackground, notification: theme.danger, primary: theme.primary, text: theme.text } };
+}
