@@ -6,14 +6,23 @@
     "jsx": "react-jsx",
     "strict": true,
     "noEmit": true,
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@ammerha/ai": ["../ai/src/index.ts"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@ammerha/ai": [
+        "../ai/src/index.ts"
+      ]
     },
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "skipLibCheck": true
   },
-  "include": ["App.tsx", "src/**/*.ts", "src/**/*.tsx", "../ai/src/**/*.ts"]
+  "include": [
+    "App.tsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "../ai/src/**/*.ts"
+  ],
+  "extends": "expo/tsconfig.base"
 }

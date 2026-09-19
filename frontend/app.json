@@ -1,10 +1,18 @@
 {
   "expo": {
-    "name": "AMMERHA",
+    "name": "عَمِّرها",
     "slug": "ammerha",
     "scheme": "ammerha",
     "version": "0.1.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "automatic"
+    "userInterfaceStyle": "automatic",
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "نستخدم موقعك لعرض الفنيين القريبين منك."
+        }
+      ]
+    ]
   }
 }

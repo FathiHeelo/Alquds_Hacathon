@@ -1,16 +1,46 @@
 import { StatusBar } from "expo-status-bar";
-import { Text, View } from "react-native";
+import { registerRootComponent } from "expo";
+import { useEffect, useState } from "react";
+import { Image, StyleSheet, View } from "react-native";
 
-import { appConfig } from "./src/app/config/appConfig";
+import { RootNavigator } from "./src/app/navigation/RootNavigator";
+import { AppProviders } from "./src/app/providers/AppProviders";
+
+const ammerhaLogo = require("./assets/brand/ammerha-logo.png");
 
 export default function App() {
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowSplash(false), 1200);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
-    <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <Text style={{ fontSize: 24, fontWeight: "700" }}>AMMERHA</Text>
-      <Text style={{ marginTop: 8, textAlign: "center" }}>
-        Frontend foundation ready in {appConfig.aiMode} mode.
-      </Text>
-      <StatusBar style="auto" />
+    <AppProviders>
+      {showSplash ? <BrandSplash /> : <RootNavigator />}
+      <StatusBar style="dark" />
+    </AppProviders>
+  );
+}
+
+registerRootComponent(App);
+
+function BrandSplash() {
+  return (
+    <View style={styles.splash}>
+      <Image source={ammerhaLogo} style={styles.logo} />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  splash: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 32,
+    backgroundColor: "#FFFFFF"
+  },
+  logo: { height: 300, resizeMode: "contain", width: 300 }
+});
