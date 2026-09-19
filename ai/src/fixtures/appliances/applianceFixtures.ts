@@ -5,7 +5,7 @@ import type {
 } from "../../contracts/ai.types";
 
 export const applianceVoiceFixture = {
-  category: "appliance" as RepairCategory,
+  category: "appliances" as RepairCategory,
   technicianType: "appliance_technician" as TechnicianType,
   urgency: "medium" as Urgency,
 

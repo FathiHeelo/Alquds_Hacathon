@@ -1,8 +1,10 @@
 export type RepairCategory =
-  | "plumbing"
   | "electrical"
+  | "plumbing"
   | "ac"
-  | "appliance"
+  | "appliances"
+  | "carpentry"
+  | "electronics"
   | "general";
 
 export type Urgency =

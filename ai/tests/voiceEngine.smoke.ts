@@ -63,7 +63,7 @@ async function main(): Promise<void> {
   });
 
   assert(
-    appliance.category === "appliance",
+    appliance.category === "appliances",
     "Appliance transcript should be classified as appliance.",
   );
 

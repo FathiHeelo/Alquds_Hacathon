@@ -71,7 +71,7 @@ export function structureVoiceRequest(
   let category: StructuredVoiceRequest["category"] = "general";
 
 if (isAppliance) {
-  category = "appliance";
+  category = "appliances";
 } else if (isAc) {
   category = "ac";
 } else if (isElectrical) {
@@ -111,7 +111,7 @@ if (isAppliance) {
     technicianType = "electrician";
   } else if (category === "ac") {
     technicianType = "ac_technician";
-  } else if (category === "appliance") {
+  } else if (category === "appliances") {
     technicianType = "appliance_technician";
   }
 
@@ -168,7 +168,7 @@ if (category === "ac") {
   }
 }
 
-if (category === "appliance") {
+if (category === "appliances") {
   extractedKeywords.push("appliance");
 
   if (
