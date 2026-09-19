@@ -16,7 +16,6 @@ interface MapControlsProps {
   resultCount: number;
   onNotifications(): void;
   onAccount(): void;
-  onTechnicianMode(): void;
   onVoice(): void;
   setAvailableOnly(value: boolean): void;
   setCategoryId(value?: ServiceCategoryId): void;
@@ -31,7 +30,6 @@ export function MapControls({
   resultCount,
   onNotifications,
   onAccount,
-  onTechnicianMode,
   onVoice,
   setAvailableOnly,
   setCategoryId,
@@ -46,10 +44,6 @@ export function MapControls({
   return (
     <View style={styles.container}>
       <View style={styles.topRow}>
-        <Pressable accessibilityRole="button" onPress={onTechnicianMode} style={styles.modeButton}>
-          <Ionicons color={colors.primaryPressed} name="swap-horizontal" size={14} />
-          <Text style={styles.modeLabel}>وضع الفني</Text>
-        </Pressable>
         <Pressable accessibilityLabel="التنبيهات" onPress={onNotifications} style={styles.notificationButton}>
           <Ionicons color={colors.textMuted} name="notifications-outline" size={18} />
           <View style={styles.notificationDot} />
@@ -114,8 +108,6 @@ export function MapControls({
 const styles = StyleSheet.create({
   container: { gap: 10, paddingHorizontal: 12, paddingBottom: spacing.sm },
   topRow: { direction: "ltr", alignItems: "center", flexDirection: "row", gap: spacing.sm },
-  modeButton: { alignItems: "center", backgroundColor: colors.secondary, borderRadius: radius.round, flexDirection: "row-reverse", gap: 4, paddingHorizontal: 10, paddingVertical: 7 },
-  modeLabel: { color: colors.primary, fontFamily: typography.fontFamily, fontSize: 10, fontWeight: typography.weight.bold, writingDirection: "rtl" },
   notificationButton: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.round, height: 32, justifyContent: "center", width: 32 },
   notificationDot: { backgroundColor: colors.primary, borderColor: colors.background, borderRadius: radius.round, borderWidth: 1, height: 7, position: "absolute", right: 5, top: 5, width: 7 },
   locationPill: {

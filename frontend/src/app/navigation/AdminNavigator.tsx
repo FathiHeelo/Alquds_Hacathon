@@ -1,27 +1,24 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
-import { AdminHomeScreen } from "../../features/shell/screens/AdminHomeScreen";
+import { AdminAuditScreen } from "../../features/admin/screens/AdminAuditScreen";
+import { AdminCaseDetailsScreen } from "../../features/admin/screens/AdminCaseDetailsScreen";
+import { AdminFinanceScreen } from "../../features/admin/screens/AdminFinanceScreen";
 import { AdminQueueScreen } from "../../features/admin/screens/AdminQueueScreen";
-import { uiText } from "../../shared/constants/uiText";
-import { colors, typography } from "../../shared/theme";
+import { AdminUsersScreen } from "../../features/admin/screens/AdminUsersScreen";
+import { AdminHomeScreen } from "../../features/shell/screens/AdminHomeScreen";
 import type { AdminStackParamList } from "./navigation.types";
 
 const Stack = createNativeStackNavigator<AdminStackParamList>();
 
 export function AdminNavigator() {
-  return (
-    <Stack.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: colors.background },
-        headerTintColor: colors.text,
-        headerTitleAlign: "center",
-        headerTitleStyle: { fontFamily: typography.fontFamily, fontWeight: typography.weight.bold }
-      }}
-    >
-      <Stack.Screen name="AdminDashboard" component={AdminHomeScreen} options={{ title: uiText.admin.title }} />
-      <Stack.Screen name="AdminVerification" options={{ title: uiText.admin.verification }}>{() => <AdminQueueScreen kind="verification" />}</Stack.Screen>
-      <Stack.Screen name="AdminReports" options={{ title: uiText.admin.reports }}>{() => <AdminQueueScreen kind="reports" />}</Stack.Screen>
-      <Stack.Screen name="AdminRisk" options={{ title: uiText.admin.risk }}>{() => <AdminQueueScreen kind="risk" />}</Stack.Screen>
-    </Stack.Navigator>
-  );
+  return <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="AdminDashboard" component={AdminHomeScreen} />
+    <Stack.Screen name="AdminVerification">{() => <AdminQueueScreen kind="verification" />}</Stack.Screen>
+    <Stack.Screen name="AdminReports">{() => <AdminQueueScreen kind="reports" />}</Stack.Screen>
+    <Stack.Screen name="AdminRisk">{() => <AdminQueueScreen kind="risk" />}</Stack.Screen>
+    <Stack.Screen name="AdminFinance" component={AdminFinanceScreen} />
+    <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
+    <Stack.Screen name="AdminAudit" component={AdminAuditScreen} />
+    <Stack.Screen name="AdminCaseDetails" component={AdminCaseDetailsScreen} />
+  </Stack.Navigator>;
 }

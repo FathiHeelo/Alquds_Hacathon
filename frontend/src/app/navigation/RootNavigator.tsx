@@ -2,7 +2,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { StyleSheet, View } from "react-native";
 
 import { UserRole } from "../../domain/enums/status";
-import { DemoRoleSwitcher } from "../../features/shell/components/DemoRoleSwitcher";
+import { RoleLoginScreen } from "../../features/auth/screens/RoleLoginScreen";
 import { colors } from "../../shared/theme";
 import { useDemoSession } from "../providers/DemoSessionProvider";
 import { AdminNavigator } from "./AdminNavigator";
@@ -11,11 +11,12 @@ import { navigationTheme } from "./navigationTheme";
 import { TechnicianNavigator } from "./TechnicianNavigator";
 
 export function RootNavigator() {
-  const { isDemo, role } = useDemoSession();
+  const { role } = useDemoSession();
+
+  if (!role) return <RoleLoginScreen />;
 
   return (
     <View style={styles.container}>
-      {isDemo && role !== UserRole.Customer ? <DemoRoleSwitcher /> : null}
       <NavigationContainer direction="rtl" key={role} theme={navigationTheme}>
         {role === UserRole.Customer ? <CustomerNavigator /> : null}
         {role === UserRole.Technician ? <TechnicianNavigator /> : null}

@@ -5,6 +5,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { CustomerTabParamList } from "../../../app/navigation/navigation.types";
+import { useDemoSession } from "../../../app/providers/DemoSessionProvider";
 import { colors, shadows, typography } from "../../../shared/theme";
 
 type AccountNavigation = BottomTabNavigationProp<CustomerTabParamList, "CustomerAccount">;
@@ -20,6 +21,7 @@ const menuItems = [
 
 export function CustomerAccountScreen() {
   const navigation = useNavigation<AccountNavigation>();
+  const { logout } = useDemoSession();
   return <SafeAreaView edges={["top"]} style={styles.safe}>
     <View style={styles.header}><View><Text style={styles.title}>حسابي</Text><Text style={styles.subtitle}>إدارة بياناتك وخدماتك في عَمِّرها</Text></View><Pressable onPress={() => Alert.alert("الإعدادات", "إعدادات الحساب جاهزة للتخصيص.")} style={styles.headerIcon}><Ionicons name="settings-outline" size={21} color={colors.primaryPressed} /></Pressable></View>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -43,7 +45,7 @@ export function CustomerAccountScreen() {
       <Text style={styles.sectionTitle}>إعدادات الحساب</Text>
       <View style={styles.menuCard}>{menuItems.map((item, index) => <Pressable key={item.title} onPress={() => Alert.alert(item.title, "سيتم ربط هذه الصفحة ببيانات الحساب الفعلية.")} style={({ pressed }) => [styles.menuItem, index < menuItems.length - 1 && styles.menuDivider, pressed && styles.pressed]}><View style={[styles.menuIcon, { backgroundColor: item.background }]}><Ionicons name={item.icon} size={19} color={item.color} /></View><View style={styles.menuCopy}><Text style={styles.menuTitle}>{item.title}</Text><Text style={styles.menuSubtitle}>{item.subtitle}</Text></View><Ionicons name="chevron-back" size={17} color="#94A3B8" /></Pressable>)}</View>
 
-      <Pressable onPress={() => Alert.alert("تسجيل الخروج", "تم تجهيز زر تسجيل الخروج للحساب الحقيقي.")} style={styles.logout}><Ionicons name="log-out-outline" size={18} color="#BE123C" /><Text style={styles.logoutText}>تسجيل الخروج</Text></Pressable>
+      <Pressable onPress={logout} style={styles.logout}><Ionicons name="log-out-outline" size={18} color="#BE123C" /><Text style={styles.logoutText}>العودة لاختيار الدور</Text></Pressable>
       <Text style={styles.version}>عَمِّرها • الإصدار 1.0.0</Text>
     </ScrollView>
   </SafeAreaView>;

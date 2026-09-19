@@ -8,8 +8,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useEffect, useRef } from "react";
 import MapView, { Marker, type Region } from "react-native-maps";
 import type { CustomerStackParamList, CustomerTabParamList } from "../../../app/navigation/navigation.types";
-import { useDemoSession } from "../../../app/providers/DemoSessionProvider";
-import { UserRole } from "../../../domain/enums/status";
 import { ErrorState, LoadingState } from "../../../shared/components";
 import { uiText } from "../../../shared/constants/uiText";
 import { colors, shadows, typography } from "../../../shared/theme";
@@ -24,7 +22,6 @@ const jerusalemRegion: Region = { latitude: 31.7834, longitude: 35.2304, latitud
 export function CustomerMapScreen() {
   const navigation = useNavigation<MapNavigation>();
   const map = useCustomerMap();
-  const { switchRole } = useDemoSession();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const mapRef = useRef<MapView>(null);
@@ -86,7 +83,7 @@ export function CustomerMapScreen() {
         <MapControls filters={map.filters} location={map.location} resultCount={map.technicians.length}
           onAccount={() => navigation.navigate("CustomerAccount")}
           onNotifications={() => navigation.navigate("CustomerNotifications")}
-          onTechnicianMode={() => switchRole(UserRole.Technician)} onVoice={requestRepair}
+          onVoice={requestRepair}
           setAvailableOnly={map.setAvailableOnly} setCategoryId={map.setCategoryId}
           setMaximumDistanceKm={map.setMaximumDistanceKm} setMinimumRating={map.setMinimumRating} setQuery={map.setQuery} />
       </View>
