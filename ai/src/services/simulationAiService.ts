@@ -3,6 +3,7 @@ import { diagnoseProblem as diagnoseProblemWithEngine } from "../engines/diagnos
 import { estimateFairPrice as estimateFairPriceWithEngine } from "../engines/fair-price/priceEngine";
 import { rankTechnicians as rankTechniciansWithEngine } from "../engines/matching/matchingEngine";
 import { generateOfferAssistant as generateOfferAssistantWithEngine } from "../engines/offer-assistant/offerAssistantEngine";
+import { assessRisk as assessRiskWithEngine } from "../engines/risk/riskEngine";
 export function createSimulationAiService(): AiService {
   return {
     async structureVoiceRequest(input) {
@@ -105,10 +106,7 @@ export function createSimulationAiService(): AiService {
       return generateOfferAssistantWithEngine(input);
     },
     async assessRisk(input) {
-      return {
-        level: input.requestText.length < 8 ? "medium" : "low",
-        signals: input.requestText.length < 8 ? ["short_request_text"] : []
-      };
-    }
-  };
+  return assessRiskWithEngine(input);
+    },
 }
+};
