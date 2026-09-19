@@ -1,5 +1,8 @@
 import type { AiService } from "./AiService";
 import { diagnoseProblem as diagnoseProblemWithEngine } from "../engines/diagnosis/diagnosisEngine";
+import {
+  estimateFairPrice as estimateFairPriceWithEngine,
+} from "../engines/fair-price/priceEngine";
 
 export function createSimulationAiService(): AiService {
   return {
@@ -85,16 +88,8 @@ export function createSimulationAiService(): AiService {
 
     },
     async estimateFairPrice(input) {
-      const base = input.category === "plumbing" ? 180 : 120;
-      const urgencyBoost = input.urgency === "high" ? 80 : input.urgency === "medium" ? 40 : 0;
-
-      return {
-        min: base + urgencyBoost,
-        max: base + urgencyBoost + 120,
-        currency: "ILS",
-        rationale: "Deterministic MVP estimate based on category and urgency."
-      };
-    },
+  return estimateFairPriceWithEngine(input);
+},
     async matchTechnicians(candidates) {
       return candidates
         .map((candidate) => ({
