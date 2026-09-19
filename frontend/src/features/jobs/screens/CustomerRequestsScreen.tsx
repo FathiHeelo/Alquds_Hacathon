@@ -1,3 +1,6 @@
+import { LocalizedTextInput } from "../../../shared/i18n/LocalizedTextInput";
+import { LocalizedText } from "../../../shared/i18n/LocalizedText";
+import { createAdaptiveStyleSheet } from "../../../shared/theme/adaptiveStyles";
 import { Ionicons } from "@expo/vector-icons";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { CompositeNavigationProp } from "@react-navigation/native";
@@ -9,7 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { CustomerStackParamList, CustomerTabParamList } from "../../../app/navigation/navigation.types";
 import { demoTechnicians } from "../../../demo/fixtures/technicians";
-import { colors, shadows, typography } from "../../../shared/theme";
+import { colors, shadows, typography, useTheme } from "../../../shared/theme";
 import { TechnicianPortrait } from "../../map/components/TechnicianPortrait";
 import { customerRequests, type CustomerRequestState } from "../customerRequests";
 
@@ -27,11 +30,13 @@ export function CustomerRequestsScreen() {
   const navigation = useNavigation<RequestsNavigation>();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const { reduceMotion } = useTheme();
   const entrance = useRef(customerRequests.map(() => new Animated.Value(0))).current;
 
   useEffect(() => {
+    if (reduceMotion) { entrance.forEach((value) => value.setValue(1)); return; }
     Animated.stagger(65, entrance.map((value) => Animated.timing(value, { toValue: 1, duration: 260, useNativeDriver: true }))).start();
-  }, [entrance]);
+  }, [entrance, reduceMotion]);
 
   const filtered = useMemo(() => customerRequests.filter((request) => {
     const technician = demoTechnicians.find(({ id }) => id === request.technicianId);
@@ -42,12 +47,12 @@ export function CustomerRequestsScreen() {
 
   return <SafeAreaView edges={["top"]} style={styles.safe}>
     <View style={styles.header}>
-      <View><Text style={styles.title}>طلباتي</Text><Text style={styles.subtitle}>تابع كل طلبات الصيانة من مكان واحد</Text></View>
+      <View><LocalizedText style={styles.title}>طلباتي</LocalizedText><LocalizedText style={styles.subtitle}>تابع كل طلبات الصيانة من مكان واحد</LocalizedText></View>
       <View style={styles.headerIcon}><Ionicons name="document-text" color={colors.primaryPressed} size={21} /></View>
     </View>
-    <View style={styles.searchBox}><Ionicons name="search" size={18} color="#94A3B8" /><TextInput value={query} onChangeText={setQuery} placeholder="ابحث عن طلب أو فني" placeholderTextColor="#94A3B8" style={styles.searchInput} /></View>
+    <View style={styles.searchBox}><Ionicons name="search" size={18} color="#94A3B8" /><LocalizedTextInput value={query} onChangeText={setQuery} placeholder="ابحث عن طلب أو فني" placeholderTextColor="#94A3B8" style={styles.searchInput} /></View>
     <View style={styles.tabs}>
-      {([["all", "كل الطلبات"], ["active", "الجارية"], ["completed", "السابقة"]] as const).map(([id, label]) => <Pressable key={id} onPress={() => setFilter(id)} style={[styles.tab, filter === id && styles.activeTab]}><Text style={[styles.tabText, filter === id && styles.activeTabText]}>{label}</Text></Pressable>)}
+      {([["all", "كل الطلبات"], ["active", "الجارية"], ["completed", "السابقة"]] as const).map(([id, label]) => <Pressable key={id} onPress={() => setFilter(id)} style={[styles.tab, filter === id && styles.activeTab]}><LocalizedText style={[styles.tabText, filter === id && styles.activeTabText]}>{label}</LocalizedText></Pressable>)}
     </View>
     <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
       {filtered.map((request) => {
@@ -57,21 +62,21 @@ export function CustomerRequestsScreen() {
         return <Animated.View key={request.id} style={{ opacity: entrance[index], transform: [{ translateY: entrance[index].interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }}>
           <Pressable accessibilityRole="button" accessibilityLabel={`فتح الطلب ${request.title}`} onPress={() => navigation.navigate("CustomerRequestDetails", { requestId: request.id })} style={({ pressed }) => [styles.requestCard, pressed && styles.pressed]}>
             <View style={styles.topRow}>
-              <View style={styles.personRow}><TechnicianPortrait technician={technician} round size={46} /><View style={styles.requestCopy}><Text style={styles.requestTitle}>{request.title}</Text><Text style={styles.technician}>{technician.name} • {request.category}</Text></View></View>
-              <View style={[styles.statusBadge, { backgroundColor: appearance.background }]}><Ionicons name={appearance.icon} size={12} color={appearance.color} /><Text style={[styles.statusText, { color: appearance.color }]}>{request.statusLabel}</Text></View>
+              <View style={styles.personRow}><TechnicianPortrait technician={technician} round size={46} /><View style={styles.requestCopy}><LocalizedText style={styles.requestTitle}>{request.title}</LocalizedText><LocalizedText style={styles.technician}>{technician.name} • {request.category}</LocalizedText></View></View>
+              <View style={[styles.statusBadge, { backgroundColor: appearance.background }]}><Ionicons name={appearance.icon} size={12} color={appearance.color} /><LocalizedText style={[styles.statusText, { color: appearance.color }]}>{request.statusLabel}</LocalizedText></View>
             </View>
             <View style={styles.divider} />
-            <View style={styles.metaRow}><View style={styles.metaItem}><Ionicons name="location-outline" size={13} color="#64748B" /><Text numberOfLines={1} style={styles.metaText}>{request.location}</Text></View><Text style={styles.orderNumber}>{request.orderNumber}</Text></View>
-            <View style={styles.bottomRow}><Text style={styles.date}>{request.date}</Text><View style={styles.openRow}><Text style={styles.openText}>عرض التفاصيل</Text><Ionicons name="chevron-back" size={14} color={colors.primaryPressed} /></View></View>
+            <View style={styles.metaRow}><View style={styles.metaItem}><Ionicons name="location-outline" size={13} color="#64748B" /><LocalizedText numberOfLines={1} style={styles.metaText}>{request.location}</LocalizedText></View><LocalizedText style={styles.orderNumber}>{request.orderNumber}</LocalizedText></View>
+            <View style={styles.bottomRow}><LocalizedText style={styles.date}>{request.date}</LocalizedText><View style={styles.openRow}><LocalizedText style={styles.openText}>عرض التفاصيل</LocalizedText><Ionicons name="chevron-back" size={14} color={colors.primaryPressed} /></View></View>
           </Pressable>
         </Animated.View>;
       })}
-      {!filtered.length ? <View style={styles.empty}><Ionicons name="documents-outline" size={36} color="#CBD5E1" /><Text style={styles.emptyText}>لا توجد طلبات مطابقة</Text></View> : null}
+      {!filtered.length ? <View style={styles.empty}><Ionicons name="documents-outline" size={36} color="#CBD5E1" /><LocalizedText style={styles.emptyText}>لا توجد طلبات مطابقة</LocalizedText></View> : null}
     </ScrollView>
   </SafeAreaView>;
 }
 
-const styles = StyleSheet.create({
+const styles = createAdaptiveStyleSheet({
   safe: { backgroundColor: "#F8F7F4", flex: 1 },
   header: { alignItems: "center", flexDirection: "row-reverse", justifyContent: "space-between", paddingBottom: 12, paddingHorizontal: 16, paddingTop: 10 },
   title: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 22, fontWeight: "800", textAlign: "right" },

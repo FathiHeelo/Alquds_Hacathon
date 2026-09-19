@@ -5,3 +5,4 @@ export { spacing } from "./spacing";
 export { typography } from "./typography";
 export { ThemeProvider, useTheme } from "./ThemeProvider";
 export { darkTheme, highContrastTheme, lightTheme, type SemanticTheme } from "./themes";
+export { createAdaptiveStyleSheet } from "./adaptiveStyles";

@@ -1,3 +1,6 @@
+import { LocalizedTextInput } from "../../../shared/i18n/LocalizedTextInput";
+import { LocalizedText } from "../../../shared/i18n/LocalizedText";
+import { createAdaptiveStyleSheet } from "../../../shared/theme/adaptiveStyles";
 import { Ionicons } from "@expo/vector-icons";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { CompositeNavigationProp } from "@react-navigation/native";
@@ -9,7 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { CustomerStackParamList, CustomerTabParamList } from "../../../app/navigation/navigation.types";
 import { demoTechnicians } from "../../../demo/fixtures/technicians";
-import { colors, shadows, typography } from "../../../shared/theme";
+import { colors, shadows, typography, useTheme } from "../../../shared/theme";
 import { TechnicianPortrait } from "../../map/components/TechnicianPortrait";
 
 type MessagesNavigation = CompositeNavigationProp<
@@ -27,10 +30,12 @@ export function CustomerMessagesScreen() {
   const navigation = useNavigation<MessagesNavigation>();
   const [query, setQuery] = useState("");
   const [unreadOnly, setUnreadOnly] = useState(false);
+  const { reduceMotion } = useTheme();
   const entrance = useRef(conversations.map(() => new Animated.Value(0))).current;
   useEffect(() => {
+    if (reduceMotion) { entrance.forEach((value) => value.setValue(1)); return; }
     Animated.stagger(70, entrance.map((value) => Animated.timing(value, { toValue: 1, duration: 260, useNativeDriver: true }))).start();
-  }, [entrance]);
+  }, [entrance, reduceMotion]);
   const filtered = useMemo(() => conversations.filter((conversation) => {
     const technician = demoTechnicians.find(({ id }) => id === conversation.technicianId)!;
     return (!unreadOnly || conversation.unread > 0) && (!query.trim() || `${technician.name} ${technician.specialty} ${conversation.message}`.includes(query.trim()));
@@ -38,13 +43,13 @@ export function CustomerMessagesScreen() {
 
   return <SafeAreaView edges={["top"]} style={styles.safe}>
     <View style={styles.header}>
-      <View><Text style={styles.title}>الرسائل</Text><Text style={styles.subtitle}>تواصل آمن مع فنيي عَمِّرها</Text></View>
+      <View><LocalizedText style={styles.title}>الرسائل</LocalizedText><LocalizedText style={styles.subtitle}>تواصل آمن مع فنيي عَمِّرها</LocalizedText></View>
       <View style={styles.headerIcon}><Ionicons name="chatbubbles" color={colors.primaryPressed} size={21} /></View>
     </View>
-    <View style={styles.searchBox}><Ionicons name="search" size={18} color="#94A3B8" /><TextInput value={query} onChangeText={setQuery} placeholder="ابحث عن فني أو محادثة" placeholderTextColor="#94A3B8" style={styles.searchInput} /></View>
+    <View style={styles.searchBox}><Ionicons name="search" size={18} color="#94A3B8" /><LocalizedTextInput value={query} onChangeText={setQuery} placeholder="ابحث عن فني أو محادثة" placeholderTextColor="#94A3B8" style={styles.searchInput} /></View>
     <View style={styles.tabs}>
-      <Pressable onPress={() => setUnreadOnly(false)} style={[styles.tab, !unreadOnly && styles.activeTab]}><Text style={[styles.tabText, !unreadOnly && styles.activeTabText]}>كل المحادثات</Text></Pressable>
-      <Pressable onPress={() => setUnreadOnly(true)} style={[styles.tab, unreadOnly && styles.activeTab]}><Text style={[styles.tabText, unreadOnly && styles.activeTabText]}>غير مقروءة</Text><View style={styles.unreadMini}><Text style={styles.unreadMiniText}>2</Text></View></Pressable>
+      <Pressable onPress={() => setUnreadOnly(false)} style={[styles.tab, !unreadOnly && styles.activeTab]}><LocalizedText style={[styles.tabText, !unreadOnly && styles.activeTabText]}>كل المحادثات</LocalizedText></Pressable>
+      <Pressable onPress={() => setUnreadOnly(true)} style={[styles.tab, unreadOnly && styles.activeTab]}><LocalizedText style={[styles.tabText, unreadOnly && styles.activeTabText]}>غير مقروءة</LocalizedText><View style={styles.unreadMini}><LocalizedText style={styles.unreadMiniText}>2</LocalizedText></View></Pressable>
     </View>
     <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
       {filtered.map((conversation) => {
@@ -54,21 +59,21 @@ export function CustomerMessagesScreen() {
           <Pressable accessibilityRole="button" accessibilityLabel={`فتح محادثة ${technician.name}`} onPress={() => navigation.navigate("CustomerChat", { jobId: conversation.jobId, requestId: conversation.requestId, technicianId: conversation.technicianId })} style={({ pressed }) => [styles.conversation, pressed && styles.pressed]}>
             <View style={styles.portrait}><TechnicianPortrait technician={technician} round size={48} /><View style={[styles.online, !conversation.online && styles.offline]} /></View>
             <View style={styles.copy}>
-              <View style={styles.nameRow}><Text style={styles.name}>{technician.name}</Text>{technician.isPro ? <Text style={styles.pro}>Pro</Text> : <Ionicons name="checkmark-circle" color={colors.primaryPressed} size={13} />}</View>
-              <Text numberOfLines={1} style={[styles.message, conversation.unread > 0 && styles.unreadMessage]}>{conversation.message}</Text>
-              <Text numberOfLines={1} style={styles.context}>{technician.specialty}</Text>
+              <View style={styles.nameRow}><LocalizedText style={styles.name}>{technician.name}</LocalizedText>{technician.isPro ? <LocalizedText style={styles.pro}>Pro</LocalizedText> : <Ionicons name="checkmark-circle" color={colors.primaryPressed} size={13} />}</View>
+              <LocalizedText numberOfLines={1} style={[styles.message, conversation.unread > 0 && styles.unreadMessage]}>{conversation.message}</LocalizedText>
+              <LocalizedText numberOfLines={1} style={styles.context}>{technician.specialty}</LocalizedText>
             </View>
-            <View style={styles.meta}><Text style={styles.time}>{conversation.time}</Text>{conversation.unread > 0 ? <View style={styles.unread}><Text style={styles.unreadText}>{conversation.unread}</Text></View> : <Ionicons name="checkmark-done" size={15} color="#10B981" />}</View>
+            <View style={styles.meta}><LocalizedText style={styles.time}>{conversation.time}</LocalizedText>{conversation.unread > 0 ? <View style={styles.unread}><LocalizedText style={styles.unreadText}>{conversation.unread}</LocalizedText></View> : <Ionicons name="checkmark-done" size={15} color="#10B981" />}</View>
           </Pressable>
         </Animated.View>;
       })}
-      {!filtered.length ? <View style={styles.empty}><Ionicons name="chatbubble-ellipses-outline" size={34} color="#CBD5E1" /><Text style={styles.emptyText}>لا توجد محادثات مطابقة</Text></View> : null}
-      <View style={styles.privacy}><Ionicons name="shield-checkmark" size={17} color="#8C6D14" /><Text style={styles.privacyText}>جميع محادثاتك محمية داخل عَمِّرها</Text></View>
+      {!filtered.length ? <View style={styles.empty}><Ionicons name="chatbubble-ellipses-outline" size={34} color="#CBD5E1" /><LocalizedText style={styles.emptyText}>لا توجد محادثات مطابقة</LocalizedText></View> : null}
+      <View style={styles.privacy}><Ionicons name="shield-checkmark" size={17} color="#8C6D14" /><LocalizedText style={styles.privacyText}>جميع محادثاتك محمية داخل عَمِّرها</LocalizedText></View>
     </ScrollView>
   </SafeAreaView>;
 }
 
-const styles = StyleSheet.create({
+const styles = createAdaptiveStyleSheet({
   safe: { backgroundColor: "#F8F7F4", flex: 1 },
   header: { alignItems: "center", flexDirection: "row-reverse", justifyContent: "space-between", paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12 },
   title: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 22, fontWeight: "800", textAlign: "right" }, subtitle: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 10, textAlign: "right" },

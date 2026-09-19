@@ -1,3 +1,5 @@
+import { LocalizedText } from "../../../shared/i18n/LocalizedText";
+import { createAdaptiveStyleSheet } from "../../../shared/theme/adaptiveStyles";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { ReactNode } from "react";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,29 +20,29 @@ export function TechnicianPreview({ onProfile, onRepairRequest, onDismiss, techn
     <View style={styles.header}>
       <View style={styles.avatarWrap}>
         <TechnicianPortrait technician={technician} size={46} />
-        <Text style={[styles.available, !technician.isAvailable && styles.unavailable]}>{technician.isAvailable ? "متاح الآن" : "غير متاح"}</Text>
+        <LocalizedText style={[styles.available, !technician.isAvailable && styles.unavailable]}>{technician.isAvailable ? "متاح الآن" : "غير متاح"}</LocalizedText>
       </View>
       <View style={styles.identity}>
         <View style={styles.nameRow}>
-          <Text style={styles.name}>{technician.name}</Text>
-          {technician.isPro ? <Text style={styles.pro}>♛ عَمِّرها Pro</Text> : technician.isVerified ? <Ionicons name="checkmark-circle" color={colors.primary} size={13} /> : null}
+          <LocalizedText style={styles.name}>{technician.name}</LocalizedText>
+          {technician.isPro ? <LocalizedText style={styles.pro}>♛ عَمِّرها Pro</LocalizedText> : technician.isVerified ? <Ionicons name="checkmark-circle" color={colors.primary} size={13} /> : null}
         </View>
-        <Text style={styles.specialty}>{technician.specialty}</Text>
+        <LocalizedText style={styles.specialty}>{technician.specialty}</LocalizedText>
         <View style={styles.metrics}>
-          <Text style={styles.rating}>★ {technician.rating.toFixed(1)} ({technician.completedJobs} عملية)</Text>
-          <Text style={styles.distance}>· يبعد {Math.round(technician.distanceKm * 1000)} متر</Text>
+          <LocalizedText style={styles.rating}>★ {technician.rating.toFixed(1)} ({technician.completedJobs} عملية)</LocalizedText>
+          <LocalizedText style={styles.distance}>· يبعد {Math.round(technician.distanceKm * 1000)} متر</LocalizedText>
         </View>
       </View>
       {onDismiss ? <Pressable accessibilityRole="button" accessibilityLabel="إغلاق معلومات الفني" hitSlop={10} onPress={onDismiss} style={styles.close}><Ionicons name="close" size={18} color="#A9B4BF" /></Pressable> : null}
     </View>
     {children}
     <View style={styles.actions}>
-      <Pressable accessibilityRole="button" onPress={onProfile} style={({ pressed }) => [styles.button, styles.profile, pressed && styles.pressed]}><Text style={styles.buttonText}>عرض الملف والتقييمات</Text></Pressable>
-      <Pressable accessibilityRole="button" disabled={!technician.isAvailable} onPress={onRepairRequest} style={({ pressed }) => [styles.button, styles.request, pressed && styles.pressed, !technician.isAvailable && styles.disabled]}><Text style={styles.buttonText}>{actionLabel}</Text></Pressable>
+      <Pressable accessibilityRole="button" onPress={onProfile} style={({ pressed }) => [styles.button, styles.profile, pressed && styles.pressed]}><LocalizedText style={styles.buttonText}>عرض الملف والتقييمات</LocalizedText></Pressable>
+      <Pressable accessibilityRole="button" disabled={!technician.isAvailable} onPress={onRepairRequest} style={({ pressed }) => [styles.button, styles.request, pressed && styles.pressed, !technician.isAvailable && styles.disabled]}><LocalizedText style={styles.buttonText}>{actionLabel}</LocalizedText></Pressable>
     </View>
   </View>;
 }
-const styles = StyleSheet.create({
+const styles = createAdaptiveStyleSheet({
   card: { ...shadows.raised, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#EFE5CB", borderRadius: 22, padding: 12, gap: 12 },
   header: { direction: "ltr", flexDirection: "row-reverse", alignItems: "flex-start", gap: 8 },
   avatarWrap: { alignItems: "center", paddingTop: 2 },

@@ -1,3 +1,5 @@
+import { LocalizedText } from "../../../shared/i18n/LocalizedText";
+import { createAdaptiveStyleSheet } from "../../../shared/theme/adaptiveStyles";
 import { StyleSheet, Text, View } from "react-native";
 
 import { ScreenContainer } from "../../../shared/components";
@@ -13,14 +15,14 @@ export function PlaceholderScreen({ description = uiText.common.comingSoon, titl
   return (
     <ScreenContainer>
       <View style={styles.content}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.description}>{description}</Text>
+        <LocalizedText style={styles.title}>{title}</LocalizedText>
+        <LocalizedText style={styles.description}>{description}</LocalizedText>
       </View>
     </ScreenContainer>
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createAdaptiveStyleSheet({
   content: { alignItems: "center", flex: 1, gap: spacing.sm, justifyContent: "center" },
   title: {
     color: colors.text,

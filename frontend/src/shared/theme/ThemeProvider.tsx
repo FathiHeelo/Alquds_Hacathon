@@ -3,6 +3,7 @@ import { useColorScheme } from "react-native";
 
 import { useAccessibilityPreferences } from "../preferences/AccessibilityPreferencesProvider";
 import { darkTheme, highContrastTheme, lightTheme, type SemanticTheme } from "./themes";
+import { setAdaptiveTheme } from "./adaptiveStyles";
 
 interface ThemeContextValue {
   theme: SemanticTheme;
@@ -25,6 +26,7 @@ export function ThemeProvider({ children }: PropsWithChildren) {
     textScale: preferences.textSize === "large" ? 1.18 : 1,
     reduceMotion: preferences.reduceMotion
   }), [preferences.reduceMotion, preferences.textSize, resolvedMode]);
+  setAdaptiveTheme(value.theme, value.isHighContrast);
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 

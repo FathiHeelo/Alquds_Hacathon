@@ -1,3 +1,4 @@
+import { createAdaptiveStyleSheet } from "../../../shared/theme/adaptiveStyles";
 import { Ionicons } from "@expo/vector-icons";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -30,6 +31,6 @@ export function RoleLoginScreen() {
   </SafeAreaView>;
 }
 
-const styles = StyleSheet.create({
+const styles = createAdaptiveStyleSheet({
   safe: { flex: 1 }, content: { flexGrow: 1, justifyContent: "center", padding: 20 }, brand: { alignItems: "center", marginBottom: 18 }, logo: { height: 150, resizeMode: "contain", width: 150 }, welcome: { fontFamily: typography.fontFamily, fontWeight: "800", marginTop: 4 }, tagline: { fontFamily: typography.fontFamily, marginTop: 3 }, panel: { ...shadows.raised, borderRadius: 24, padding: 15 }, title: { fontFamily: typography.fontFamily, fontWeight: "800" }, subtitle: { fontFamily: typography.fontFamily, marginTop: 3 }, roles: { gap: 9, marginTop: 15 }, role: { alignItems: "center", borderRadius: 16, gap: 10, minHeight: 76, padding: 11 }, pressed: { opacity: 0.72 }, roleIcon: { alignItems: "center", borderRadius: 13, height: 48, justifyContent: "center", width: 48 }, roleCopy: { flex: 1 }, roleTitle: { fontFamily: typography.fontFamily, fontWeight: "800" }, roleSubtitle: { fontFamily: typography.fontFamily, lineHeight: 14, marginTop: 3 }, safeNote: { alignItems: "center", alignSelf: "center", borderRadius: 11, gap: 5, marginTop: 14, paddingHorizontal: 11, paddingVertical: 8 }, safeText: { fontFamily: typography.fontFamily }
 });
