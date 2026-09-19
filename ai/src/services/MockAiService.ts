@@ -1,7 +1,7 @@
 import type { AiService } from "./AiService";
 import { createSimulationAiService } from "./simulationAiService";
 import { structureVoiceRequest as structureVoiceRequestWithEngine } from "../engines/voice/voiceEngine";
-
+import { rankTechnicians as rankTechniciansWithEngine } from "../engines/matching/matchingEngine";
 export function createMockAiService(): AiService {
   const simulation = createSimulationAiService();
 
@@ -17,6 +17,8 @@ export function createMockAiService(): AiService {
 
     matchTechnicians: (candidates) =>
       simulation.matchTechnicians(candidates),
+    rankTechnicians: async (input) =>
+      rankTechniciansWithEngine(input),
 
     generateOfferAssistant: (input) =>
       simulation.generateOfferAssistant(input),

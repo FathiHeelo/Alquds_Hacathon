@@ -1,9 +1,7 @@
 import type { AiService } from "./AiService";
 import { diagnoseProblem as diagnoseProblemWithEngine } from "../engines/diagnosis/diagnosisEngine";
-import {
-  estimateFairPrice as estimateFairPriceWithEngine,
-} from "../engines/fair-price/priceEngine";
-
+import { estimateFairPrice as estimateFairPriceWithEngine } from "../engines/fair-price/priceEngine";
+import { rankTechnicians as rankTechniciansWithEngine } from "../engines/matching/matchingEngine";
 export function createSimulationAiService(): AiService {
   return {
     async structureVoiceRequest(input) {
@@ -98,6 +96,9 @@ export function createSimulationAiService(): AiService {
           reasons: ["rating", "distance", "job_history"]
         }))
         .sort((a, b) => b.score - a.score);
+    },
+    async rankTechnicians(input) {
+  return rankTechniciansWithEngine(input);
     },
     async generateOfferAssistant(input) {
       return {
