@@ -25,7 +25,8 @@ export function DemoSessionProvider({ children }: PropsWithChildren) {
     if (!appConfig.demoMode) {
       try { await apiSession.login(nextRole); }
       catch (error) {
-        const canUseDemoFallback = appConfig.apiFallbackToDemo && error instanceof AppError && ["NETWORK_ERROR", "NETWORK_TIMEOUT", "SERVER_UNAVAILABLE"].includes(error.code);
+        const canUseDemoFallback = appConfig.apiFallbackToDemo && error instanceof AppError && ["NETWORK_ERROR", "NETWORK_TIMEOUT"].includes(error.code);
+        if (canUseDemoFallback && __DEV__) console.warn("[AMMERHA] API unavailable — using demo fallback");
         if (!canUseDemoFallback) throw error;
       }
     }

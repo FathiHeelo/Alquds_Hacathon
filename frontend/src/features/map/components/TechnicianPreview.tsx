@@ -29,8 +29,8 @@ export function TechnicianPreview({ onProfile, onRepairRequest, onDismiss, techn
         </View>
         <LocalizedText style={styles.specialty}>{technician.specialty}</LocalizedText>
         <View style={styles.metrics}>
-          <LocalizedText style={styles.rating}>★ {technician.rating.toFixed(1)} ({technician.completedJobs} عملية)</LocalizedText>
-          <LocalizedText style={styles.distance}>· يبعد {Math.round(technician.distanceKm * 1000)} متر</LocalizedText>
+          <LocalizedText style={styles.rating}>{technician.ratingCount ? `★ ${technician.rating.toFixed(1)} (${technician.ratingCount} تقييم)` : "لا توجد تقييمات"} · {technician.completedJobs} عملية مكتملة</LocalizedText>
+          {technician.distanceKm != null ? <LocalizedText style={styles.distance}>· يبعد {Math.round(technician.distanceKm * 1000)} متر</LocalizedText> : null}
         </View>
       </View>
       {onDismiss ? <Pressable accessibilityRole="button" accessibilityLabel="إغلاق معلومات الفني" hitSlop={10} onPress={onDismiss} style={styles.close}><Ionicons name="close" size={18} color="#A9B4BF" /></Pressable> : null}

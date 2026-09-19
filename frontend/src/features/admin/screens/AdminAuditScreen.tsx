@@ -9,12 +9,13 @@ import type { AdminStackParamList } from "../../../app/navigation/navigation.typ
 import { colors, shadows, typography } from "../../../shared/theme";
 import { auditEntries } from "../adminData";
 import { AdminHeader } from "../components/AdminHeader";
+import { appConfig } from "../../../app/config/appConfig";
 
 export function AdminAuditScreen({ navigation }: NativeStackScreenProps<AdminStackParamList, "AdminAudit">) {
-  return <SafeAreaView edges={["top", "bottom"]} style={styles.safe}><AdminHeader title="سجل الرقابة" subtitle="كل إجراءات الإدارة موثقة وغير قابلة للإخفاء" onBack={() => navigation.goBack()} /><ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-    <View style={styles.info}><Ionicons name="shield-checkmark" size={19} color="#176B51" /><LocalizedText style={styles.infoText}>يسجل عَمِّرها المشرف والوقت والحالة المستهدفة لكل قرار لحماية العدالة والشفافية.</LocalizedText></View>
-    <View style={styles.card}>{auditEntries.map((entry, index) => <Pressable key={`${entry.action}-${entry.time}`} onPress={() => Alert.alert(entry.action, `${entry.actor}\n${entry.target}\n${entry.time}`)} style={({ pressed }) => [styles.entry, index === auditEntries.length - 1 && styles.last, pressed && styles.pressed]}><View style={[styles.icon, { backgroundColor: `${entry.color}18` }]}><Ionicons name="document-text" size={17} color={entry.color} /></View><View style={styles.copy}><LocalizedText style={styles.action}>{entry.action}</LocalizedText><LocalizedText style={styles.meta}>{entry.actor} • {entry.target}</LocalizedText><LocalizedText style={styles.time}>{entry.time}</LocalizedText></View><Ionicons name="chevron-back" size={15} color="#94A3B8" /></Pressable>)}</View>
-    <Pressable onPress={() => Alert.alert("تصدير السجل", "تم تجهيز سجل الرقابة للفترة المحددة.")} style={styles.export}><Ionicons name="download" size={17} color="#8C6D14" /><LocalizedText style={styles.exportText}>تصدير سجل الرقابة</LocalizedText></Pressable>
+  const entries = appConfig.demoMode ? auditEntries : [];
+  return <SafeAreaView edges={["top", "bottom"]} style={styles.safe}><AdminHeader title="سجل الرقابة" subtitle="سجل قرارات الإدارة" onBack={() => navigation.goBack()} /><ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <View style={styles.info}><Ionicons name="shield-checkmark" size={19} color="#176B51" /><LocalizedText style={styles.infoText}>{appConfig.demoMode ? "هذه بيانات توضيحية لوضع العرض." : "لا توفر الخدمة حالياً واجهة API لقراءة سجل الرقابة أو تصديره."}</LocalizedText></View>
+    {entries.length ? <View style={styles.card}>{entries.map((entry, index) => <Pressable key={`${entry.action}-${entry.time}`} onPress={() => Alert.alert(entry.action, `${entry.actor}\n${entry.target}\n${entry.time}`)} style={({ pressed }) => [styles.entry, index === entries.length - 1 && styles.last, pressed && styles.pressed]}><View style={[styles.icon, { backgroundColor: `${entry.color}18` }]}><Ionicons name="document-text" size={17} color={entry.color} /></View><View style={styles.copy}><LocalizedText style={styles.action}>{entry.action}</LocalizedText><LocalizedText style={styles.meta}>{entry.actor} • {entry.target}</LocalizedText><LocalizedText style={styles.time}>{entry.time}</LocalizedText></View><Ionicons name="chevron-back" size={15} color="#94A3B8" /></Pressable>)}</View> : <View style={styles.card}><LocalizedText style={styles.meta}>لا توجد سجلات متاحة.</LocalizedText></View>}
   </ScrollView></SafeAreaView>;
 }
 const styles = createAdaptiveStyleSheet({

@@ -6,11 +6,15 @@ import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { CustomerStackParamList, CustomerTabParamList } from "../../../app/navigation/navigation.types";
 import { useDemoSession } from "../../../app/providers/DemoSessionProvider";
 import { colors, shadows, typography } from "../../../shared/theme";
+import { appConfig } from "../../../app/config/appConfig";
+import { apiClient } from "../../../services/api/apiClient";
+import { repairRequestRepository, rewardRepository } from "../../../services/repositories";
 
 type AccountNavigation = CompositeNavigationProp<BottomTabNavigationProp<CustomerTabParamList, "CustomerAccount">, NativeStackNavigationProp<CustomerStackParamList>>;
 
@@ -26,25 +30,36 @@ const menuItems = [
 export function CustomerAccountScreen() {
   const navigation = useNavigation<AccountNavigation>();
   const { logout } = useDemoSession();
+  const [account, setAccount] = useState<{ name?: string; phone?: string | null }>();
+  const [requestCount, setRequestCount] = useState<number>();
+  const [points, setPoints] = useState<number>();
+  useEffect(() => {
+    if (appConfig.demoMode) { setAccount({ name: "أحمد ناصر", phone: "+970 59 123 4567" }); setRequestCount(12); setPoints(850); return; }
+    let active = true;
+    void apiClient.request<{ name?: string; phone?: string | null }>("/users/me", undefined, "customer").then((value) => { if (active) setAccount(value); }).catch(() => { if (active) setAccount(undefined); });
+    void repairRequestRepository.listMine().then((items) => { if (active) setRequestCount(items.length); }).catch(() => { if (active) setRequestCount(undefined); });
+    void rewardRepository.getAccount().then((value) => { if (active) setPoints(value.balance); }).catch(() => { if (active) setPoints(undefined); });
+    return () => { active = false; };
+  }, []);
   return <SafeAreaView edges={["top"]} style={styles.safe}>
     <View style={styles.header}><View><LocalizedText style={styles.title}>حسابي</LocalizedText><LocalizedText style={styles.subtitle}>إدارة بياناتك وخدماتك في عَمِّرها</LocalizedText></View><Pressable accessibilityLabel="إمكانية الوصول والمظهر" accessibilityRole="button" onPress={() => navigation.navigate("CustomerSettings")} style={styles.headerIcon}><Ionicons name="settings-outline" size={21} color={colors.primaryPressed} /></Pressable></View>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.profileCard}>
         <View style={styles.profileGlow} />
         <View style={styles.avatar}><Ionicons name="person" size={40} color={colors.primary} /></View>
-        <View style={styles.profileCopy}><View style={styles.nameRow}><LocalizedText style={styles.name}>أحمد ناصر</LocalizedText><Ionicons name="checkmark-circle" size={16} color={colors.primary} /></View><LocalizedText style={styles.phone}>+970 59 123 4567</LocalizedText><View style={styles.location}><Ionicons name="location" size={12} color="#D6B24D" /><LocalizedText style={styles.locationText}>البلدة القديمة، القدس</LocalizedText></View></View>
+        <View style={styles.profileCopy}><View style={styles.nameRow}><LocalizedText style={styles.name}>{account?.name ?? (appConfig.demoMode ? "أحمد ناصر" : "حساب العميل")}</LocalizedText></View>{account?.phone ? <LocalizedText style={styles.phone}>{account.phone}</LocalizedText> : null}</View>
         <Pressable onPress={() => Alert.alert("تعديل الحساب", "يمكنك تعديل معلومات الحساب من هنا.")} style={styles.editButton}><Ionicons name="create-outline" size={16} color="white" /></Pressable>
       </View>
 
       <View style={styles.stats}>
-        <Pressable onPress={() => navigation.navigate("CustomerRequests")} style={styles.stat}><Ionicons name="construct" size={19} color="#8C6D14" /><LocalizedText style={styles.statValue}>12</LocalizedText><LocalizedText style={styles.statLabel}>طلب صيانة</LocalizedText></Pressable>
+        <Pressable onPress={() => navigation.navigate("CustomerRequests")} style={styles.stat}><Ionicons name="construct" size={19} color="#8C6D14" /><LocalizedText style={styles.statValue}>{requestCount ?? "—"}</LocalizedText><LocalizedText style={styles.statLabel}>طلب صيانة</LocalizedText></Pressable>
         <View style={styles.statDivider} />
-        <Pressable onPress={() => navigation.navigate("CustomerRewards")} style={styles.stat}><Ionicons name="star" size={19} color="#8C6D14" /><LocalizedText style={styles.statValue}>850</LocalizedText><LocalizedText style={styles.statLabel}>نقطة مكافأة</LocalizedText></Pressable>
+        <Pressable onPress={() => navigation.navigate("CustomerRewards")} style={styles.stat}><Ionicons name="star" size={19} color="#8C6D14" /><LocalizedText style={styles.statValue}>{points ?? "—"}</LocalizedText><LocalizedText style={styles.statLabel}>نقطة مكافأة</LocalizedText></Pressable>
         <View style={styles.statDivider} />
-        <View style={styles.stat}><Ionicons name="heart" size={19} color="#8C6D14" /><LocalizedText style={styles.statValue}>4</LocalizedText><LocalizedText style={styles.statLabel}>فنيون مفضلون</LocalizedText></View>
+        <View style={styles.stat}><Ionicons name="heart" size={19} color="#8C6D14" /><LocalizedText style={styles.statValue}>—</LocalizedText><LocalizedText style={styles.statLabel}>فنيون مفضلون</LocalizedText></View>
       </View>
 
-      <View style={styles.loyaltyCard}><View style={styles.loyaltyIcon}><Ionicons name="ribbon" size={22} color="#8C6D14" /></View><View style={styles.loyaltyCopy}><LocalizedText style={styles.loyaltyTitle}>عضو عَمِّرها الذهبي</LocalizedText><LocalizedText style={styles.loyaltyText}>باقي 150 نقطة لتحصل على قسيمة إضافية</LocalizedText><View style={styles.progress}><View style={styles.progressFill} /></View></View><Pressable onPress={() => navigation.navigate("CustomerRewards")}><Ionicons name="chevron-back" size={19} color="#8C6D14" /></Pressable></View>
+      {appConfig.demoMode ? <View style={styles.loyaltyCard}><View style={styles.loyaltyIcon}><Ionicons name="ribbon" size={22} color="#8C6D14" /></View><View style={styles.loyaltyCopy}><LocalizedText style={styles.loyaltyTitle}>عضو عَمِّرها الذهبي</LocalizedText><LocalizedText style={styles.loyaltyText}>باقي 150 نقطة لتحصل على قسيمة إضافية</LocalizedText><View style={styles.progress}><View style={styles.progressFill} /></View></View><Pressable onPress={() => navigation.navigate("CustomerRewards")}><Ionicons name="chevron-back" size={19} color="#8C6D14" /></Pressable></View> : null}
 
       <LocalizedText style={styles.sectionTitle}>إعدادات الحساب</LocalizedText>
       <View style={styles.menuCard}>{menuItems.map((item, index) => <Pressable key={item.title} onPress={() => Alert.alert(item.title, "سيتم ربط هذه الصفحة ببيانات الحساب الفعلية.")} style={({ pressed }) => [styles.menuItem, index < menuItems.length - 1 && styles.menuDivider, pressed && styles.pressed]}><View style={[styles.menuIcon, { backgroundColor: item.background }]}><Ionicons name={item.icon} size={19} color={item.color} /></View><View style={styles.menuCopy}><LocalizedText style={styles.menuTitle}>{item.title}</LocalizedText><LocalizedText style={styles.menuSubtitle}>{item.subtitle}</LocalizedText></View><Ionicons name="chevron-back" size={17} color="#94A3B8" /></Pressable>)}</View>

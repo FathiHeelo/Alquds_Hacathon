@@ -64,7 +64,12 @@ export async function loadCustomerAiFlow(id: string, deps: FlowDependencies,
         throw new Error("Invalid price");
       result.price = value;
     }).catch(() => { result.unavailable.push("price"); }),
-    bounded(() => deps.technicians.findNearby(request.location, { categoryId: request.category }), timeout)
+    bounded(() => deps.technicians.findNearby(
+      request.location.latitude != null && request.location.longitude != null
+        ? { latitude: request.location.latitude, longitude: request.location.longitude }
+        : undefined,
+      { categoryId: request.category }
+    ), timeout)
       .then(async (technicians) => {
         result.recommendations = technicians.map((technician) => ({ technician }));
         if (!technicians.length) return;

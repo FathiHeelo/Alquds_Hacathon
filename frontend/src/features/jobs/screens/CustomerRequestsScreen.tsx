@@ -14,17 +14,23 @@ import type { CustomerStackParamList, CustomerTabParamList } from "../../../app/
 import { demoTechnicians } from "../../../demo/fixtures/technicians";
 import { useFocusEffect } from "@react-navigation/native";
 import { customerJobRepository, repairRequestRepository } from "../../../services/repositories";
+import { technicianRepository } from "../../../services/repositories";
+import type { Technician } from "../../../domain/models/technician";
 import { appConfig } from "../../../app/config/appConfig";
 import { colors, shadows, typography, useTheme } from "../../../shared/theme";
 import { TechnicianPortrait } from "../../map/components/TechnicianPortrait";
 import { customerRequests, mapDomainRequestToCustomerItem, type CustomerRequestItem, type CustomerRequestState } from "../customerRequests";
+import { ErrorState, LoadingState } from "../../../shared/components";
 
 type RequestsNavigation = CompositeNavigationProp<BottomTabNavigationProp<CustomerTabParamList, "CustomerRequests">, NativeStackNavigationProp<CustomerStackParamList>>;
 type Filter = "all" | "active" | "completed";
 
 const statusAppearance: Record<CustomerRequestState, { icon: keyof typeof Ionicons.glyphMap; color: string; background: string }> = {
+  pending: { icon: "time", color: "#8C6D14", background: "#FFF8E3" },
+  accepted: { icon: "checkmark-circle", color: "#047857", background: "#ECFDF5" },
   on_the_way: { icon: "navigate", color: "#047857", background: "#ECFDF5" },
   scheduled: { icon: "calendar", color: "#8C6D14", background: "#FFF8E3" },
+  in_progress: { icon: "construct", color: "#1D4ED8", background: "#DBEAFE" },
   completed: { icon: "checkmark-circle", color: "#047857", background: "#ECFDF5" },
   cancelled: { icon: "close-circle", color: "#9F1239", background: "#FFF1F2" }
 };
@@ -33,26 +39,38 @@ export function CustomerRequestsScreen() {
   const navigation = useNavigation<RequestsNavigation>();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
-  const [requests, setRequests] = useState<readonly CustomerRequestItem[]>(customerRequests);
+  const [requests, setRequests] = useState<readonly CustomerRequestItem[]>(() => appConfig.demoMode ? customerRequests : []);
+  const [loading, setLoading] = useState(!appConfig.demoMode);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [techniciansById, setTechniciansById] = useState<Record<string, Technician>>({});
   const { reduceMotion } = useTheme();
   const entrance = useRef(Array.from({ length: 20 }, () => new Animated.Value(0))).current;
 
   useFocusEffect(useCallback(() => {
     let active = true;
-    if (!appConfig.demoMode) void Promise.all([repairRequestRepository.listMine(), customerJobRepository.list()]).then(([repairs, jobs]) => {
+    if (!appConfig.demoMode) { setLoading(true); setLoadFailed(false); void Promise.all([repairRequestRepository.listMine(), customerJobRepository.list()]).then(([repairs, jobs]) => {
       const repairItems = repairs.map(mapDomainRequestToCustomerItem);
       const jobItems: CustomerRequestItem[] = jobs.map((job) => {
         const request = repairs.find((item) => item.id === job.requestId);
-        const state: CustomerRequestState = job.status === "completed" ? "completed" : job.status === "cancelled" ? "cancelled" : job.status === "scheduled" ? "scheduled" : "on_the_way";
-        const statusLabel: Record<CustomerRequestState, string> = { on_the_way: "الفني في الطريق", scheduled: "موعد محجوز", completed: "مكتمل", cancelled: "ملغي" };
-        return { id: job.requestId, jobId: job.id, offerId: job.offerId, technicianId: job.technicianId, title: request?.description ?? "طلب صيانة", category: request?.category ?? "صيانة عامة", orderNumber: `#${job.id.slice(-6).toUpperCase()}`, state, statusLabel: statusLabel[state], statusDetail: state === "on_the_way" ? `الوصول خلال ${job.expectedArrival}` : job.locationLabel, date: request ? new Date(request.createdAt).toLocaleString("ar", { dateStyle: "short", timeStyle: "short" }) : "", location: job.locationLabel, price: job.agreedPrice };
+        const state: CustomerRequestState = job.status;
+        const statusLabel: Record<CustomerRequestState, string> = { pending: "بانتظار عروض الفنيين", accepted: "تم قبول العرض", on_the_way: "الفني في الطريق", scheduled: "موعد محجوز", in_progress: "العمل جارٍ", completed: "مكتمل", cancelled: "ملغي" };
+        return { id: job.requestId, jobId: job.id, offerId: job.offerId, technicianId: job.technicianId, title: request?.description ?? job.description ?? "طلب صيانة", category: request?.category ?? "صيانة عامة", orderNumber: `#${job.id.slice(-6).toUpperCase()}`, state, statusLabel: statusLabel[state], statusDetail: state === "on_the_way" ? job.expectedArrival ? `الوصول المتوقع ${job.expectedArrival}` : "الفني في الطريق" : job.locationLabel, date: request ? new Date(request.createdAt).toLocaleString("ar", { dateStyle: "short", timeStyle: "short" }) : job.createdAt ? new Date(job.createdAt).toLocaleString("ar", { dateStyle: "short", timeStyle: "short" }) : "", location: job.locationLabel, price: job.agreedPrice };
       });
       const withJobs = new Set(jobItems.map((item) => item.id));
       const items = [...jobItems, ...repairItems.filter((item) => !withJobs.has(item.id))];
       if (active) setRequests(items);
-    }).catch(() => undefined);
+    }).catch(() => { if (active) { setRequests([]); setLoadFailed(true); } }).finally(() => { if (active) setLoading(false); }); }
     return () => { active = false; };
-  }, []));
+  }, [reloadKey]));
+
+  useEffect(() => {
+    if (appConfig.demoMode) { setTechniciansById(Object.fromEntries(demoTechnicians.map((item) => [item.id, item]))); return; }
+    let active = true;
+    const ids = [...new Set(requests.map((item) => item.technicianId).filter(Boolean))];
+    void Promise.all(ids.map(async (id) => [id, await technicianRepository.getById(id)] as const)).then((rows) => { if (active) setTechniciansById(Object.fromEntries(rows.filter((row): row is readonly [string, Technician] => Boolean(row[1])).map(([id, profile]) => [id, profile]))); }).catch(() => { if (active) setTechniciansById({}); });
+    return () => { active = false; };
+  }, [requests]);
 
   useEffect(() => {
     if (reduceMotion) { entrance.forEach((value) => value.setValue(1)); return; }
@@ -60,11 +78,11 @@ export function CustomerRequestsScreen() {
   }, [entrance, reduceMotion]);
 
   const filtered = useMemo(() => requests.filter((request) => {
-    const technician = demoTechnicians.find(({ id }) => id === request.technicianId);
-    const matchesFilter = filter === "all" || (filter === "active" ? request.state === "on_the_way" || request.state === "scheduled" : request.state === "completed" || request.state === "cancelled");
+    const technician = techniciansById[request.technicianId];
+    const matchesFilter = filter === "all" || (filter === "active" ? request.state !== "completed" && request.state !== "cancelled" : request.state === "completed" || request.state === "cancelled");
     const haystack = `${request.title} ${request.category} ${request.orderNumber} ${technician?.name ?? ""}`;
     return matchesFilter && (!query.trim() || haystack.includes(query.trim()));
-  }), [filter, query, requests]);
+  }), [filter, query, requests, techniciansById]);
 
   return <SafeAreaView edges={["top"]} style={styles.safe}>
     <View style={styles.header}>
@@ -78,12 +96,13 @@ export function CustomerRequestsScreen() {
     <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
       {filtered.map((request) => {
         const index = requests.indexOf(request);
-        const technician = demoTechnicians.find(({ id }) => id === request.technicianId) ?? { ...demoTechnicians[0], name: request.technicianId ? "الفني" : "بانتظار فني" };
+        const technician = techniciansById[request.technicianId];
+        const technicianName = technician?.name ?? (request.technicianId ? "الفني" : "بانتظار فني");
         const appearance = statusAppearance[request.state];
         return <Animated.View key={request.id} style={{ opacity: entrance[index], transform: [{ translateY: entrance[index].interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }}>
           <Pressable accessibilityRole="button" accessibilityLabel={`فتح الطلب ${request.title}`} onPress={() => navigation.navigate("CustomerRequestDetails", { requestId: request.id })} style={({ pressed }) => [styles.requestCard, pressed && styles.pressed]}>
             <View style={styles.topRow}>
-              <View style={styles.personRow}><TechnicianPortrait technician={technician} round size={46} /><View style={styles.requestCopy}><LocalizedText style={styles.requestTitle}>{request.title}</LocalizedText><LocalizedText style={styles.technician}>{technician.name} • {request.category}</LocalizedText></View></View>
+              <View style={styles.personRow}>{technician ? <TechnicianPortrait technician={technician} round size={46} /> : <View style={{ alignItems: "center", backgroundColor: colors.secondary, borderRadius: 23, height: 46, justifyContent: "center", width: 46 }}><Ionicons name="person" size={21} color={colors.primary} /></View>}<View style={styles.requestCopy}><LocalizedText style={styles.requestTitle}>{request.title}</LocalizedText><LocalizedText style={styles.technician}>{technicianName} • {request.category}</LocalizedText></View></View>
               <View style={[styles.statusBadge, { backgroundColor: appearance.background }]}><Ionicons name={appearance.icon} size={12} color={appearance.color} /><LocalizedText style={[styles.statusText, { color: appearance.color }]}>{request.statusLabel}</LocalizedText></View>
             </View>
             <View style={styles.divider} />
@@ -92,7 +111,9 @@ export function CustomerRequestsScreen() {
           </Pressable>
         </Animated.View>;
       })}
-      {!filtered.length ? <View style={styles.empty}><Ionicons name="documents-outline" size={36} color="#CBD5E1" /><LocalizedText style={styles.emptyText}>لا توجد طلبات مطابقة</LocalizedText></View> : null}
+      {loading ? <LoadingState /> : null}
+      {!loading && loadFailed ? <ErrorState message="تعذر تحميل طلباتك حالياً." onRetry={() => setReloadKey((value) => value + 1)} /> : null}
+      {!loading && !loadFailed && !filtered.length ? <View style={styles.empty}><Ionicons name="documents-outline" size={36} color="#CBD5E1" /><LocalizedText style={styles.emptyText}>لا توجد طلبات مطابقة</LocalizedText></View> : null}
     </ScrollView>
   </SafeAreaView>;
 }

@@ -23,7 +23,7 @@ export const customerAiClient: CustomerAiClient = {
   },
   async match(technicians) {
     available();
-    return aiAdapter.matchTechnicians(technicians.map(({ id, distanceKm, rating, completedJobs }) =>
-      ({ id, distanceKm, rating, completedJobs })));
+    return aiAdapter.matchTechnicians(technicians.flatMap(({ id, distanceKm, rating, completedJobs }) =>
+      typeof distanceKm === "number" ? [{ id, distanceKm, rating, completedJobs }] : []));
   }
 };

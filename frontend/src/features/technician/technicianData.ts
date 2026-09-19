@@ -6,12 +6,12 @@ export interface TechnicianRequestItem {
   problem: string;
   category: string;
   area: string;
-  distanceKm: number;
+  distanceKm?: number;
   fairPrice: string;
   urgency: "عاجل" | "اليوم" | "عادي";
   createdAt: string;
-  latitude: number;
-  longitude: number;
+  latitude?: number;
+  longitude?: number;
   description: string;
   state: TechnicianRequestState;
 }

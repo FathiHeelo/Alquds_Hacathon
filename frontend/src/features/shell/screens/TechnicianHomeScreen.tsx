@@ -14,8 +14,10 @@ import { demoTechnicians } from "../../../demo/fixtures/technicians";
 import { colors, shadows, typography } from "../../../shared/theme";
 import { TechnicianPortrait } from "../../map/components/TechnicianPortrait";
 import { technicianRequests, type TechnicianRequestItem } from "../../technician/technicianData";
-import { repairRequestRepository } from "../../../services/repositories";
+import { repairRequestRepository, technicianRepository } from "../../../services/repositories";
 import { appConfig } from "../../../app/config/appConfig";
+import type { Technician } from "../../../domain/models/technician";
+import { apiClient } from "../../../services/api/apiClient";
 
 type Navigation = NativeStackNavigationProp<TechnicianStackParamList>;
 const region: Region = { latitude: 31.7849, longitude: 35.2329, latitudeDelta: 0.035, longitudeDelta: 0.03 };
@@ -23,14 +25,22 @@ type Filter = "الكل" | "عاجل" | "اليوم";
 
 export function TechnicianHomeScreen() {
   const navigation = useNavigation<Navigation>();
-  const [available, setAvailable] = useState(true);
+  const [available, setAvailable] = useState(appConfig.demoMode);
+  const [technician, setTechnician] = useState<Technician | undefined>(() => appConfig.demoMode ? demoTechnicians[0] : undefined);
+  const [earnings, setEarnings] = useState<{ completedJobs?: number; netEarnings?: number }>();
   const [filter, setFilter] = useState<Filter>("الكل");
-  const [loadedRequests, setLoadedRequests] = useState<readonly TechnicianRequestItem[]>(technicianRequests);
-  const [selectedId, setSelectedId] = useState("old_city_plumbing_leak");
-  const technician = demoTechnicians[0];
+  const [loadedRequests, setLoadedRequests] = useState<readonly TechnicianRequestItem[]>(() => appConfig.demoMode ? technicianRequests : []);
+  const [requestsLoading, setRequestsLoading] = useState(!appConfig.demoMode);
+  const [requestsFailed, setRequestsFailed] = useState(false);
+  const [selectedId, setSelectedId] = useState<string>();
   useFocusEffect(useCallback(() => {
     let active = true;
-    if (!appConfig.demoMode) void repairRequestRepository.listForTechnician().then((items) => { if (active) setLoadedRequests(items); }).catch(() => undefined);
+    if (!appConfig.demoMode) {
+      void Promise.all([repairRequestRepository.listForTechnician(), technicianRepository.getMine(), apiClient.request<{ completedJobs: number; netEarnings: number }>("/reports/earnings/me", undefined, "technician").catch(() => undefined)]).then(([items, profile, totals]) => {
+        if (!active) return;
+        setLoadedRequests(items); setTechnician(profile ?? undefined); setAvailable(profile?.isAvailable ?? false); setEarnings(totals); setRequestsFailed(false);
+      }).catch(() => { if (active) { setLoadedRequests([]); setTechnician(undefined); setAvailable(false); setEarnings(undefined); setRequestsFailed(true); } }).finally(() => { if (active) setRequestsLoading(false); });
+    }
     return () => { active = false; };
   }, []));
   const requests = useMemo(() => loadedRequests.filter((request) => filter === "الكل" || request.urgency === filter), [filter, loadedRequests]);
@@ -38,30 +48,32 @@ export function TechnicianHomeScreen() {
 
   return <SafeAreaView edges={["top"]} style={styles.safe}>
     <View style={styles.header}>
-      <View style={styles.identity}><TechnicianPortrait technician={technician} round size={44} /><View><View style={styles.nameRow}><LocalizedText style={styles.name}>{technician.name}</LocalizedText><LocalizedText style={styles.pro}>Pro</LocalizedText></View><View style={styles.onlineRow}><View style={[styles.onlineDot, !available && styles.offlineDot]} /><LocalizedText style={[styles.onlineText, !available && styles.offlineText]}>{available ? "متصل وجاهز للعمل بالقدس" : "غير متاح لاستقبال طلبات"}</LocalizedText></View></View></View>
-      <Switch accessibilityLabel="تغيير حالة التوفر" value={available} onValueChange={setAvailable} trackColor={{ false: "#CBD5E1", true: "#A7E6CD" }} thumbColor={available ? "#10B981" : "#94A3B8"} />
+      {technician ? <>
+      <View style={styles.identity}><TechnicianPortrait technician={technician} round size={44} /><View><View style={styles.nameRow}><LocalizedText style={styles.name}>{technician.name}</LocalizedText>{technician.isPro ? <LocalizedText style={styles.pro}>Pro</LocalizedText> : null}</View><View style={styles.onlineRow}><View style={[styles.onlineDot, !available && styles.offlineDot]} /><LocalizedText style={[styles.onlineText, !available && styles.offlineText]}>{available ? "متاح لاستقبال الطلبات" : "غير متاح لاستقبال الطلبات"}</LocalizedText></View></View></View>
+      <Switch accessibilityLabel="تغيير حالة التوفر" value={available} onValueChange={(value) => { setAvailable(value); if (!appConfig.demoMode) void technicianRepository.setAvailability(value ? "available" : "offline").then(setTechnician).catch(() => setAvailable(!value)); }} trackColor={{ false: "#CBD5E1", true: "#A7E6CD" }} thumbColor={available ? "#10B981" : "#94A3B8"} />
+      </> : <LocalizedText style={styles.name}>تعذر تحميل حساب الفني</LocalizedText>}
     </View>
 
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <View style={styles.metrics}><Metric label="أرباح اليوم" value="420 ₪" /><Metric label="نسبة القبول" value="96%" color="#047857" /><Metric label="التقييم" value="★ 4.9" color="#D69E00" /></View>
-      <View style={styles.sectionHeading}><View><LocalizedText style={styles.title}>الخريطة والطلبات</LocalizedText><LocalizedText style={styles.subtitle}>طلبات صيانة قريبة ومحمية داخل عَمِّرها</LocalizedText></View><View style={styles.liveBadge}><View style={styles.liveDot} /><LocalizedText style={styles.liveText}>مباشر</LocalizedText></View></View>
+      <View style={styles.metrics}><Metric label="صافي الأرباح الكلي" value={earnings ? `${earnings.netEarnings} ₪` : appConfig.demoMode ? "420 ₪" : "—"} /><Metric label="أعمال مكتملة" value={earnings ? String(earnings.completedJobs) : appConfig.demoMode ? "154" : "—"} color="#047857" /><Metric label="التقييم" value={technician?.ratingCount ? `★ ${technician.rating.toFixed(1)}` : appConfig.demoMode ? "★ 4.9" : "—"} color="#D69E00" /></View>
+      <View style={styles.sectionHeading}><View><LocalizedText style={styles.title}>الخريطة والطلبات</LocalizedText><LocalizedText style={styles.subtitle}>طلبات صيانة متاحة داخل عَمِّرها</LocalizedText></View><View style={styles.liveBadge}><View style={styles.liveDot} /><LocalizedText style={styles.liveText}>{appConfig.demoMode ? "عرض" : "من الخدمة"}</LocalizedText></View></View>
       <View style={styles.filters}>{(["الكل", "عاجل", "اليوم"] as const).map((item) => <Pressable key={item} onPress={() => setFilter(item)} style={[styles.filter, filter === item && styles.activeFilter]}><LocalizedText style={[styles.filterText, filter === item && styles.activeFilterText]}>{item}</LocalizedText></Pressable>)}</View>
 
       <View style={styles.mapCard}>
         <MapView initialRegion={region} pitchEnabled={false} rotateEnabled={false} style={styles.map} userInterfaceStyle="light">
-          {requests.map((request) => <Marker key={request.id} coordinate={{ latitude: request.latitude, longitude: request.longitude }} onPress={() => setSelectedId(request.id)}><View style={[styles.marker, selectedId === request.id && styles.selectedMarker]}><Ionicons name={request.category.includes("كهرباء") ? "flash" : request.category.includes("تكييف") ? "snow" : request.category.includes("نجارة") ? "hammer" : "water"} size={16} color={selectedId === request.id ? colors.secondary : colors.primary} /></View></Marker>)}
+          {requests.filter((request) => request.latitude != null && request.longitude != null).map((request) => <Marker key={request.id} coordinate={{ latitude: request.latitude!, longitude: request.longitude! }} onPress={() => setSelectedId(request.id)}><View style={[styles.marker, selectedId === request.id && styles.selectedMarker]}><Ionicons name={request.category.includes("كهرباء") ? "flash" : request.category.includes("تكييف") ? "snow" : request.category.includes("نجارة") ? "hammer" : "water"} size={16} color={selectedId === request.id ? colors.secondary : colors.primary} /></View></Marker>)}
         </MapView>
-        <View style={styles.mapPrivacy}><Ionicons name="shield-checkmark" size={13} color="#176B51" /><LocalizedText style={styles.mapPrivacyText}>الموقع تقريبي حتى قبول العميل للعرض</LocalizedText></View>
+        {requests.some((request) => request.latitude != null && request.longitude != null) ? <View style={styles.mapPrivacy}><Ionicons name="shield-checkmark" size={13} color="#176B51" /><LocalizedText style={styles.mapPrivacyText}>الموقع تقريبي حتى قبول العميل للعرض</LocalizedText></View> : requests.length ? <View style={styles.mapPrivacy}><Ionicons name="information-circle" size={13} color="#64748B" /><LocalizedText style={styles.mapPrivacyText}>لم ترسل الخدمة مواقع لهذه الطلبات</LocalizedText></View> : null}
       </View>
 
-      {selected ? <View style={[styles.requestCard, selected.state === "new" && styles.newRequest]}>
-        <View style={styles.requestTop}><View><View style={styles.categoryRow}><LocalizedText style={styles.category}>{selected.category}</LocalizedText>{selected.state === "new" ? <LocalizedText style={styles.newBadge}>جديد الآن</LocalizedText> : null}</View><LocalizedText style={styles.problem}>{selected.problem}</LocalizedText><LocalizedText style={styles.customer}>العميل: {selected.customerName} • {selected.area} ({selected.distanceKm} كم)</LocalizedText></View><LocalizedText style={styles.time}>{selected.createdAt}</LocalizedText></View>
-        <View style={styles.priceRow}><View><LocalizedText style={styles.priceLabel}>السعر العادل</LocalizedText><LocalizedText style={styles.price}>{selected.fairPrice}</LocalizedText></View><View style={styles.urgency}><Ionicons name="flash" size={12} color="#BE123C" /><LocalizedText style={styles.urgencyText}>{selected.urgency}</LocalizedText></View></View>
+      {requestsLoading ? <View style={styles.empty}><LocalizedText style={styles.emptyText}>جارٍ تحميل الطلبات من الخدمة...</LocalizedText></View> : selected ? <View style={[styles.requestCard, selected.state === "new" && styles.newRequest]}>
+        <View style={styles.requestTop}><View><View style={styles.categoryRow}><LocalizedText style={styles.category}>{selected.category}</LocalizedText>{selected.state === "new" ? <LocalizedText style={styles.newBadge}>{appConfig.demoMode ? "جديد الآن" : "متاح"}</LocalizedText> : null}</View><LocalizedText style={styles.problem}>{selected.problem}</LocalizedText><LocalizedText style={styles.customer}>العميل: {selected.customerName} • {selected.area}{selected.distanceKm != null ? ` (${selected.distanceKm} كم)` : ""}</LocalizedText></View><LocalizedText style={styles.time}>{selected.createdAt}</LocalizedText></View>
+        <View style={styles.priceRow}><View><LocalizedText style={styles.priceLabel}>{appConfig.demoMode ? "السعر المقترح" : "السعر في العرض"}</LocalizedText><LocalizedText style={styles.price}>{selected.fairPrice}</LocalizedText></View><View style={styles.urgency}><Ionicons name="flash" size={12} color="#BE123C" /><LocalizedText style={styles.urgencyText}>{selected.urgency}</LocalizedText></View></View>
         <Pressable onPress={() => navigation.navigate("TechnicianAiAssistant", { requestId: selected.id })} style={styles.aiCard}><View style={styles.aiIcon}><Ionicons name="sparkles" size={17} color="#8C6D14" /></View><View style={styles.aiCopy}><LocalizedText style={styles.aiTitle}>مساعد العروض الذكي</LocalizedText><LocalizedText style={styles.aiText}>يقترح السعر والقطع ونص الرد</LocalizedText></View><LocalizedText style={styles.aiOpen}>فتح</LocalizedText><Ionicons name="chevron-back" size={14} color="#8C6D14" /></Pressable>
         <View style={styles.actions}><Pressable onPress={() => navigation.navigate("TechnicianRequestDetails", { requestId: selected.id })} style={styles.secondaryButton}><LocalizedText style={styles.secondaryText}>عرض التفاصيل</LocalizedText></Pressable><Pressable onPress={() => navigation.navigate("TechnicianCreateOffer", { requestId: selected.id })} style={styles.primaryButton}><LocalizedText style={styles.primaryText}>إرسال عرض</LocalizedText></Pressable></View>
-      </View> : <View style={styles.empty}><Ionicons name="map-outline" size={34} color="#CBD5E1" /><LocalizedText style={styles.emptyText}>لا توجد طلبات ضمن هذا الفلتر</LocalizedText></View>}
+      </View> : <View style={styles.empty}><Ionicons name="map-outline" size={34} color="#CBD5E1" /><LocalizedText style={styles.emptyText}>{requestsFailed ? "تعذر تحميل الطلبات" : "لا توجد طلبات ضمن هذا الفلتر"}</LocalizedText></View>}
 
-      <Pressable onPress={() => navigation.navigate("TechnicianPro")} style={styles.proCard}><View style={styles.proIcon}><Ionicons name="star" size={20} color="#8C6D14" /></View><View style={styles.proCopy}><LocalizedText style={styles.proTitle}>مزايا اشتراك عَمِّرها Pro</LocalizedText><LocalizedText style={styles.proSubtitle}>أولوية الظهور 3x + مساعد العروض الذكي</LocalizedText></View><Ionicons name="chevron-back" size={18} color="#8C6D14" /></Pressable>
+      <Pressable onPress={() => navigation.navigate("TechnicianPro")} style={styles.proCard}><View style={styles.proIcon}><Ionicons name="star" size={20} color="#8C6D14" /></View><View style={styles.proCopy}><LocalizedText style={styles.proTitle}>حالة عَمِّرها Pro</LocalizedText><LocalizedText style={styles.proSubtitle}>{appConfig.demoMode ? "مزايا تجريبية لوضع العرض" : "الاشتراك والمزايا حسب بيانات حسابك"}</LocalizedText></View><Ionicons name="chevron-back" size={18} color="#8C6D14" /></Pressable>
     </ScrollView>
   </SafeAreaView>;
 }

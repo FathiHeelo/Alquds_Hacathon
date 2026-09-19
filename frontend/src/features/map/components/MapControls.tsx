@@ -12,10 +12,11 @@ import { uiText } from "../../../shared/constants/uiText";
 import { colors, radius, shadows, spacing, typography } from "../../../shared/theme";
 import type { CustomerMapFilters } from "../hooks/useCustomerMap";
 import { FilterChip } from "./FilterChip";
+import { appConfig } from "../../../app/config/appConfig";
 
 interface MapControlsProps {
   filters: CustomerMapFilters;
-  location: CustomerLocation;
+  location?: CustomerLocation;
   resultCount: number;
   onNotifications(): void;
   onAccount(): void;
@@ -49,11 +50,10 @@ export function MapControls({
       <View style={styles.topRow}>
         <Pressable accessibilityLabel="التنبيهات" onPress={onNotifications} style={styles.notificationButton}>
           <Ionicons color={colors.textMuted} name="notifications-outline" size={18} />
-          <View style={styles.notificationDot} />
         </Pressable>
         <View style={{ flex: 1 }} />
-        <View accessibilityLabel={location.label} style={styles.locationPill}>
-          <View><LocalizedText style={styles.locationLabel}>عَمِّرها القدس</LocalizedText><LocalizedText style={styles.tagline}>من قلب القدس نبنيها بأيدينا</LocalizedText></View>
+        <View accessibilityLabel={location?.label ?? "موقعك غير متاح"} style={styles.locationPill}>
+          <View><LocalizedText style={styles.locationLabel}>عَمِّرها القدس</LocalizedText><LocalizedText style={styles.tagline}>{location?.label ?? "فعّل الموقع لعرض مكانك"}</LocalizedText></View>
           <Pressable accessibilityLabel="فتح حسابي" accessibilityRole="button" hitSlop={8} onPress={onAccount} style={({ pressed }) => [styles.accountAvatar, pressed && styles.accountAvatarPressed]}>
             <Ionicons color={colors.primaryPressed} name="person" size={17} />
           </Pressable>
@@ -98,11 +98,11 @@ export function MapControls({
             {rating === 0 ? `${uiText.map.minimumRating}: ${uiText.map.allCategories}` : `★ ${rating}+`}
           </FilterChip>
         ))}
-        {[2, 5, 10].map((distance) => (
+        {appConfig.demoMode ? [2, 5, 10].map((distance) => (
           <FilterChip isSelected={filters.maximumDistanceKm === distance} key={distance} onPress={() => setMaximumDistanceKm(distance)}>
             {distance} {uiText.map.kilometers}
           </FilterChip>
-        ))}
+        )) : null}
       </ScrollView> : null}
     </View>
   );
@@ -112,7 +112,6 @@ const styles = createAdaptiveStyleSheet({
   container: { gap: 10, paddingHorizontal: 12, paddingBottom: spacing.sm },
   topRow: { direction: "ltr", alignItems: "center", flexDirection: "row", gap: spacing.sm },
   notificationButton: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.round, height: 44, justifyContent: "center", width: 44 },
-  notificationDot: { backgroundColor: colors.primary, borderColor: colors.background, borderRadius: radius.round, borderWidth: 1, height: 7, position: "absolute", right: 5, top: 5, width: 7 },
   locationPill: {
     ...shadows.subtle,
     alignItems: "center",

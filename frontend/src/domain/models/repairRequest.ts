@@ -1,5 +1,5 @@
 import type { Urgency } from "../enums/status";
-import type { CustomerLocation } from "./location";
+import type { CustomerLocation, GeoPoint } from "./location";
 import type { ServiceCategoryId } from "./technician";
 
 export const PreferredTime = { Asap: "asap", Today: "today", Tomorrow: "tomorrow" } as const;
@@ -25,13 +25,16 @@ export interface RepairRequestDraft {
   category?: ServiceCategoryId;
   urgency: Urgency;
   preferredTime: PreferredTime;
-  location: CustomerLocation;
+  location: RepairRequestLocation;
   media: RequestMedia[];
   voice?: RequestVoice;
   createdAt: string;
 }
 
-export interface RepairRequest extends RepairRequestDraft {
+export type RepairRequestLocation = Omit<CustomerLocation, "latitude" | "longitude" | "source"> & Partial<GeoPoint> & { source: "device" | "demo" | "backend" };
+
+export interface RepairRequest extends Omit<RepairRequestDraft, "location"> {
   id: string;
   category: ServiceCategoryId;
+  location: RepairRequestLocation;
 }
