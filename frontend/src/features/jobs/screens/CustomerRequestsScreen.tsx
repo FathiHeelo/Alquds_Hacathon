@@ -3,164 +3,90 @@ import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { CompositeNavigationProp } from "@react-navigation/native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useEffect, useRef, useState } from "react";
-import { Animated, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import MapView, { Marker, Polyline, type Region } from "react-native-maps";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Animated, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { CustomerStackParamList, CustomerTabParamList } from "../../../app/navigation/navigation.types";
-import { jobRepository } from "../../../demo/adapters/demoJobRepository";
 import { demoTechnicians } from "../../../demo/fixtures/technicians";
-import type { Job } from "../../../domain/models/job";
-import { LoadingState } from "../../../shared/components";
 import { colors, shadows, typography } from "../../../shared/theme";
 import { TechnicianPortrait } from "../../map/components/TechnicianPortrait";
+import { customerRequests, type CustomerRequestState } from "../customerRequests";
 
-type RequestsNavigation = CompositeNavigationProp<
-  BottomTabNavigationProp<CustomerTabParamList, "CustomerRequests">,
-  NativeStackNavigationProp<CustomerStackParamList>
->;
+type RequestsNavigation = CompositeNavigationProp<BottomTabNavigationProp<CustomerTabParamList, "CustomerRequests">, NativeStackNavigationProp<CustomerStackParamList>>;
+type Filter = "all" | "active" | "completed";
 
-const jobId = "demo-job-offer-tariq-plumbing";
-const requestId = "old_city_plumbing_leak";
-const technicianId = "tech-tariq-maqdisi";
-const route = [
-  { latitude: 31.7804, longitude: 35.2332 },
-  { latitude: 31.7811, longitude: 35.2322 },
-  { latitude: 31.7822, longitude: 35.2312 },
-  { latitude: 31.7834, longitude: 35.2304 }
-];
-const region: Region = { latitude: 31.7819, longitude: 35.2318, latitudeDelta: 0.007, longitudeDelta: 0.006 };
-
-const steps = [
-  { title: "تم قبول العرض والاتفاق", detail: "10:14 ص • 120 شيكل", state: "done" },
-  { title: "الفني يتحرك نحوك", detail: "الآن • الوصول خلال 5 إلى 7 دقائق", state: "active" },
-  { title: "بدء تنفيذ الصيانة", detail: "بانتظار وصول الفني", state: "pending" },
-  { title: "إتمام العمل والدفع", detail: "الدفع بعد تأكيد إنجاز الصيانة", state: "pending" }
-] as const;
+const statusAppearance: Record<CustomerRequestState, { icon: keyof typeof Ionicons.glyphMap; color: string; background: string }> = {
+  on_the_way: { icon: "navigate", color: "#047857", background: "#ECFDF5" },
+  scheduled: { icon: "calendar", color: "#8C6D14", background: "#FFF8E3" },
+  completed: { icon: "checkmark-circle", color: "#047857", background: "#ECFDF5" },
+  cancelled: { icon: "close-circle", color: "#9F1239", background: "#FFF1F2" }
+};
 
 export function CustomerRequestsScreen() {
   const navigation = useNavigation<RequestsNavigation>();
-  const [job, setJob] = useState<Job>();
-  const pulse = useRef(new Animated.Value(0)).current;
-  const bob = useRef(new Animated.Value(0)).current;
-  const technician = demoTechnicians.find(({ id }) => id === technicianId)!;
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
+  const entrance = useRef(customerRequests.map(() => new Animated.Value(0))).current;
 
   useEffect(() => {
-    void jobRepository.getJob(jobId).then(async (loaded) => {
-      if (!loaded) return;
-      setJob(loaded.status === "accepted" ? await jobRepository.updateStatus(loaded.id, "on_the_way") : loaded);
-    });
-  }, []);
+    Animated.stagger(65, entrance.map((value) => Animated.timing(value, { toValue: 1, duration: 260, useNativeDriver: true }))).start();
+  }, [entrance]);
 
-  useEffect(() => {
-    const pulseLoop = Animated.loop(Animated.sequence([
-      Animated.timing(pulse, { toValue: 1, duration: 900, useNativeDriver: true }),
-      Animated.timing(pulse, { toValue: 0, duration: 900, useNativeDriver: true })
-    ]));
-    const bobLoop = Animated.loop(Animated.sequence([
-      Animated.timing(bob, { toValue: -6, duration: 650, useNativeDriver: true }),
-      Animated.timing(bob, { toValue: 0, duration: 650, useNativeDriver: true })
-    ]));
-    pulseLoop.start();
-    bobLoop.start();
-    return () => { pulseLoop.stop(); bobLoop.stop(); };
-  }, [bob, pulse]);
+  const filtered = useMemo(() => customerRequests.filter((request) => {
+    const technician = demoTechnicians.find(({ id }) => id === request.technicianId);
+    const matchesFilter = filter === "all" || (filter === "active" ? request.state === "on_the_way" || request.state === "scheduled" : request.state === "completed" || request.state === "cancelled");
+    const haystack = `${request.title} ${request.category} ${request.orderNumber} ${technician?.name ?? ""}`;
+    return matchesFilter && (!query.trim() || haystack.includes(query.trim()));
+  }), [filter, query]);
 
-  if (!job) return <SafeAreaView style={styles.safe}><LoadingState /></SafeAreaView>;
-
-  return (
-    <SafeAreaView edges={["top"]} style={styles.safe}>
-      <View style={styles.header}>
-        <View style={styles.headerAction}><Ionicons name="ellipsis-horizontal" size={18} color="#64748B" /></View>
-        <View style={styles.headerCopy}><Text style={styles.headerTitle}>متابعة الصيانة</Text><Text style={styles.headerSubtitle}>طلب رقم #JM-7821</Text></View>
-        <View style={styles.liveBadge}><View style={styles.liveDot} /><Text style={styles.liveText}>مباشر</Text></View>
-      </View>
-
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.mapCard}>
-          <MapView initialRegion={region} pitchEnabled={false} rotateEnabled={false} scrollEnabled={false} style={styles.map} userInterfaceStyle="light">
-            <Polyline coordinates={route} strokeColor={colors.primary} strokeWidth={4} lineDashPattern={[8, 7]} />
-            <Marker coordinate={route[0]} anchor={{ x: 0.5, y: 0.7 }}>
-              <Animated.View pointerEvents="none" style={{ transform: [{ translateY: bob }] }}>
-                <View style={styles.techPin}><Ionicons name="bicycle" size={17} color={colors.primary} /></View>
-                <Text style={styles.pinLabel}>طارق • 5 دقائق</Text>
-              </Animated.View>
-            </Marker>
-            <Marker coordinate={route[3]} anchor={{ x: 0.5, y: 0.7 }}>
-              <View style={styles.homePin}><Ionicons name="home" size={13} color="white" /></View>
-            </Marker>
-          </MapView>
-          <View style={styles.mapStatus}><Ionicons name="navigate" size={14} color={colors.primaryPressed} /><Text style={styles.mapStatusText}>الفني في الطريق إليك</Text></View>
-        </View>
-
-        <View style={styles.statusCard}>
-          <Animated.View style={[styles.statusPulse, { opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0] }), transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1.45] }) }] }]} />
-          <View style={styles.statusIcon}><Ionicons name="flash" size={19} color="#5A4300" /></View>
-          <View style={styles.statusCopy}><Text style={styles.statusEyebrow}>الحالة الحالية</Text><Text style={styles.statusTitle}>الفني في الطريق إليك</Text><Text style={styles.statusDetail}>على بعد 400 متر • الوصول خلال 5–7 دقائق</Text></View>
-        </View>
-
-        <View style={styles.technicianCard}>
-          <TechnicianPortrait technician={technician} size={54} />
-          <View style={styles.technicianCopy}>
-            <View style={styles.nameRow}><Text style={styles.technicianName}>{technician.name}</Text><Ionicons name="checkmark-circle" size={14} color={colors.primaryPressed} /></View>
-            <Text style={styles.specialty}>{technician.specialty}</Text>
-            <Text style={styles.rating}>★ {technician.rating.toFixed(1)} · {technician.completedJobs} عملية</Text>
-          </View>
-          <Pressable accessibilityLabel="الاتصال بالفني" onPress={() => void Linking.openURL("tel:+970599000000")} style={({ pressed }) => [styles.roundButton, pressed && styles.pressed]}><Ionicons name="call" size={18} color="#176B51" /></Pressable>
-          <Pressable accessibilityLabel="مراسلة الفني" onPress={() => navigation.navigate("CustomerChat", { jobId, requestId, technicianId })} style={({ pressed }) => [styles.roundButton, styles.chatButton, pressed && styles.pressed]}><Ionicons name="chatbubble-ellipses" size={18} color="#5A4300" /></Pressable>
-        </View>
-
-        <View style={styles.timelineCard}>
-          <Text style={styles.sectionTitle}>مراحل تنفيذ العمل</Text>
-          {steps.map((step, index) => (
-            <View key={step.title} style={styles.stepRow}>
-              <View style={styles.stepRail}>
-                <View style={[styles.stepDot, step.state === "done" && styles.doneDot, step.state === "active" && styles.activeDot]}>
-                  {step.state === "done" ? <Ionicons name="checkmark" size={12} color="white" /> : step.state === "active" ? <Animated.View style={{ opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 0.45] }) }}><View style={styles.activeCore} /></Animated.View> : <View style={styles.pendingCore} />}
-                </View>
-                {index < steps.length - 1 ? <View style={[styles.line, step.state === "done" && styles.doneLine]} /> : null}
-              </View>
-              <View style={styles.stepCopy}><Text style={[styles.stepTitle, step.state === "active" && styles.activeTitle]}>{step.title}</Text><Text style={styles.stepDetail}>{step.detail}</Text></View>
+  return <SafeAreaView edges={["top"]} style={styles.safe}>
+    <View style={styles.header}>
+      <View><Text style={styles.title}>طلباتي</Text><Text style={styles.subtitle}>تابع كل طلبات الصيانة من مكان واحد</Text></View>
+      <View style={styles.headerIcon}><Ionicons name="document-text" color={colors.primaryPressed} size={21} /></View>
+    </View>
+    <View style={styles.searchBox}><Ionicons name="search" size={18} color="#94A3B8" /><TextInput value={query} onChangeText={setQuery} placeholder="ابحث عن طلب أو فني" placeholderTextColor="#94A3B8" style={styles.searchInput} /></View>
+    <View style={styles.tabs}>
+      {([["all", "كل الطلبات"], ["active", "الجارية"], ["completed", "السابقة"]] as const).map(([id, label]) => <Pressable key={id} onPress={() => setFilter(id)} style={[styles.tab, filter === id && styles.activeTab]}><Text style={[styles.tabText, filter === id && styles.activeTabText]}>{label}</Text></Pressable>)}
+    </View>
+    <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+      {filtered.map((request) => {
+        const index = customerRequests.indexOf(request);
+        const technician = demoTechnicians.find(({ id }) => id === request.technicianId)!;
+        const appearance = statusAppearance[request.state];
+        return <Animated.View key={request.id} style={{ opacity: entrance[index], transform: [{ translateY: entrance[index].interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }}>
+          <Pressable accessibilityRole="button" accessibilityLabel={`فتح الطلب ${request.title}`} onPress={() => navigation.navigate("CustomerRequestDetails", { requestId: request.id })} style={({ pressed }) => [styles.requestCard, pressed && styles.pressed]}>
+            <View style={styles.topRow}>
+              <View style={styles.personRow}><TechnicianPortrait technician={technician} round size={46} /><View style={styles.requestCopy}><Text style={styles.requestTitle}>{request.title}</Text><Text style={styles.technician}>{technician.name} • {request.category}</Text></View></View>
+              <View style={[styles.statusBadge, { backgroundColor: appearance.background }]}><Ionicons name={appearance.icon} size={12} color={appearance.color} /><Text style={[styles.statusText, { color: appearance.color }]}>{request.statusLabel}</Text></View>
             </View>
-          ))}
-        </View>
-
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryHeading}><View style={styles.summaryIcon}><Ionicons name="receipt" size={17} color="#176B51" /></View><View><Text style={styles.sectionTitle}>ملخص طلب الصيانة</Text><Text style={styles.summaryMuted}>تسريب سيفون تحت المجلى</Text></View></View>
-          <View style={styles.divider} />
-          <View style={styles.summaryRow}><Text style={styles.summaryLabel}>السعر المتفق عليه</Text><Text style={styles.price}>{job.agreedPrice} ₪</Text></View>
-          <View style={styles.summaryRow}><Text style={styles.summaryLabel}>الموقع</Text><Text style={styles.summaryValue}>{job.locationLabel}</Text></View>
-          <View style={styles.guarantee}><Ionicons name="shield-checkmark" size={15} color="#176B51" /><Text style={styles.guaranteeText}>دفع آمن وضمان عَمِّرها على تنفيذ العمل</Text></View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
+            <View style={styles.divider} />
+            <View style={styles.metaRow}><View style={styles.metaItem}><Ionicons name="location-outline" size={13} color="#64748B" /><Text numberOfLines={1} style={styles.metaText}>{request.location}</Text></View><Text style={styles.orderNumber}>{request.orderNumber}</Text></View>
+            <View style={styles.bottomRow}><Text style={styles.date}>{request.date}</Text><View style={styles.openRow}><Text style={styles.openText}>عرض التفاصيل</Text><Ionicons name="chevron-back" size={14} color={colors.primaryPressed} /></View></View>
+          </Pressable>
+        </Animated.View>;
+      })}
+      {!filtered.length ? <View style={styles.empty}><Ionicons name="documents-outline" size={36} color="#CBD5E1" /><Text style={styles.emptyText}>لا توجد طلبات مطابقة</Text></View> : null}
+    </ScrollView>
+  </SafeAreaView>;
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#F8F7F4" },
-  header: { alignItems: "center", backgroundColor: "white", borderBottomColor: "#ECE7DC", borderBottomWidth: 1, flexDirection: "row-reverse", minHeight: 62, paddingHorizontal: 16 },
-  headerAction: { alignItems: "center", backgroundColor: "#F1F5F9", borderRadius: 10, height: 34, justifyContent: "center", width: 34 },
-  headerCopy: { flex: 1, alignItems: "center" },
-  headerTitle: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 16, fontWeight: "700", writingDirection: "rtl" },
-  headerSubtitle: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 10 },
-  liveBadge: { alignItems: "center", backgroundColor: "#ECFDF5", borderRadius: 12, flexDirection: "row-reverse", gap: 4, paddingHorizontal: 8, paddingVertical: 5 },
-  liveDot: { backgroundColor: "#10B981", borderRadius: 4, height: 7, width: 7 }, liveText: { color: "#047857", fontFamily: typography.fontFamily, fontSize: 9, fontWeight: "700" },
-  content: { gap: 12, paddingBottom: 24 },
-  mapCard: { height: 216, overflow: "hidden", backgroundColor: "#E8ECEB" }, map: { position: "absolute", bottom: 0, left: 0, right: 0, top: 0 },
-  mapStatus: { ...shadows.subtle, alignItems: "center", alignSelf: "center", backgroundColor: "white", borderRadius: 12, bottom: 10, flexDirection: "row-reverse", gap: 5, paddingHorizontal: 10, paddingVertical: 6, position: "absolute" },
-  mapStatusText: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 10, fontWeight: "700" },
-  techPin: { alignItems: "center", backgroundColor: colors.secondary, borderColor: "white", borderRadius: 20, borderWidth: 2, height: 38, justifyContent: "center", width: 38 },
-  pinLabel: { ...shadows.subtle, backgroundColor: colors.secondary, borderRadius: 6, color: "white", fontFamily: typography.fontFamily, fontSize: 8, fontWeight: "700", marginTop: 2, paddingHorizontal: 5, paddingVertical: 2 },
-  homePin: { alignItems: "center", backgroundColor: "#2563EB", borderColor: "white", borderRadius: 14, borderWidth: 2, height: 28, justifyContent: "center", width: 28 },
-  statusCard: { alignItems: "center", backgroundColor: "#FFF8E3", borderColor: "#E7CB69", borderRadius: 16, borderWidth: 1, flexDirection: "row-reverse", gap: 11, marginHorizontal: 14, overflow: "hidden", padding: 13 },
-  statusPulse: { backgroundColor: colors.primary, borderRadius: 25, height: 50, left: 5, position: "absolute", width: 50 }, statusIcon: { alignItems: "center", backgroundColor: colors.primary, borderRadius: 12, height: 38, justifyContent: "center", width: 38 },
-  statusCopy: { flex: 1 }, statusEyebrow: { color: "#8C6D14", fontFamily: typography.fontFamily, fontSize: 9, fontWeight: "700", textAlign: "right" }, statusTitle: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 13, fontWeight: "700", textAlign: "right" }, statusDetail: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 10, textAlign: "right" },
-  technicianCard: { ...shadows.subtle, alignItems: "center", backgroundColor: "white", borderColor: "#ECE7DC", borderRadius: 18, borderWidth: 1, flexDirection: "row-reverse", gap: 9, marginHorizontal: 14, padding: 12 },
-  technicianCopy: { flex: 1 }, nameRow: { alignItems: "center", flexDirection: "row-reverse", gap: 4 }, technicianName: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 13, fontWeight: "700" }, specialty: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 9, textAlign: "right" }, rating: { color: "#B58100", fontFamily: typography.fontFamily, fontSize: 9, fontWeight: "700", textAlign: "right" },
-  roundButton: { alignItems: "center", backgroundColor: "#E8F7F1", borderRadius: 12, height: 38, justifyContent: "center", width: 38 }, chatButton: { backgroundColor: "#FFF4C8" }, pressed: { opacity: 0.65, transform: [{ scale: 0.93 }] },
-  timelineCard: { ...shadows.subtle, backgroundColor: "white", borderColor: "#ECE7DC", borderRadius: 18, borderWidth: 1, marginHorizontal: 14, padding: 15 }, sectionTitle: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 13, fontWeight: "700", textAlign: "right", writingDirection: "rtl" },
-  stepRow: { flexDirection: "row-reverse", minHeight: 68 }, stepRail: { alignItems: "center", marginLeft: 10, width: 24 }, stepDot: { alignItems: "center", backgroundColor: "#F1F5F9", borderColor: "#CBD5E1", borderRadius: 12, borderWidth: 1, height: 24, justifyContent: "center", width: 24 }, doneDot: { backgroundColor: "#10B981", borderColor: "#10B981" }, activeDot: { backgroundColor: "#FFF4C8", borderColor: colors.primary }, activeCore: { backgroundColor: colors.primary, borderRadius: 5, height: 10, width: 10 }, pendingCore: { backgroundColor: "#CBD5E1", borderRadius: 4, height: 7, width: 7 }, line: { backgroundColor: "#E2E8F0", flex: 1, width: 2 }, doneLine: { backgroundColor: "#A7E6CD" }, stepCopy: { flex: 1, paddingBottom: 12 }, stepTitle: { color: "#64748B", fontFamily: typography.fontFamily, fontSize: 12, fontWeight: "600", textAlign: "right" }, activeTitle: { color: "#9A7200", fontWeight: "700" }, stepDetail: { color: "#94A3B8", fontFamily: typography.fontFamily, fontSize: 9, marginTop: 3, textAlign: "right" },
-  summaryCard: { ...shadows.subtle, backgroundColor: "white", borderColor: "#ECE7DC", borderRadius: 18, borderWidth: 1, gap: 10, marginHorizontal: 14, padding: 15 }, summaryHeading: { alignItems: "center", flexDirection: "row-reverse", gap: 9 }, summaryIcon: { alignItems: "center", backgroundColor: "#E8F7F1", borderRadius: 10, height: 34, justifyContent: "center", width: 34 }, summaryMuted: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 9, textAlign: "right" }, divider: { backgroundColor: "#F0ECE3", height: 1 }, summaryRow: { flexDirection: "row-reverse", justifyContent: "space-between" }, summaryLabel: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 10 }, summaryValue: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 10, fontWeight: "600" }, price: { color: "#8C6D14", fontFamily: typography.fontFamily, fontSize: 14, fontWeight: "800" }, guarantee: { alignItems: "center", backgroundColor: "#ECFDF5", borderRadius: 10, flexDirection: "row-reverse", gap: 5, justifyContent: "center", padding: 8 }, guaranteeText: { color: "#176B51", fontFamily: typography.fontFamily, fontSize: 9, fontWeight: "600" }
+  safe: { backgroundColor: "#F8F7F4", flex: 1 },
+  header: { alignItems: "center", flexDirection: "row-reverse", justifyContent: "space-between", paddingBottom: 12, paddingHorizontal: 16, paddingTop: 10 },
+  title: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 22, fontWeight: "800", textAlign: "right" },
+  subtitle: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 10, textAlign: "right" },
+  headerIcon: { alignItems: "center", backgroundColor: "#FFF4C8", borderRadius: 13, height: 42, justifyContent: "center", width: 42 },
+  searchBox: { ...shadows.subtle, alignItems: "center", backgroundColor: "white", borderColor: "#E8E2D6", borderRadius: 14, borderWidth: 1, flexDirection: "row-reverse", gap: 8, marginHorizontal: 14, minHeight: 46, paddingHorizontal: 12 },
+  searchInput: { color: colors.text, flex: 1, fontFamily: typography.fontFamily, fontSize: 12, textAlign: "right", writingDirection: "rtl" },
+  tabs: { flexDirection: "row-reverse", gap: 7, paddingHorizontal: 14, paddingTop: 12 },
+  tab: { alignItems: "center", borderRadius: 12, paddingHorizontal: 13, paddingVertical: 7 }, activeTab: { backgroundColor: colors.secondary },
+  tabText: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 11, fontWeight: "600" }, activeTabText: { color: "white" },
+  list: { gap: 10, padding: 14, paddingBottom: 28 }, requestCard: { ...shadows.subtle, backgroundColor: "white", borderColor: "#ECE7DC", borderRadius: 18, borderWidth: 1, padding: 12 }, pressed: { opacity: 0.72, transform: [{ scale: 0.985 }] },
+  topRow: { alignItems: "flex-start", flexDirection: "row-reverse", gap: 8, justifyContent: "space-between" }, personRow: { alignItems: "center", flex: 1, flexDirection: "row-reverse", gap: 9 }, requestCopy: { flex: 1 },
+  requestTitle: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 13, fontWeight: "700", textAlign: "right", writingDirection: "rtl" }, technician: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 9, marginTop: 3, textAlign: "right" },
+  statusBadge: { alignItems: "center", borderRadius: 10, flexDirection: "row-reverse", gap: 3, paddingHorizontal: 7, paddingVertical: 5 }, statusText: { fontFamily: typography.fontFamily, fontSize: 8, fontWeight: "700" }, divider: { backgroundColor: "#F0ECE3", height: 1, marginVertical: 10 },
+  metaRow: { alignItems: "center", flexDirection: "row-reverse", justifyContent: "space-between" }, metaItem: { alignItems: "center", flex: 1, flexDirection: "row-reverse", gap: 4 }, metaText: { color: "#64748B", flex: 1, fontFamily: typography.fontFamily, fontSize: 9, textAlign: "right" }, orderNumber: { color: "#94A3B8", fontFamily: typography.fontFamily, fontSize: 9 },
+  bottomRow: { alignItems: "center", flexDirection: "row-reverse", justifyContent: "space-between", marginTop: 10 }, date: { color: "#94A3B8", fontFamily: typography.fontFamily, fontSize: 8 }, openRow: { alignItems: "center", flexDirection: "row-reverse", gap: 2 }, openText: { color: colors.primaryPressed, fontFamily: typography.fontFamily, fontSize: 9, fontWeight: "700" },
+  empty: { alignItems: "center", gap: 7, paddingVertical: 54 }, emptyText: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 12 }
 });

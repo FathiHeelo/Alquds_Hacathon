@@ -19,7 +19,8 @@ import { NotificationsScreen } from "../../features/notifications/screens/Notifi
 import { CustomerChatScreen } from "../../features/jobs/screens/CustomerChatScreen";
 import { CustomerMessagesScreen } from "../../features/jobs/screens/CustomerMessagesScreen";
 import { CustomerRequestsScreen } from "../../features/jobs/screens/CustomerRequestsScreen";
-import { PlaceholderScreen } from "../../features/shell/screens/PlaceholderScreen";
+import { CustomerRequestDetailsScreen } from "../../features/jobs/screens/CustomerRequestDetailsScreen";
+import { CustomerAccountScreen } from "../../features/account/screens/CustomerAccountScreen";
 import { uiText } from "../../shared/constants/uiText";
 import { colors, typography } from "../../shared/theme";
 import type { CustomerStackParamList, CustomerTabParamList } from "./navigation.types";
@@ -36,9 +37,7 @@ function CustomerTabs() {
       <Tab.Screen name="CustomerRequests" component={CustomerRequestsScreen} options={{ ...tabOptions("document-text-outline"), title: uiText.customer.requests }} />
       <Tab.Screen name="CustomerMessages" component={CustomerMessagesScreen} options={{ ...tabOptions("chatbubble-ellipses-outline"), title: uiText.customer.messages }} />
       <Tab.Screen name="CustomerRewards" component={RewardsScreen} options={{ ...tabOptions("star-outline"), title: uiText.customer.rewards }} />
-      <Tab.Screen name="CustomerAccount" options={{ ...tabOptions("person-outline"), title: uiText.customer.account }}>
-        {() => <PlaceholderScreen title={uiText.customer.account} />}
-      </Tab.Screen>
+      <Tab.Screen name="CustomerAccount" component={CustomerAccountScreen} options={{ ...tabOptions("person-outline"), title: uiText.customer.account }} />
     </Tab.Navigator>
   );
 }
@@ -115,7 +114,7 @@ export function CustomerNavigator() {
     >
       <Stack.Screen name="CustomerTabs" component={CustomerTabs} options={{ headerShown: false }} />
       <Stack.Screen name="CustomerTechnicianProfile" component={TechnicianProfileScreen} options={{ title: uiText.map.profile }} />
-      <Stack.Screen name="CustomerRepairRequest" component={RepairRequestScreen} options={{ title: uiText.map.repairRequest }} />
+      <Stack.Screen name="CustomerRepairRequest" component={RepairRequestScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CustomerAiEntry" component={AiCustomerFlowScreen} options={{ title: "التشخيص الذكي" }} />
       <Stack.Screen name="CustomerOffersEntry" component={OffersScreen} options={{ title: "عروض الفنيين" }} />
       <Stack.Screen name="CustomerOfferDetails" component={OfferDetailsScreen} options={{ title: "تفاصيل العرض" }} />
@@ -124,6 +123,7 @@ export function CustomerNavigator() {
       <Stack.Screen name="CustomerRating" component={CustomerRatingScreen} options={{ title: "تقييم الفني" }} />
       <Stack.Screen name="CustomerNotifications" component={NotificationsScreen} options={{ title: "التنبيهات" }} />
       <Stack.Screen name="CustomerChat" component={CustomerChatScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="CustomerRequestDetails" component={CustomerRequestDetailsScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

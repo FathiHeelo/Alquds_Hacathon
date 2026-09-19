@@ -18,6 +18,7 @@ export type CustomerStackParamList = {
   CustomerRating: { jobId: string; technicianId: string };
   CustomerNotifications: undefined;
   CustomerChat: { jobId: string; requestId: string; technicianId: string };
+  CustomerRequestDetails: { requestId: string };
 };
 
 export type TechnicianTabParamList = {
