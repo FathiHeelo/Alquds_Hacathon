@@ -1,3 +1,5 @@
+import type { NavigatorScreenParams } from "@react-navigation/native";
+
 export type CustomerTabParamList = {
   CustomerMap: undefined;
   CustomerRequests: undefined;
@@ -7,7 +9,7 @@ export type CustomerTabParamList = {
 };
 
 export type CustomerStackParamList = {
-  CustomerTabs: undefined;
+  CustomerTabs: NavigatorScreenParams<CustomerTabParamList> | undefined;
   CustomerTechnicianProfile: { technicianId: string; requestId?: string; offerId?: string };
   CustomerRepairRequest: { technicianId?: string };
   CustomerAiEntry: { requestId: string };

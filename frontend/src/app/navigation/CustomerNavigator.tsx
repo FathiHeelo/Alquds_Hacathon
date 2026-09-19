@@ -113,7 +113,7 @@ export function CustomerNavigator() {
       }}
     >
       <Stack.Screen name="CustomerTabs" component={CustomerTabs} options={{ headerShown: false }} />
-      <Stack.Screen name="CustomerTechnicianProfile" component={TechnicianProfileScreen} options={{ title: uiText.map.profile }} />
+      <Stack.Screen name="CustomerTechnicianProfile" component={TechnicianProfileScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CustomerRepairRequest" component={RepairRequestScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CustomerAiEntry" component={AiCustomerFlowScreen} options={{ title: "التشخيص الذكي" }} />
       <Stack.Screen name="CustomerOffersEntry" component={OffersScreen} options={{ title: "عروض الفنيين" }} />
@@ -121,7 +121,7 @@ export function CustomerNavigator() {
       <Stack.Screen name="CustomerJobEntry" component={CustomerJobEntryScreen} options={{ title: "تأكيد المهمة" }} />
       <Stack.Screen name="CustomerJob" component={CustomerJobScreen} options={{ title: "المهمة النشطة" }} />
       <Stack.Screen name="CustomerRating" component={CustomerRatingScreen} options={{ title: "تقييم الفني" }} />
-      <Stack.Screen name="CustomerNotifications" component={NotificationsScreen} options={{ title: "التنبيهات" }} />
+      <Stack.Screen name="CustomerNotifications" component={NotificationsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CustomerChat" component={CustomerChatScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CustomerRequestDetails" component={CustomerRequestDetailsScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
