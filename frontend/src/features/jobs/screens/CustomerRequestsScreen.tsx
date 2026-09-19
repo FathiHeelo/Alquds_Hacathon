@@ -6,15 +6,18 @@ import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { CompositeNavigationProp } from "@react-navigation/native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { CustomerStackParamList, CustomerTabParamList } from "../../../app/navigation/navigation.types";
 import { demoTechnicians } from "../../../demo/fixtures/technicians";
+import { useFocusEffect } from "@react-navigation/native";
+import { customerJobRepository, repairRequestRepository } from "../../../services/repositories";
+import { appConfig } from "../../../app/config/appConfig";
 import { colors, shadows, typography, useTheme } from "../../../shared/theme";
 import { TechnicianPortrait } from "../../map/components/TechnicianPortrait";
-import { customerRequests, type CustomerRequestState } from "../customerRequests";
+import { customerRequests, mapDomainRequestToCustomerItem, type CustomerRequestItem, type CustomerRequestState } from "../customerRequests";
 
 type RequestsNavigation = CompositeNavigationProp<BottomTabNavigationProp<CustomerTabParamList, "CustomerRequests">, NativeStackNavigationProp<CustomerStackParamList>>;
 type Filter = "all" | "active" | "completed";
@@ -30,20 +33,38 @@ export function CustomerRequestsScreen() {
   const navigation = useNavigation<RequestsNavigation>();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const [requests, setRequests] = useState<readonly CustomerRequestItem[]>(customerRequests);
   const { reduceMotion } = useTheme();
-  const entrance = useRef(customerRequests.map(() => new Animated.Value(0))).current;
+  const entrance = useRef(Array.from({ length: 20 }, () => new Animated.Value(0))).current;
+
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    if (!appConfig.demoMode) void Promise.all([repairRequestRepository.listMine(), customerJobRepository.list()]).then(([repairs, jobs]) => {
+      const repairItems = repairs.map(mapDomainRequestToCustomerItem);
+      const jobItems: CustomerRequestItem[] = jobs.map((job) => {
+        const request = repairs.find((item) => item.id === job.requestId);
+        const state: CustomerRequestState = job.status === "completed" ? "completed" : job.status === "cancelled" ? "cancelled" : job.status === "scheduled" ? "scheduled" : "on_the_way";
+        const statusLabel: Record<CustomerRequestState, string> = { on_the_way: "الفني في الطريق", scheduled: "موعد محجوز", completed: "مكتمل", cancelled: "ملغي" };
+        return { id: job.requestId, jobId: job.id, offerId: job.offerId, technicianId: job.technicianId, title: request?.description ?? "طلب صيانة", category: request?.category ?? "صيانة عامة", orderNumber: `#${job.id.slice(-6).toUpperCase()}`, state, statusLabel: statusLabel[state], statusDetail: state === "on_the_way" ? `الوصول خلال ${job.expectedArrival}` : job.locationLabel, date: request ? new Date(request.createdAt).toLocaleString("ar", { dateStyle: "short", timeStyle: "short" }) : "", location: job.locationLabel, price: job.agreedPrice };
+      });
+      const withJobs = new Set(jobItems.map((item) => item.id));
+      const items = [...jobItems, ...repairItems.filter((item) => !withJobs.has(item.id))];
+      if (active) setRequests(items);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, []));
 
   useEffect(() => {
     if (reduceMotion) { entrance.forEach((value) => value.setValue(1)); return; }
     Animated.stagger(65, entrance.map((value) => Animated.timing(value, { toValue: 1, duration: 260, useNativeDriver: true }))).start();
   }, [entrance, reduceMotion]);
 
-  const filtered = useMemo(() => customerRequests.filter((request) => {
+  const filtered = useMemo(() => requests.filter((request) => {
     const technician = demoTechnicians.find(({ id }) => id === request.technicianId);
     const matchesFilter = filter === "all" || (filter === "active" ? request.state === "on_the_way" || request.state === "scheduled" : request.state === "completed" || request.state === "cancelled");
     const haystack = `${request.title} ${request.category} ${request.orderNumber} ${technician?.name ?? ""}`;
     return matchesFilter && (!query.trim() || haystack.includes(query.trim()));
-  }), [filter, query]);
+  }), [filter, query, requests]);
 
   return <SafeAreaView edges={["top"]} style={styles.safe}>
     <View style={styles.header}>
@@ -56,8 +77,8 @@ export function CustomerRequestsScreen() {
     </View>
     <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
       {filtered.map((request) => {
-        const index = customerRequests.indexOf(request);
-        const technician = demoTechnicians.find(({ id }) => id === request.technicianId)!;
+        const index = requests.indexOf(request);
+        const technician = demoTechnicians.find(({ id }) => id === request.technicianId) ?? { ...demoTechnicians[0], name: request.technicianId ? "الفني" : "بانتظار فني" };
         const appearance = statusAppearance[request.state];
         return <Animated.View key={request.id} style={{ opacity: entrance[index], transform: [{ translateY: entrance[index].interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }}>
           <Pressable accessibilityRole="button" accessibilityLabel={`فتح الطلب ${request.title}`} onPress={() => navigation.navigate("CustomerRequestDetails", { requestId: request.id })} style={({ pressed }) => [styles.requestCard, pressed && styles.pressed]}>

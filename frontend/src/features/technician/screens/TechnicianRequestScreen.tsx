@@ -2,15 +2,27 @@ import { LocalizedText } from "../../../shared/i18n/LocalizedText";
 import { createAdaptiveStyleSheet } from "../../../shared/theme/adaptiveStyles";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { TechnicianStackParamList } from "../../../app/navigation/navigation.types";
 import { colors, shadows, typography } from "../../../shared/theme";
 import { getTechnicianRequest } from "../technicianData";
+import { repairRequestRepository } from "../../../services/repositories";
+import { appConfig } from "../../../app/config/appConfig";
+import type { TechnicianRequestItem } from "../technicianData";
 
 export function TechnicianRequestScreen({ navigation, route }: NativeStackScreenProps<TechnicianStackParamList, "TechnicianRequestDetails">) {
-  const request = getTechnicianRequest(route.params.requestId);
+  const [request, setRequest] = useState<TechnicianRequestItem | undefined>(getTechnicianRequest(route.params.requestId));
+  const [loading, setLoading] = useState(!appConfig.demoMode);
+  useEffect(() => {
+    if (appConfig.demoMode) return;
+    let active = true;
+    void repairRequestRepository.listForTechnician().then((requests) => { if (active) setRequest(requests.find((item) => item.id === route.params.requestId)); }).catch((error: unknown) => { if (active) Alert.alert("تعذر تحميل الطلب", error instanceof Error ? error.message : "حاول مرة أخرى."); }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [route.params.requestId]);
+  if (loading) return <SafeAreaView style={styles.safe}><View style={styles.empty}><LocalizedText style={styles.title}>جارٍ تحميل الطلب</LocalizedText></View></SafeAreaView>;
   if (!request) return <SafeAreaView style={styles.safe}><View style={styles.empty}><LocalizedText style={styles.title}>تعذر العثور على الطلب</LocalizedText></View></SafeAreaView>;
 
   return <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>

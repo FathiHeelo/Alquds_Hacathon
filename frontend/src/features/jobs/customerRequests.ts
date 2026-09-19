@@ -82,3 +82,8 @@ export const customerRequests: readonly CustomerRequestItem[] = [
 export function getCustomerRequest(id: string) {
   return customerRequests.find((request) => request.id === id);
 }
+
+export function mapDomainRequestToCustomerItem(request: import("../../domain/models/repairRequest").RepairRequest): CustomerRequestItem {
+  const names: Record<string, string> = { electrical: "كهرباء", plumbing: "سباكة", ac: "تكييف وتبريد", appliances: "أجهزة منزلية", carpentry: "نجارة", electronics: "إلكترونيات", general: "صيانة عامة" };
+  return { id: request.id, jobId: "", offerId: "", technicianId: "", title: request.description, category: names[request.category] ?? request.category, orderNumber: `#${request.id.slice(-6).toUpperCase()}`, state: "scheduled", statusLabel: "بانتظار عروض الفنيين", statusDetail: "سنبلغك عند وصول عرض", date: new Date(request.createdAt).toLocaleString("ar", { dateStyle: "short", timeStyle: "short" }), location: request.location.label, price: 0 };
+}

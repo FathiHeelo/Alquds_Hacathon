@@ -20,8 +20,17 @@ export function mapRepairRequest(dto: RepairRequestDto): RepairRequest {
   return { id: dto.id, localId: dto.id, customerId: dto.customerId, description: dto.description, category: toFrontendCategory(dto.categoryId), urgency: dto.urgency, preferredTime: preferred, location: { label: dto.locationSummary ?? "Jerusalem", latitude: dto.lat ?? 31.778, longitude: dto.lng ?? 35.235, source: "demo" }, media: (dto.media ?? []).filter((item) => item.type !== "audio").map((item) => ({ uri: item.url, type: item.type as "image" | "video" })), createdAt: dto.createdAt };
 }
 
+export function mapRepairRequestForTechnician(dto: RepairRequestDto): import("../../../features/technician/technicianData").TechnicianRequestItem {
+  const categoryNames: Record<ServiceCategoryId, string> = { electrical: "كهرباء", plumbing: "سباكة وصحية", ac: "تكييف وتبريد", appliances: "أجهزة منزلية", carpentry: "نجارة", electronics: "إلكترونيات", general: "صيانة عامة" };
+  const urgency = dto.urgency === "high" ? "عاجل" : dto.urgency === "medium" ? "اليوم" : "عادي";
+  const latitude = dto.lat ?? 31.778;
+  const longitude = dto.lng ?? 35.235;
+  const description = dto.description;
+  return { id: dto.id, customerName: "عميل", problem: description.length > 44 ? `${description.slice(0, 44)}…` : description, category: categoryNames[toFrontendCategory(dto.categoryId)], area: dto.locationSummary ?? "القدس", distanceKm: 1, fairPrice: "يحدد في العرض", urgency, createdAt: new Date(dto.createdAt).toLocaleString("ar", { dateStyle: "short", timeStyle: "short" }), latitude, longitude, description, state: "new" };
+}
+
 export type OfferDto = { id: string; requestId: string; technicianId: string; price: number; message?: string | null; etaMinutes?: number | null; status: "pending" | "accepted" | "rejected" | "withdrawn"; createdAt: string };
 export const mapOffer = (dto: OfferDto): Offer => ({ id: dto.id, repairRequestId: dto.requestId, technicianId: dto.technicianId, price: dto.price, message: dto.message ?? "", estimatedDurationMinutes: 60, etaMinutes: dto.etaMinutes ?? 60, status: dto.status === "withdrawn" ? "rejected" : dto.status, createdAt: dto.createdAt });
 
-export type JobDto = { id: string; requestId: string; offerId: string; technicianId: string; status: Job["status"]; scheduledAt?: string | null; offer: { price: number; etaMinutes?: number | null }; request: { locationSummary?: string | null } };
-export const mapJob = (dto: JobDto): Job => ({ id: dto.id, requestId: dto.requestId, offerId: dto.offerId, technicianId: dto.technicianId, status: dto.status, agreedPrice: dto.offer.price, expectedArrival: dto.scheduledAt ?? `${dto.offer.etaMinutes ?? 60} min`, durationMinutes: 60, locationLabel: dto.request.locationSummary ?? "Jerusalem" });
+export type JobDto = { id: string; requestId: string; offerId: string; technicianId: string; status: Job["status"]; scheduledAt?: string | null; createdAt?: string; offer: { price: number; etaMinutes?: number | null }; request: { locationSummary?: string | null; description?: string; createdAt?: string; category?: { name?: string } }; conversation?: { id: string } | null; financial?: { commissionRate?: number; platformFee?: number; total?: number; technicianEarning?: number } | null };
+export const mapJob = (dto: JobDto): Job => ({ id: dto.id, requestId: dto.requestId, offerId: dto.offerId, technicianId: dto.technicianId, status: dto.status, agreedPrice: dto.offer.price, expectedArrival: dto.scheduledAt ?? `${dto.offer.etaMinutes ?? 60} min`, durationMinutes: 60, locationLabel: dto.request.locationSummary ?? "Jerusalem", description: dto.request.description, createdAt: dto.createdAt });

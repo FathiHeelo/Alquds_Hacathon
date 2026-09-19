@@ -3,6 +3,7 @@ import type {
   RepairRequestRepository
 } from "../../domain/contracts/repairRequestRepository";
 import type { RepairRequest } from "../../domain/models/repairRequest";
+import { technicianRequests } from "../../features/technician/technicianData";
 import { validateRepairRequest } from "../../features/repair-request/services/requestValidation";
 import { AppError } from "../../shared/errors/AppError";
 
@@ -34,7 +35,7 @@ export class DemoRepairRequestRepository implements RepairRequestRepository {
     return [...this.requests.values()].map(copy);
   }
 
-  async listForTechnician(): Promise<readonly RepairRequest[]> {
-    return this.listMine();
+  async listForTechnician() {
+    return technicianRequests;
   }
 }

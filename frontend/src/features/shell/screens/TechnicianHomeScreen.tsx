@@ -3,7 +3,8 @@ import { createAdaptiveStyleSheet } from "../../../shared/theme/adaptiveStyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import MapView, { Marker, type Region } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -12,7 +13,9 @@ import type { TechnicianStackParamList } from "../../../app/navigation/navigatio
 import { demoTechnicians } from "../../../demo/fixtures/technicians";
 import { colors, shadows, typography } from "../../../shared/theme";
 import { TechnicianPortrait } from "../../map/components/TechnicianPortrait";
-import { technicianRequests } from "../../technician/technicianData";
+import { technicianRequests, type TechnicianRequestItem } from "../../technician/technicianData";
+import { repairRequestRepository } from "../../../services/repositories";
+import { appConfig } from "../../../app/config/appConfig";
 
 type Navigation = NativeStackNavigationProp<TechnicianStackParamList>;
 const region: Region = { latitude: 31.7849, longitude: 35.2329, latitudeDelta: 0.035, longitudeDelta: 0.03 };
@@ -22,10 +25,16 @@ export function TechnicianHomeScreen() {
   const navigation = useNavigation<Navigation>();
   const [available, setAvailable] = useState(true);
   const [filter, setFilter] = useState<Filter>("الكل");
+  const [loadedRequests, setLoadedRequests] = useState<readonly TechnicianRequestItem[]>(technicianRequests);
   const [selectedId, setSelectedId] = useState("old_city_plumbing_leak");
   const technician = demoTechnicians[0];
-  const requests = useMemo(() => technicianRequests.filter((request) => filter === "الكل" || request.urgency === filter), [filter]);
-  const selected = technicianRequests.find(({ id }) => id === selectedId) ?? requests[0];
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    if (!appConfig.demoMode) void repairRequestRepository.listForTechnician().then((items) => { if (active) setLoadedRequests(items); }).catch(() => undefined);
+    return () => { active = false; };
+  }, []));
+  const requests = useMemo(() => loadedRequests.filter((request) => filter === "الكل" || request.urgency === filter), [filter, loadedRequests]);
+  const selected = requests.find(({ id }) => id === selectedId) ?? requests[0];
 
   return <SafeAreaView edges={["top"]} style={styles.safe}>
     <View style={styles.header}>

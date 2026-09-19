@@ -3,25 +3,43 @@ import { createAdaptiveStyleSheet } from "../../../shared/theme/adaptiveStyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { TechnicianStackParamList } from "../../../app/navigation/navigation.types";
 import { colors, shadows, typography } from "../../../shared/theme";
 import { technicianJobs } from "../technicianData";
+import type { Job } from "../../../domain/models/job";
+import { technicianJobRepository } from "../../../services/repositories";
+import { appConfig } from "../../../app/config/appConfig";
+
+type TechnicianJobListItem = { id: string; requestId: string; customerName: string; problem: string; status: Job["status"]; statusLabel: string; date: string; price: number; area: string };
 
 type Filter = "active" | "completed";
 
 export function TechnicianJobsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<TechnicianStackParamList>>();
   const [filter, setFilter] = useState<Filter>("active");
-  const jobs = useMemo(() => technicianJobs.filter((job) => filter === "active" ? job.status !== "completed" : job.status === "completed"), [filter]);
-  const total = technicianJobs.filter(({ status }) => status === "completed").reduce((sum, job) => sum + job.price, 0);
+  const [loadedJobs, setLoadedJobs] = useState<readonly TechnicianJobListItem[]>(technicianJobs);
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    if (!appConfig.demoMode) void technicianJobRepository.list().then((rows) => {
+      const items = rows.map((job: Job) => {
+        const statusLabel: Record<Job["status"], string> = { accepted: "تم قبول العرض", scheduled: "موعد محجوز", on_the_way: "في الطريق", in_progress: "قيد التنفيذ", completed: "مكتمل", cancelled: "ملغي" };
+        return { id: job.id, requestId: job.requestId, customerName: "عميل", problem: job.description ?? "طلب صيانة", status: job.status, statusLabel: statusLabel[job.status], date: job.createdAt ? new Date(job.createdAt).toLocaleDateString("ar") : "", price: job.agreedPrice, area: job.locationLabel };
+      });
+      if (active) setLoadedJobs(items);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, []));
+  const jobs = useMemo(() => loadedJobs.filter((job) => filter === "active" ? job.status !== "completed" && job.status !== "cancelled" : job.status === "completed"), [filter, loadedJobs]);
+  const total = loadedJobs.filter(({ status }) => status === "completed").reduce((sum, job) => sum + job.price, 0);
 
   return <SafeAreaView edges={["top"]} style={styles.safe}>
     <View style={styles.header}><View><LocalizedText style={styles.title}>أعمالي</LocalizedText><LocalizedText style={styles.subtitle}>إدارة المهام والأرباح والتوثيق</LocalizedText></View><View style={styles.headerIcon}><Ionicons name="briefcase" size={21} color={colors.primaryPressed} /></View></View>
-    <View style={styles.metrics}><Metric label="مهمة نشطة" value="1" color="#047857" /><Metric label="مكتملة" value="154" /><Metric label="دخل حديث" value={`${total} ₪`} color="#8C6D14" /></View>
+    <View style={styles.metrics}><Metric label="مهمة نشطة" value={`${loadedJobs.filter((job) => job.status !== "completed" && job.status !== "cancelled").length}`} color="#047857" /><Metric label="مكتملة" value={`${loadedJobs.filter((job) => job.status === "completed").length}`} /><Metric label="دخل حديث" value={`${total} ₪`} color="#8C6D14" /></View>
     <View style={styles.tabs}><Pressable onPress={() => setFilter("active")} style={[styles.tab, filter === "active" && styles.activeTab]}><LocalizedText style={[styles.tabText, filter === "active" && styles.activeTabText]}>الجارية</LocalizedText></Pressable><Pressable onPress={() => setFilter("completed")} style={[styles.tab, filter === "completed" && styles.activeTab]}><LocalizedText style={[styles.tabText, filter === "completed" && styles.activeTabText]}>المكتملة</LocalizedText></Pressable></View>
     <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
       {jobs.map((job) => <Pressable key={job.id} onPress={() => navigation.navigate("TechnicianJobDetails", { jobId: job.id })} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>

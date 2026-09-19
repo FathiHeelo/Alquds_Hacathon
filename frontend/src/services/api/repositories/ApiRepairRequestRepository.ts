@@ -1,7 +1,7 @@
 import type { RepairRequestRepository, CreateRepairRequestDraft } from "../../../domain/contracts/repairRequestRepository";
 import { apiClient } from "../apiClient";
 import { AppError } from "../../../shared/errors/AppError";
-import { mapRepairRequest, toBackendCategory, type RepairRequestDto } from "./mappers";
+import { mapRepairRequest, mapRepairRequestForTechnician, toBackendCategory, type RepairRequestDto } from "./mappers";
 
 const preferredTime = (value: string) => new Date(Date.now() + (value === "tomorrow" ? 86_400_000 : value === "today" ? 3_600_000 : 0)).toISOString();
 export class ApiRepairRequestRepository implements RepairRequestRepository {
@@ -11,5 +11,5 @@ export class ApiRepairRequestRepository implements RepairRequestRepository {
   }
   async getRequest(id: string) { try { return mapRepairRequest(await apiClient.request<RepairRequestDto>(`/repair-requests/${id}`, undefined, "customer")); } catch (error) { if (error instanceof AppError && error.code === "NOT_FOUND") return undefined; throw error; } }
   async listMine() { return (await apiClient.request<RepairRequestDto[]>("/repair-requests", undefined, "customer")).map(mapRepairRequest); }
-  async listForTechnician() { return (await apiClient.request<RepairRequestDto[]>("/repair-requests/feed", undefined, "technician")).map(mapRepairRequest); }
+  async listForTechnician() { return (await apiClient.request<RepairRequestDto[]>("/repair-requests/feed", undefined, "technician")).map(mapRepairRequestForTechnician); }
 }

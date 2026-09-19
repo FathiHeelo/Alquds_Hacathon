@@ -3,21 +3,42 @@ import { createAdaptiveStyleSheet } from "../../../shared/theme/adaptiveStyles";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { CustomerStackParamList } from "../../../app/navigation/navigation.types";
 import { demoTechnicians } from "../../../demo/fixtures/technicians";
+import { customerJobRepository, repairRequestRepository, technicianRepository } from "../../../services/repositories";
+import { appConfig } from "../../../app/config/appConfig";
 import { colors, shadows, typography } from "../../../shared/theme";
 import { TechnicianPortrait } from "../../map/components/TechnicianPortrait";
-import { getCustomerRequest } from "../customerRequests";
+import { getCustomerRequest, mapDomainRequestToCustomerItem, type CustomerRequestItem, type CustomerRequestState } from "../customerRequests";
 
 type Props = NativeStackScreenProps<CustomerStackParamList, "CustomerRequestDetails">;
 
 export function CustomerRequestDetailsScreen({ route, navigation }: Props) {
-  const request = getCustomerRequest(route.params.requestId);
+  const [request, setRequest] = useState<CustomerRequestItem | undefined>(getCustomerRequest(route.params.requestId));
+  const [technician, setTechnician] = useState(() => demoTechnicians.find(({ id }) => id === getCustomerRequest(route.params.requestId)?.technicianId));
+  const [loading, setLoading] = useState(!appConfig.demoMode);
+  useEffect(() => {
+    if (appConfig.demoMode) return;
+    let active = true;
+    void Promise.all([repairRequestRepository.getRequest(route.params.requestId), customerJobRepository.list()]).then(async ([repair, jobs]) => {
+      if (!repair) { if (active) setRequest(undefined); return; }
+      const job = jobs.find((item) => item.requestId === repair.id);
+      const state: CustomerRequestState = job?.status === "completed" ? "completed" : job?.status === "cancelled" ? "cancelled" : job?.status === "scheduled" ? "scheduled" : "on_the_way";
+      const mapped = mapDomainRequestToCustomerItem(repair);
+      mapped.jobId = job?.id ?? ""; mapped.offerId = job?.offerId ?? ""; mapped.technicianId = job?.technicianId ?? "";
+      mapped.state = job ? state : "scheduled"; mapped.statusLabel = job ? ({ on_the_way: "الفني في الطريق", scheduled: "موعد محجوز", completed: "مكتمل", cancelled: "ملغي" } as Record<CustomerRequestState, string>)[state] : "بانتظار عروض الفنيين";
+      mapped.statusDetail = job?.locationLabel ?? "سيظهر طلبك للفنيين القريبين"; mapped.price = job?.agreedPrice ?? 0;
+      if (active) setRequest(mapped);
+      if (job) { const profile = await technicianRepository.getById(job.technicianId); if (active) setTechnician(profile ?? undefined); }
+    }).catch((error: unknown) => { if (active) Alert.alert("تعذر تحميل الطلب", error instanceof Error ? error.message : "حاول مرة أخرى."); }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [route.params.requestId]);
+  if (loading) return <SafeAreaView style={styles.safe}><View style={styles.missing}><LocalizedText style={styles.sectionTitle}>جارٍ تحميل الطلب</LocalizedText></View></SafeAreaView>;
   if (!request) return <SafeAreaView style={styles.safe}><View style={styles.missing}><LocalizedText style={styles.sectionTitle}>تعذر العثور على الطلب</LocalizedText></View></SafeAreaView>;
-  const technician = demoTechnicians.find(({ id }) => id === request.technicianId)!;
-  const isActive = request.state === "on_the_way" || request.state === "scheduled";
+  const isActive = (request.state === "on_the_way" || request.state === "scheduled") && Boolean(request.jobId);
   const isCompleted = request.state === "completed";
   const steps = isCompleted
     ? ["تم استلام الطلب", "تم قبول العرض", "اكتملت الصيانة", "تم الدفع والتقييم"]
@@ -38,14 +59,14 @@ export function CustomerRequestDetailsScreen({ route, navigation }: Props) {
         <View style={styles.statusCopy}><LocalizedText style={styles.eyebrow}>حالة الطلب الحالية</LocalizedText><LocalizedText style={styles.statusTitle}>{request.statusLabel}</LocalizedText><LocalizedText style={styles.statusDetail}>{request.statusDetail}</LocalizedText></View>
       </View>
 
-      <View style={styles.card}>
+      {technician ? <View style={styles.card}>
         <LocalizedText style={styles.sectionTitle}>الفني المسؤول</LocalizedText>
         <View style={styles.technicianRow}>
           <TechnicianPortrait technician={technician} round size={54} />
           <View style={styles.technicianCopy}><View style={styles.nameRow}><LocalizedText style={styles.technicianName}>{technician.name}</LocalizedText><Ionicons name="checkmark-circle" size={14} color={colors.primaryPressed} /></View><LocalizedText style={styles.muted}>{technician.specialty}</LocalizedText><LocalizedText style={styles.rating}>★ {technician.rating.toFixed(1)} · {technician.completedJobs} عملية</LocalizedText></View>
           {isActive ? <View style={styles.contactRow}><Pressable accessibilityLabel="الاتصال بالفني" onPress={() => void Linking.openURL("tel:+970599000000")} style={styles.roundButton}><Ionicons name="call" size={17} color="#176B51" /></Pressable><Pressable accessibilityLabel="مراسلة الفني" onPress={() => navigation.navigate("CustomerChat", { jobId: request.jobId, requestId: request.id, technicianId: request.technicianId })} style={[styles.roundButton, styles.chatButton]}><Ionicons name="chatbubble-ellipses" size={17} color="#8C6D14" /></Pressable></View> : null}
         </View>
-      </View>
+      </View> : <View style={styles.card}><LocalizedText style={styles.sectionTitle}>بانتظار تعيين الفني</LocalizedText><LocalizedText style={styles.muted}>سيظهر ملف الفني هنا بعد قبول أحد العروض.</LocalizedText></View>}
 
       <View style={styles.card}>
         <LocalizedText style={styles.sectionTitle}>مراحل تنفيذ العمل</LocalizedText>
