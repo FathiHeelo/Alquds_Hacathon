@@ -5,6 +5,21 @@ import type {
 
 import { getDemoScenario } from "../../scenarios/scenarioSelector";
 
+import { plumbingVoiceFixture } from "../../fixtures/plumbing/plumbingFixtures";
+
+import { electricalVoiceFixture } from "../../fixtures/electrical/electricalFixtures";
+
+import { acVoiceFixture } from "../../fixtures/ac/acFixtures";
+
+import { applianceVoiceFixture } from "../../fixtures/appliances/applianceFixtures";
+
+function includesAny(
+  text: string,
+  keywords: readonly string[],
+): boolean {
+  return keywords.some((keyword) => text.includes(keyword.toLowerCase()));
+}
+
 export function structureVoiceRequest(
   input: VoiceRequestInput,
 ): StructuredVoiceRequest {
@@ -21,57 +36,34 @@ export function structureVoiceRequest(
   // -----------------------------
   // Plumbing detection
   // -----------------------------
-  const isPlumbing =
-    normalizedTranscript.includes("leak") ||
-    normalizedTranscript.includes("water") ||
-    normalizedTranscript.includes("sink") ||
-    normalizedTranscript.includes("faucet") ||
-    normalizedTranscript.includes("pipe") ||
-    normalizedTranscript.includes("مجلى") ||
-    normalizedTranscript.includes("مية") ||
-    normalizedTranscript.includes("مي") ||
-    normalizedTranscript.includes("ماء") ||
-    normalizedTranscript.includes("ماسورة") ||
-    normalizedTranscript.includes("حنفية");
+  const isPlumbing = includesAny(
+  normalizedTranscript,
+  plumbingVoiceFixture.keywords,
+);
 
   // -----------------------------
   // Electrical detection
   // -----------------------------
-  const isElectrical =
-    normalizedTranscript.includes("electrical") ||
-    normalizedTranscript.includes("electric") ||
-    normalizedTranscript.includes("outlet") ||
-    normalizedTranscript.includes("socket") ||
-    normalizedTranscript.includes("plug") ||
-    normalizedTranscript.includes("electricity") ||
-    normalizedTranscript.includes("كهرب") ||
-    normalizedTranscript.includes("فيشة") ||
-    normalizedTranscript.includes("مقبس") ||
-    normalizedTranscript.includes("قاطع");
+  const isElectrical = includesAny(
+  normalizedTranscript,
+  electricalVoiceFixture.keywords,
+);
 
   // -----------------------------
   // AC detection
   // -----------------------------
-  const isAc =
-    normalizedTranscript.includes("air conditioner") ||
-    normalizedTranscript.includes("air conditioning") ||
-    normalizedTranscript.includes("ac") ||
-    normalizedTranscript.includes("cooling") ||
-    normalizedTranscript.includes("not cooling") ||
-    normalizedTranscript.includes("مكيف") ||
-    normalizedTranscript.includes("تبريد") ||
-    normalizedTranscript.includes("بارد");
+  const isAc = includesAny(
+  normalizedTranscript,
+  acVoiceFixture.keywords,
+);
 
   // -----------------------------
   // Appliance detection
   // -----------------------------
-  const isAppliance =
-    normalizedTranscript.includes("washing machine") ||
-    normalizedTranscript.includes("washer") ||
-    normalizedTranscript.includes("fridge") ||
-    normalizedTranscript.includes("refrigerator") ||
-    normalizedTranscript.includes("غسالة") ||
-    normalizedTranscript.includes("ثلاجة");
+  const isAppliance = includesAny(
+  normalizedTranscript,
+  applianceVoiceFixture.keywords,
+);
 
   // -----------------------------
   // Determine category
@@ -132,17 +124,19 @@ if (category === "plumbing") {
   extractedKeywords.push("plumbing");
 
   if (
-    normalizedTranscript.includes("leak") ||
-    normalizedTranscript.includes("water") ||
-    normalizedTranscript.includes("مي") ||
-    normalizedTranscript.includes("ماء")
+    includesAny(
+      normalizedTranscript,
+      plumbingVoiceFixture.extractedKeywordMap.leak,
+    )
   ) {
     extractedKeywords.push("leak");
   }
 
   if (
-    normalizedTranscript.includes("sink") ||
-    normalizedTranscript.includes("مجلى")
+    includesAny(
+      normalizedTranscript,
+      plumbingVoiceFixture.extractedKeywordMap.sink,
+    )
   ) {
     extractedKeywords.push("sink");
   }
@@ -152,10 +146,10 @@ if (category === "electrical") {
   extractedKeywords.push("electrical");
 
   if (
-    normalizedTranscript.includes("outlet") ||
-    normalizedTranscript.includes("socket") ||
-    normalizedTranscript.includes("مقبس") ||
-    normalizedTranscript.includes("فيشة")
+    includesAny(
+      normalizedTranscript,
+      electricalVoiceFixture.extractedKeywordMap.outlet,
+    )
   ) {
     extractedKeywords.push("outlet");
   }
@@ -165,9 +159,10 @@ if (category === "ac") {
   extractedKeywords.push("ac");
 
   if (
-    normalizedTranscript.includes("cooling") ||
-    normalizedTranscript.includes("not cooling") ||
-    normalizedTranscript.includes("تبريد")
+    includesAny(
+      normalizedTranscript,
+      acVoiceFixture.extractedKeywordMap.cooling,
+    )
   ) {
     extractedKeywords.push("cooling");
   }
@@ -177,9 +172,10 @@ if (category === "appliance") {
   extractedKeywords.push("appliance");
 
   if (
-    normalizedTranscript.includes("leak") ||
-    normalizedTranscript.includes("مي") ||
-    normalizedTranscript.includes("ماء")
+    includesAny(
+      normalizedTranscript,
+      applianceVoiceFixture.extractedKeywordMap.leak,
+    )
   ) {
     extractedKeywords.push("leak");
   }
