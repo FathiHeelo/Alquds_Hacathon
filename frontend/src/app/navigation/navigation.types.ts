@@ -31,13 +31,15 @@ export type TechnicianTabParamList = {
 };
 
 export type TechnicianStackParamList = {
-  TechnicianTabs: undefined;
+  TechnicianTabs: NavigatorScreenParams<TechnicianTabParamList> | undefined;
   TechnicianProfile: undefined;
   TechnicianPro: undefined;
   TechnicianAiAssistant: { requestId?: string; isPro?: boolean };
   TechnicianRequestDetails: { requestId: string };
   TechnicianCreateOffer: { requestId: string; suggestedPrice?: number; suggestedMessage?: string };
-  TechnicianChat: undefined;
+  TechnicianChat: { conversationId: string; requestId: string; customerName: string; problem: string };
+  TechnicianJobDetails: { jobId: string };
+  TechnicianAccountDetail: { section: "earnings" | "services" | "verification" | "settings" | "support" };
 };
 
 export type AdminStackParamList = {

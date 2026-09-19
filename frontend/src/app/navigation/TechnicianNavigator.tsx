@@ -1,7 +1,6 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
-import { PlaceholderScreen } from "../../features/shell/screens/PlaceholderScreen";
 import { TechnicianAiAssistantScreen } from "../../features/technician/screens/TechnicianAiAssistantScreen";
 import { TechnicianHomeScreen } from "../../features/shell/screens/TechnicianHomeScreen";
 import { TechnicianRequestScreen } from "../../features/technician/screens/TechnicianRequestScreen";
@@ -12,6 +11,8 @@ import { TechnicianMessagesScreen } from "../../features/technician/screens/Tech
 import { TechnicianAccountScreen } from "../../features/technician/screens/TechnicianAccountScreen";
 import { TechnicianProfileDemoScreen } from "../../features/technician/screens/TechnicianProfileDemoScreen";
 import { TechnicianChatScreen } from "../../features/technician/screens/TechnicianChatScreen";
+import { TechnicianJobDetailsScreen } from "../../features/technician/screens/TechnicianJobDetailsScreen";
+import { TechnicianAccountDetailScreen } from "../../features/technician/screens/TechnicianAccountDetailScreen";
 import { uiText } from "../../shared/constants/uiText";
 import { colors, typography } from "../../shared/theme";
 import type { TechnicianStackParamList, TechnicianTabParamList } from "./navigation.types";
@@ -43,16 +44,18 @@ export function TechnicianNavigator() {
       }}
     >
       <Stack.Screen name="TechnicianTabs" component={TechnicianTabs} options={{ headerShown: false }} />
-      <Stack.Screen name="TechnicianProfile" options={{ title: uiText.technician.profile }}>
-        {() => <TechnicianProfileDemoScreen />}
+      <Stack.Screen name="TechnicianProfile" options={{ headerShown: false }}>
+        {({ navigation }) => <TechnicianProfileDemoScreen navigation={navigation} />}
       </Stack.Screen>
-      <Stack.Screen name="TechnicianPro" options={{ title: uiText.technician.pro }}>
-        {() => <TechnicianProScreen />}
+      <Stack.Screen name="TechnicianPro" options={{ headerShown: false }}>
+        {({ navigation }) => <TechnicianProScreen navigation={navigation} />}
       </Stack.Screen>
-      <Stack.Screen name="TechnicianRequestDetails" component={TechnicianRequestScreen} options={{ title: "تفاصيل الطلب" }} />
-      <Stack.Screen name="TechnicianCreateOffer" component={TechnicianOfferScreen} options={{ title: "إنشاء عرض" }} />
-      <Stack.Screen name="TechnicianChat" component={TechnicianChatScreen} options={{ title: "المحادثة" }} />
-      <Stack.Screen name="TechnicianAiAssistant" options={{ title: uiText.technician.aiAssistant }}>
+      <Stack.Screen name="TechnicianRequestDetails" component={TechnicianRequestScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="TechnicianCreateOffer" component={TechnicianOfferScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="TechnicianChat" component={TechnicianChatScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="TechnicianJobDetails" component={TechnicianJobDetailsScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="TechnicianAccountDetail" component={TechnicianAccountDetailScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="TechnicianAiAssistant" options={{ headerShown: false }}>
         {({ route, navigation }) => <TechnicianAiAssistantScreen route={route} navigation={navigation} />}
       </Stack.Screen>
     </Stack.Navigator>
