@@ -1,3 +1,6 @@
+import { LocalizedTextInput } from "../../../shared/i18n/LocalizedTextInput";
+import { LocalizedText } from "../../../shared/i18n/LocalizedText";
+import { createAdaptiveStyleSheet } from "../../../shared/theme/adaptiveStyles";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useEffect, useRef, useState } from "react";
@@ -5,7 +8,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { CustomerStackParamList } from "../../../app/navigation/navigation.types";
-import { chatRepository } from "../../../demo/adapters/demoChatRepository";
+import { customerChatRepository as chatRepository } from "../../../services/repositories";
 import { demoTechnicians } from "../../../demo/fixtures/technicians";
 import type { ChatMessage } from "../../../domain/contracts/chatRepository";
 import { ErrorState, LoadingState } from "../../../shared/components";
@@ -41,31 +44,31 @@ export function CustomerChatScreen({ route, navigation }: NativeStackScreenProps
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.safe}>
       <View style={styles.header}>
         <Pressable accessibilityLabel="العودة إلى الرسائل" onPress={() => navigation.goBack()} style={styles.headerButton}><Ionicons name="arrow-forward" size={18} color="#475569" /></Pressable>
-        <View style={styles.person}><View style={styles.portrait}><TechnicianPortrait technician={technician} size={40} /><View style={styles.online} /></View><View><View style={styles.nameRow}><Text style={styles.name}>{technician.name}</Text>{technician.isPro ? <Text style={styles.pro}>Pro</Text> : null}</View><Text style={styles.status}>في الطريق • وصول 5 دقائق</Text></View></View>
+        <View style={styles.person}><View style={styles.portrait}><TechnicianPortrait technician={technician} size={40} /><View style={styles.online} /></View><View><View style={styles.nameRow}><LocalizedText style={styles.name}>{technician.name}</LocalizedText>{technician.isPro ? <LocalizedText style={styles.pro}>Pro</LocalizedText> : null}</View><LocalizedText style={styles.status}>في الطريق • وصول 5 دقائق</LocalizedText></View></View>
         <Pressable accessibilityLabel="مركز الأمان" onPress={() => setSafetyVisible(!safetyVisible)} style={styles.headerButton}><Ionicons name="shield-checkmark" size={18} color={colors.primaryPressed} /></Pressable>
       </View>
-      {safetyVisible ? <View style={styles.safety}><Ionicons name="lock-closed" size={13} color="#8C6D14" /><Text style={styles.safetyText}>لأمانك وضمان حقوقك، تتم جميع الاتفاقات عبر عَمِّرها دون مشاركة أرقام الهواتف.</Text></View> : null}
+      {safetyVisible ? <View style={styles.safety}><Ionicons name="lock-closed" size={13} color="#8C6D14" /><LocalizedText style={styles.safetyText}>لأمانك وضمان حقوقك، تتم جميع الاتفاقات عبر عَمِّرها دون مشاركة أرقام الهواتف.</LocalizedText></View> : null}
       {loading ? <LoadingState /> : error ? <ErrorState message="تعذر تحميل المحادثة." /> : <ScrollView ref={listRef} contentContainerStyle={styles.stream} keyboardShouldPersistTaps="handled" onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}>
-        <View style={styles.day}><Text style={styles.dayText}>اليوم • 10:15 ص</Text></View>
+        <View style={styles.day}><LocalizedText style={styles.dayText}>اليوم • 10:15 ص</LocalizedText></View>
         {messages.map((message) => <View key={message.id} style={[styles.bubble, message.sender === "customer" ? styles.outgoing : styles.incoming]}>
-          <Text style={styles.message}>{message.text}</Text><Text style={styles.time}>{message.createdAt}</Text>
+          <LocalizedText style={styles.message}>{message.text}</LocalizedText><LocalizedText style={styles.time}>{message.createdAt}</LocalizedText>
         </View>)}
         <View style={[styles.bubble, styles.incoming]}>
-          <View style={styles.location}><View style={styles.locationIcon}><Ionicons name="location" size={17} color="#2563EB" /></View><View><Text style={styles.locationTitle}>موقع الفني المباشر</Text><Text style={styles.locationText}>شارع عقبة الخالدية، على بعد 90 متر</Text></View></View>
-          <Text style={styles.time}>10:18 ص</Text>
+          <View style={styles.location}><View style={styles.locationIcon}><Ionicons name="location" size={17} color="#2563EB" /></View><View><LocalizedText style={styles.locationTitle}>موقع الفني المباشر</LocalizedText><LocalizedText style={styles.locationText}>شارع عقبة الخالدية، على بعد 90 متر</LocalizedText></View></View>
+          <LocalizedText style={styles.time}>10:18 ص</LocalizedText>
         </View>
       </ScrollView>}
       <View style={styles.inputBar}>
         <Pressable accessibilityLabel="إرفاق صورة" onPress={() => void send("📷 صورة مرفقة من موقع الصيانة")} style={styles.attach}><Ionicons name="camera" size={18} color="#64748B" /></Pressable>
         <Pressable accessibilityLabel="مشاركة الموقع" onPress={() => void send("📍 مشاركة الموقع: البلدة القديمة، القدس")} style={styles.attach}><Ionicons name="location" size={18} color="#64748B" /></Pressable>
-        <TextInput multiline value={text} onChangeText={setText} placeholder={`اكتب رسالتك لـ ${technician.name.split(" ")[0]}...`} placeholderTextColor="#94A3B8" style={styles.input} />
+        <LocalizedTextInput multiline value={text} onChangeText={setText} placeholder={`اكتب رسالتك لـ ${technician.name.split(" ")[0]}...`} placeholderTextColor="#94A3B8" style={styles.input} />
         <Pressable accessibilityLabel="إرسال الرسالة" disabled={!text.trim()} onPress={() => void send(text)} style={({ pressed }) => [styles.send, !text.trim() && styles.sendDisabled, pressed && styles.pressed]}><Ionicons name="send" size={17} color={colors.text} /></Pressable>
       </View>
     </KeyboardAvoidingView>
   </SafeAreaView>;
 }
 
-const styles = StyleSheet.create({
+const styles = createAdaptiveStyleSheet({
   safe: { backgroundColor: "#F8F7F4", flex: 1 },
   header: { alignItems: "center", backgroundColor: "white", borderBottomColor: "#E7E2D8", borderBottomWidth: 1, flexDirection: "row-reverse", gap: 10, minHeight: 62, paddingHorizontal: 12 },
   headerButton: { alignItems: "center", backgroundColor: "#F1F5F9", borderRadius: 16, height: 34, justifyContent: "center", width: 34 },

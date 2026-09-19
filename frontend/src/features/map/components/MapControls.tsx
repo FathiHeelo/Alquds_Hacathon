@@ -1,3 +1,6 @@
+import { LocalizedText } from "../../../shared/i18n/LocalizedText";
+import { LocalizedTextInput } from "../../../shared/i18n/LocalizedTextInput";
+import { createAdaptiveStyleSheet } from "../../../shared/theme/adaptiveStyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
@@ -50,7 +53,7 @@ export function MapControls({
         </Pressable>
         <View style={{ flex: 1 }} />
         <View accessibilityLabel={location.label} style={styles.locationPill}>
-          <View><Text style={styles.locationLabel}>عَمِّرها القدس</Text><Text style={styles.tagline}>من قلب القدس نبنيها بأيدينا</Text></View>
+          <View><LocalizedText style={styles.locationLabel}>عَمِّرها القدس</LocalizedText><LocalizedText style={styles.tagline}>من قلب القدس نبنيها بأيدينا</LocalizedText></View>
           <Pressable accessibilityLabel="فتح حسابي" accessibilityRole="button" hitSlop={8} onPress={onAccount} style={({ pressed }) => [styles.accountAvatar, pressed && styles.accountAvatarPressed]}>
             <Ionicons color={colors.primaryPressed} name="person" size={17} />
           </Pressable>
@@ -59,14 +62,14 @@ export function MapControls({
 
       <View style={styles.searchBox}>
         <Pressable accessibilityLabel="فلاتر البحث" accessibilityState={{ expanded: showFilters }} onPress={() => setShowFilters(!showFilters)} style={styles.searchControl}><Ionicons color={colors.primaryPressed} name="search" size={18} /></Pressable>
-        <TextInput
+        <LocalizedTextInput
           onChangeText={setQuery}
           placeholder="ما المشكلة التي تريد إصلاحها في بيتك بالقدس؟"
           placeholderTextColor={colors.textMuted}
           style={styles.searchInput}
           value={filters.query}
         />
-        <Pressable accessibilityLabel="طلب بالصوت أو الصورة" onPress={onVoice} style={styles.voice}><Ionicons name="mic-outline" size={13} color={colors.primaryPressed} /><Text style={styles.voiceLabel}>صوتك</Text></Pressable>
+        <Pressable accessibilityLabel="طلب بالصوت أو الصورة" onPress={onVoice} style={styles.voice}><Ionicons name="mic-outline" size={13} color={colors.primaryPressed} /><LocalizedText style={styles.voiceLabel}>صوتك</LocalizedText></Pressable>
       </View>
 
       <ScrollView style={styles.categoryScroll} contentContainerStyle={styles.chipRow} horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled">
@@ -105,10 +108,10 @@ export function MapControls({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createAdaptiveStyleSheet({
   container: { gap: 10, paddingHorizontal: 12, paddingBottom: spacing.sm },
   topRow: { direction: "ltr", alignItems: "center", flexDirection: "row", gap: spacing.sm },
-  notificationButton: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.round, height: 32, justifyContent: "center", width: 32 },
+  notificationButton: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.round, height: 44, justifyContent: "center", width: 44 },
   notificationDot: { backgroundColor: colors.primary, borderColor: colors.background, borderRadius: radius.round, borderWidth: 1, height: 7, position: "absolute", right: 5, top: 5, width: 7 },
   locationPill: {
     ...shadows.subtle,
@@ -126,7 +129,7 @@ const styles = StyleSheet.create({
   },
   locationLabel: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 11, fontWeight: typography.weight.bold, textAlign: "right", writingDirection: "rtl" },
   tagline: { color: "#B29243", fontFamily: typography.fontFamily, fontSize: 8, textAlign: "right" },
-  accountAvatar: { alignItems: "center", backgroundColor: "#F6F1E4", borderColor: "#E8D8A5", borderRadius: 15, borderWidth: 1, height: 30, justifyContent: "center", width: 30 },
+  accountAvatar: { alignItems: "center", backgroundColor: "#F6F1E4", borderColor: "#E8D8A5", borderRadius: 22, borderWidth: 1, height: 44, justifyContent: "center", width: 44 },
   accountAvatarPressed: { opacity: 0.65, transform: [{ scale: 0.92 }] },
   voice: { flexDirection: "row-reverse", alignItems: "center", gap: 3, backgroundColor: "#FCF9F0", borderRadius: 12, borderWidth: 1, borderColor: colors.border, minHeight: 30, paddingHorizontal: 6 },
   voiceLabel: { color: colors.primaryPressed, fontSize: 11, fontFamily: typography.fontFamily },

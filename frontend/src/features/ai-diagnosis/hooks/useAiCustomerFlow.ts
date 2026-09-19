@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DemoTechnicianRepository } from "../../../demo/adapters/DemoTechnicianRepository";
+import { technicianRepository } from "../../../services/repositories";
 import type { RepairRequest } from "../../../domain/models/repairRequest";
 import { customerAiClient } from "../../../services/ai/customerAiClient";
 import { repairRequestRepository } from "../../repair-request/services/requestService";
 import { loadCustomerAiFlow, type CustomerAiFlowResult } from "../services/loadCustomerAiFlow";
 
-const dependencies = { requests: repairRequestRepository, technicians: new DemoTechnicianRepository(), ai: customerAiClient };
+const dependencies = { requests: repairRequestRepository, technicians: technicianRepository, ai: customerAiClient };
 
 export function useAiCustomerFlow(requestId: string) {
   const [request, setRequest] = useState<RepairRequest>();

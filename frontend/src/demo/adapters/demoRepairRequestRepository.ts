@@ -29,4 +29,12 @@ export class DemoRepairRequestRepository implements RepairRequestRepository {
     const request = this.requests.get(id);
     return request ? copy(request) : undefined;
   }
+
+  async listMine(): Promise<readonly RepairRequest[]> {
+    return [...this.requests.values()].map(copy);
+  }
+
+  async listForTechnician(): Promise<readonly RepairRequest[]> {
+    return this.listMine();
+  }
 }

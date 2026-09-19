@@ -1,3 +1,5 @@
+import { LocalizedText } from "../../../shared/i18n/LocalizedText";
+import { createAdaptiveStyleSheet } from "../../../shared/theme/adaptiveStyles";
 import { Ionicons } from "@expo/vector-icons";
 import type { CompositeNavigationProp } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
@@ -25,35 +27,35 @@ export function CustomerAccountScreen() {
   const navigation = useNavigation<AccountNavigation>();
   const { logout } = useDemoSession();
   return <SafeAreaView edges={["top"]} style={styles.safe}>
-    <View style={styles.header}><View><Text style={styles.title}>حسابي</Text><Text style={styles.subtitle}>إدارة بياناتك وخدماتك في عَمِّرها</Text></View><Pressable accessibilityLabel="إمكانية الوصول والمظهر" accessibilityRole="button" onPress={() => navigation.navigate("CustomerSettings")} style={styles.headerIcon}><Ionicons name="settings-outline" size={21} color={colors.primaryPressed} /></Pressable></View>
+    <View style={styles.header}><View><LocalizedText style={styles.title}>حسابي</LocalizedText><LocalizedText style={styles.subtitle}>إدارة بياناتك وخدماتك في عَمِّرها</LocalizedText></View><Pressable accessibilityLabel="إمكانية الوصول والمظهر" accessibilityRole="button" onPress={() => navigation.navigate("CustomerSettings")} style={styles.headerIcon}><Ionicons name="settings-outline" size={21} color={colors.primaryPressed} /></Pressable></View>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.profileCard}>
         <View style={styles.profileGlow} />
         <View style={styles.avatar}><Ionicons name="person" size={40} color={colors.primary} /></View>
-        <View style={styles.profileCopy}><View style={styles.nameRow}><Text style={styles.name}>أحمد ناصر</Text><Ionicons name="checkmark-circle" size={16} color={colors.primary} /></View><Text style={styles.phone}>+970 59 123 4567</Text><View style={styles.location}><Ionicons name="location" size={12} color="#D6B24D" /><Text style={styles.locationText}>البلدة القديمة، القدس</Text></View></View>
+        <View style={styles.profileCopy}><View style={styles.nameRow}><LocalizedText style={styles.name}>أحمد ناصر</LocalizedText><Ionicons name="checkmark-circle" size={16} color={colors.primary} /></View><LocalizedText style={styles.phone}>+970 59 123 4567</LocalizedText><View style={styles.location}><Ionicons name="location" size={12} color="#D6B24D" /><LocalizedText style={styles.locationText}>البلدة القديمة، القدس</LocalizedText></View></View>
         <Pressable onPress={() => Alert.alert("تعديل الحساب", "يمكنك تعديل معلومات الحساب من هنا.")} style={styles.editButton}><Ionicons name="create-outline" size={16} color="white" /></Pressable>
       </View>
 
       <View style={styles.stats}>
-        <Pressable onPress={() => navigation.navigate("CustomerRequests")} style={styles.stat}><Ionicons name="construct" size={19} color="#8C6D14" /><Text style={styles.statValue}>12</Text><Text style={styles.statLabel}>طلب صيانة</Text></Pressable>
+        <Pressable onPress={() => navigation.navigate("CustomerRequests")} style={styles.stat}><Ionicons name="construct" size={19} color="#8C6D14" /><LocalizedText style={styles.statValue}>12</LocalizedText><LocalizedText style={styles.statLabel}>طلب صيانة</LocalizedText></Pressable>
         <View style={styles.statDivider} />
-        <Pressable onPress={() => navigation.navigate("CustomerRewards")} style={styles.stat}><Ionicons name="star" size={19} color="#8C6D14" /><Text style={styles.statValue}>850</Text><Text style={styles.statLabel}>نقطة مكافأة</Text></Pressable>
+        <Pressable onPress={() => navigation.navigate("CustomerRewards")} style={styles.stat}><Ionicons name="star" size={19} color="#8C6D14" /><LocalizedText style={styles.statValue}>850</LocalizedText><LocalizedText style={styles.statLabel}>نقطة مكافأة</LocalizedText></Pressable>
         <View style={styles.statDivider} />
-        <View style={styles.stat}><Ionicons name="heart" size={19} color="#8C6D14" /><Text style={styles.statValue}>4</Text><Text style={styles.statLabel}>فنيون مفضلون</Text></View>
+        <View style={styles.stat}><Ionicons name="heart" size={19} color="#8C6D14" /><LocalizedText style={styles.statValue}>4</LocalizedText><LocalizedText style={styles.statLabel}>فنيون مفضلون</LocalizedText></View>
       </View>
 
-      <View style={styles.loyaltyCard}><View style={styles.loyaltyIcon}><Ionicons name="ribbon" size={22} color="#8C6D14" /></View><View style={styles.loyaltyCopy}><Text style={styles.loyaltyTitle}>عضو عَمِّرها الذهبي</Text><Text style={styles.loyaltyText}>باقي 150 نقطة لتحصل على قسيمة إضافية</Text><View style={styles.progress}><View style={styles.progressFill} /></View></View><Pressable onPress={() => navigation.navigate("CustomerRewards")}><Ionicons name="chevron-back" size={19} color="#8C6D14" /></Pressable></View>
+      <View style={styles.loyaltyCard}><View style={styles.loyaltyIcon}><Ionicons name="ribbon" size={22} color="#8C6D14" /></View><View style={styles.loyaltyCopy}><LocalizedText style={styles.loyaltyTitle}>عضو عَمِّرها الذهبي</LocalizedText><LocalizedText style={styles.loyaltyText}>باقي 150 نقطة لتحصل على قسيمة إضافية</LocalizedText><View style={styles.progress}><View style={styles.progressFill} /></View></View><Pressable onPress={() => navigation.navigate("CustomerRewards")}><Ionicons name="chevron-back" size={19} color="#8C6D14" /></Pressable></View>
 
-      <Text style={styles.sectionTitle}>إعدادات الحساب</Text>
-      <View style={styles.menuCard}>{menuItems.map((item, index) => <Pressable key={item.title} onPress={() => Alert.alert(item.title, "سيتم ربط هذه الصفحة ببيانات الحساب الفعلية.")} style={({ pressed }) => [styles.menuItem, index < menuItems.length - 1 && styles.menuDivider, pressed && styles.pressed]}><View style={[styles.menuIcon, { backgroundColor: item.background }]}><Ionicons name={item.icon} size={19} color={item.color} /></View><View style={styles.menuCopy}><Text style={styles.menuTitle}>{item.title}</Text><Text style={styles.menuSubtitle}>{item.subtitle}</Text></View><Ionicons name="chevron-back" size={17} color="#94A3B8" /></Pressable>)}</View>
+      <LocalizedText style={styles.sectionTitle}>إعدادات الحساب</LocalizedText>
+      <View style={styles.menuCard}>{menuItems.map((item, index) => <Pressable key={item.title} onPress={() => Alert.alert(item.title, "سيتم ربط هذه الصفحة ببيانات الحساب الفعلية.")} style={({ pressed }) => [styles.menuItem, index < menuItems.length - 1 && styles.menuDivider, pressed && styles.pressed]}><View style={[styles.menuIcon, { backgroundColor: item.background }]}><Ionicons name={item.icon} size={19} color={item.color} /></View><View style={styles.menuCopy}><LocalizedText style={styles.menuTitle}>{item.title}</LocalizedText><LocalizedText style={styles.menuSubtitle}>{item.subtitle}</LocalizedText></View><Ionicons name="chevron-back" size={17} color="#94A3B8" /></Pressable>)}</View>
 
-      <Pressable onPress={logout} style={styles.logout}><Ionicons name="log-out-outline" size={18} color="#BE123C" /><Text style={styles.logoutText}>العودة لاختيار الدور</Text></Pressable>
-      <Text style={styles.version}>عَمِّرها • الإصدار 1.0.0</Text>
+      <Pressable onPress={logout} style={styles.logout}><Ionicons name="log-out-outline" size={18} color="#BE123C" /><LocalizedText style={styles.logoutText}>العودة لاختيار الدور</LocalizedText></Pressable>
+      <LocalizedText style={styles.version}>عَمِّرها • الإصدار 1.0.0</LocalizedText>
     </ScrollView>
   </SafeAreaView>;
 }
 
-const styles = StyleSheet.create({
+const styles = createAdaptiveStyleSheet({
   safe: { backgroundColor: "#F8F7F4", flex: 1 }, header: { alignItems: "center", flexDirection: "row-reverse", justifyContent: "space-between", paddingBottom: 12, paddingHorizontal: 16, paddingTop: 10 }, title: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 22, fontWeight: "800", textAlign: "right" }, subtitle: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 10, textAlign: "right" }, headerIcon: { alignItems: "center", backgroundColor: "#FFF4C8", borderRadius: 13, height: 42, justifyContent: "center", width: 42 }, content: { padding: 14, paddingBottom: 30 },
   profileCard: { ...shadows.raised, alignItems: "center", backgroundColor: colors.secondary, borderRadius: 22, flexDirection: "row-reverse", gap: 11, overflow: "hidden", padding: 15 }, profileGlow: { backgroundColor: "rgba(197,155,39,0.14)", borderRadius: 90, height: 180, left: -50, position: "absolute", top: -65, width: 180 }, avatar: { alignItems: "center", backgroundColor: "#28443D", borderColor: colors.primary, borderRadius: 32, borderWidth: 2, height: 64, justifyContent: "center", width: 64 }, profileCopy: { flex: 1 }, nameRow: { alignItems: "center", flexDirection: "row-reverse", gap: 5 }, name: { color: "white", fontFamily: typography.fontFamily, fontSize: 17, fontWeight: "800" }, phone: { color: "#CBD5E1", fontFamily: typography.fontFamily, fontSize: 10, marginTop: 2, textAlign: "right" }, location: { alignItems: "center", flexDirection: "row-reverse", gap: 3, marginTop: 5 }, locationText: { color: "#D6B24D", fontFamily: typography.fontFamily, fontSize: 9, fontWeight: "600" }, editButton: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.12)", borderRadius: 11, height: 36, justifyContent: "center", width: 36 },
   stats: { ...shadows.subtle, alignItems: "center", backgroundColor: "white", borderColor: "#ECE7DC", borderRadius: 18, borderWidth: 1, flexDirection: "row-reverse", marginTop: 12, paddingVertical: 12 }, stat: { alignItems: "center", flex: 1, gap: 2 }, statValue: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 14, fontWeight: "800" }, statLabel: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 8, textAlign: "center" }, statDivider: { backgroundColor: "#ECE7DC", height: 35, width: 1 },

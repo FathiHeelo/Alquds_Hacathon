@@ -1,8 +1,10 @@
+import { LocalizedText } from "../../../shared/i18n/LocalizedText";
+import { createAdaptiveStyleSheet } from "../../../shared/theme/adaptiveStyles";
 import type { PropsWithChildren } from "react";
 import { Pressable, StyleSheet, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { colors, radius, spacing, typography } from "../../../shared/theme";
+import { colors, radius, spacing, typography, useTheme } from "../../../shared/theme";
 
 interface FilterChipProps extends PropsWithChildren {
   isSelected: boolean;
@@ -12,20 +14,21 @@ interface FilterChipProps extends PropsWithChildren {
 }
 
 export function FilterChip({ children, icon, iconColor = colors.primaryPressed, isSelected, onPress }: FilterChipProps) {
+  const { theme, isHighContrast } = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected: isSelected }}
       onPress={onPress}
-      style={[styles.chip, isSelected && styles.selectedChip]}
+      style={[styles.chip, { backgroundColor: isSelected ? theme.primary : theme.cardBackground, borderColor: isSelected ? theme.primaryPressed : theme.borderStrong, borderWidth: isHighContrast ? 2 : 1 }]}
     >
-      {icon ? <Ionicons color={isSelected ? colors.neutral : iconColor} name={icon} size={13} /> : null}
-      <Text style={[styles.label, isSelected && styles.selectedLabel]}>{children}</Text>
+      {icon ? <Ionicons color={isSelected ? theme.textInverse : iconColor} name={icon} size={15} /> : null}
+      <LocalizedText style={[styles.label, { color: isSelected ? theme.textInverse : theme.text }]}>{children}</LocalizedText>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createAdaptiveStyleSheet({
   chip: {
     alignItems: "center",
     backgroundColor: colors.background,
@@ -34,7 +37,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     justifyContent: "center",
     flexDirection: "row-reverse",
-    minHeight: 28,
+    minHeight: 44,
     paddingHorizontal: 9,
     gap: 3
   },

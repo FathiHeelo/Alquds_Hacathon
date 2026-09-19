@@ -1,3 +1,5 @@
+import { LocalizedText } from "../../../shared/i18n/LocalizedText";
+import { createAdaptiveStyleSheet } from "../../../shared/theme/adaptiveStyles";
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from "react-native";
 import type { Technician } from "../../../domain/models/technician";
@@ -13,10 +15,10 @@ export function TechnicianMapMarker({ isSelected, technician }: { isSelected: bo
       <View style={[styles.online, !technician.isAvailable && styles.offline]} />
       <View style={[styles.trade, { backgroundColor: technician.isPro ? colors.secondary : category === "electrical" ? "#F59E0B" : "#0EA5C6" }]}><Ionicons name={icon} color={technician.isPro ? colors.primary : "white"} size={10} /></View>
     </View>
-    <Text numberOfLines={1} style={styles.label}>{technician.name.split(" ")[0]}{technician.isPro ? " (Pro)" : ""} · {technician.distanceKm.toFixed(1)} كم</Text>
+    <LocalizedText numberOfLines={1} style={styles.label}>{technician.name.split(" ")[0]}{technician.isPro ? " (Pro)" : ""} · {technician.distanceKm.toFixed(1)} كم</LocalizedText>
   </View>;
 }
-const styles = StyleSheet.create({
+const styles = createAdaptiveStyleSheet({
   wrapper: { width: 150, height: 92, alignItems: "center", justifyContent: "center", padding: 12 },
   ring: { padding: 3, borderRadius: 24, borderWidth: 2, borderColor: "transparent" },
   selected: { backgroundColor: "#F5E6BE", borderColor: "#E8CE77" },

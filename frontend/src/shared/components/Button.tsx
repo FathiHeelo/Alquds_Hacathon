@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text } from "react-native";
 
 import { radius, spacing, typography, useTheme } from "../theme";
 import { useI18n } from "../i18n/I18nProvider";
+import { translateLegacyLiteral } from "../i18n/literalEn";
 
 type PressableProps = ComponentProps<typeof Pressable>;
 type ButtonVariant = "primary" | "secondary" | "outlined";
@@ -14,7 +15,8 @@ interface ButtonProps extends Omit<PressableProps, "children" | "style"> {
 
 export function Button({ children, disabled, variant = "primary", ...props }: ButtonProps) {
   const { theme, textScale, isHighContrast } = useTheme();
-  const { isRTL } = useI18n();
+  const { isRTL, language } = useI18n();
+  const label = language === "en" && typeof children === "string" ? translateLegacyLiteral(children) : children;
   const backgroundColor = variant === "primary" ? theme.primary : variant === "secondary" ? theme.surfaceSecondary : theme.cardBackground;
   const color = variant === "primary" ? theme.textInverse : theme.text;
   return (
@@ -27,10 +29,10 @@ export function Button({ children, disabled, variant = "primary", ...props }: Bu
         pressed && styles.pressed,
         disabled && styles.disabled
       ]}
-      accessibilityLabel={props.accessibilityLabel ?? (typeof children === "string" ? children : undefined)}
+      accessibilityLabel={props.accessibilityLabel ?? (typeof label === "string" ? label : undefined)}
       {...props}
     >
-      <Text style={[styles.label, { color, fontSize: typography.size.sm * textScale, writingDirection: isRTL ? "rtl" : "ltr" }]}>{children}</Text>
+      <Text style={[styles.label, { color, fontSize: typography.size.sm * textScale, writingDirection: isRTL ? "rtl" : "ltr" }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -47,7 +49,6 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily,
     fontSize: typography.size.sm,
     fontWeight: typography.weight.bold,
-    textAlign: "center",
     textAlign: "center"
   },
   pressed: { opacity: 0.78 },

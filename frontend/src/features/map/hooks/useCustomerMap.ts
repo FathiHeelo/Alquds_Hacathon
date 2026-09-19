@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { TechnicianRepository } from "../../../domain/contracts/technicianRepository";
 import type { CustomerLocation } from "../../../domain/models/location";
 import type { ServiceCategoryId, Technician, TechnicianSearchCriteria } from "../../../domain/models/technician";
-import { DemoTechnicianRepository } from "../../../demo/adapters/DemoTechnicianRepository";
+import { technicianRepository } from "../../../services/repositories";
 import { getCustomerLocation, jerusalemDemoLocation } from "../../../services/location/locationService";
 
-const technicianRepository: TechnicianRepository = new DemoTechnicianRepository();
 
 export interface CustomerMapFilters {
   availableOnly: boolean;

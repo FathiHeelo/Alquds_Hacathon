@@ -1,3 +1,5 @@
+import { LocalizedText } from "../../../shared/i18n/LocalizedText";
+import { createAdaptiveStyleSheet } from "../../../shared/theme/adaptiveStyles";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { CompositeNavigationProp } from "@react-navigation/native";
 import { useNavigation } from "@react-navigation/native";
@@ -10,7 +12,7 @@ import MapView, { Marker, type Region } from "react-native-maps";
 import type { CustomerStackParamList, CustomerTabParamList } from "../../../app/navigation/navigation.types";
 import { ErrorState, LoadingState } from "../../../shared/components";
 import { uiText } from "../../../shared/constants/uiText";
-import { colors, shadows, typography } from "../../../shared/theme";
+import { colors, shadows, typography, useTheme } from "../../../shared/theme";
 import { MapControls } from "../components/MapControls";
 import { TechnicianMapMarker } from "../components/TechnicianMapMarker";
 import { TechnicianPreview } from "../components/TechnicianPreview";
@@ -24,6 +26,7 @@ export function CustomerMapScreen() {
   const map = useCustomerMap();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
+  const { reduceMotion, isDark } = useTheme();
   const mapRef = useRef<MapView>(null);
   const pulse = useRef(new Animated.Value(0)).current;
   const cardAnimation = useRef(new Animated.Value(0)).current;
@@ -31,6 +34,7 @@ export function CustomerMapScreen() {
   const initialSelectionMade = useRef(false);
   const bottomSpace = Math.min(80, Math.max(12, height * 0.09));
   useEffect(() => {
+    if (reduceMotion) { pulse.setValue(1); return; }
     if (!initialSelectionMade.current && !map.isLoading && map.technicians.length) {
       initialSelectionMade.current = true;
       map.selectTechnician(map.technicians[0].id);
@@ -43,16 +47,16 @@ export function CustomerMapScreen() {
     ]));
     loop.start();
     return () => loop.stop();
-  }, [pulse]);
+  }, [pulse, reduceMotion]);
   useEffect(() => {
-    cardAnimation.setValue(0);
-    if (map.selectedTechnician) Animated.timing(cardAnimation, { toValue: 1, duration: 180, useNativeDriver: true }).start();
-  }, [map.selectedTechnician?.id, cardAnimation]);
+    cardAnimation.setValue(reduceMotion ? 1 : 0);
+    if (map.selectedTechnician && !reduceMotion) Animated.timing(cardAnimation, { toValue: 1, duration: 180, useNativeDriver: true }).start();
+  }, [map.selectedTechnician?.id, cardAnimation, reduceMotion]);
   const requestRepair = () => navigation.navigate("CustomerRepairRequest", { technicianId: map.selectedTechnician?.id });
 
   return (
     <View style={styles.screen}>
-      <MapView ref={mapRef} initialRegion={jerusalemRegion} style={styles.map} userInterfaceStyle="light"
+      <MapView ref={mapRef} initialRegion={jerusalemRegion} style={styles.map} userInterfaceStyle={isDark ? "dark" : "light"}
         onMarkerPress={(event) => {
           const technicianId = event.nativeEvent.id;
           if (!map.technicians.some(({ id }) => id === technicianId)) return;
@@ -71,7 +75,7 @@ export function CustomerMapScreen() {
               <Animated.View style={[styles.halo, { opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.1, 0.3] }), transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }]} />
               <View style={styles.locationDot}><View style={styles.locationCore} /></View>
             </View>
-            <Text style={styles.locationLabel}>موقعك: {map.location.label}</Text>
+            <LocalizedText style={styles.locationLabel}>موقعك: {map.location.label}</LocalizedText>
           </View>
         </Marker>
         {map.technicians.map((technician) => <Marker accessibilityLabel={`عرض معلومات الفني ${technician.name}`} coordinate={technician.location} identifier={technician.id} key={technician.id} stopPropagation anchor={{ x: 0.5, y: 0.4 }}
@@ -89,7 +93,7 @@ export function CustomerMapScreen() {
       </View>
       {map.isLoading ? <View style={styles.state}><LoadingState /></View> : null}
       {map.error ? <View style={styles.state}><ErrorState onRetry={map.retry} /></View> : null}
-      {!map.isLoading && !map.error && !map.technicians.length ? <View style={styles.state}><Text style={styles.empty}>{uiText.map.noResults}</Text></View> : null}
+      {!map.isLoading && !map.error && !map.technicians.length ? <View style={styles.state}><LocalizedText style={styles.empty}>{uiText.map.noResults}</LocalizedText></View> : null}
       <View pointerEvents="box-none" style={[styles.bottom, { bottom: bottomSpace }]}>
         {map.selectedTechnician ? <Animated.View style={{ opacity: cardAnimation, transform: [{ translateY: cardAnimation.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }] }}>
           <TechnicianPreview onDismiss={() => map.selectTechnician(undefined)}
@@ -98,14 +102,14 @@ export function CustomerMapScreen() {
         </Animated.View> : null}
         <Pressable accessibilityRole="button" accessibilityLabel="احكِ المشكلة بصوتك أو صوّرها" onPress={requestRepair} style={({ pressed }) => [styles.aiCta, pressed && styles.pressed]}>
           <View style={styles.mic}><Ionicons color="white" name="mic" size={18} /></View>
-          <View style={styles.copy}><Text style={styles.title}>احكِ المشكلة بصوتك أو صوّرها</Text><Text style={styles.subtitle}>الذكاء الاصطناعي يشخّص العطل ويقترح السعر العادل فوراً</Text></View>
+          <View style={styles.copy}><LocalizedText style={styles.title}>احكِ المشكلة بصوتك أو صوّرها</LocalizedText><LocalizedText style={styles.subtitle}>الذكاء الاصطناعي يشخّص العطل ويقترح السعر العادل فوراً</LocalizedText></View>
           <Ionicons color={colors.primary} name="arrow-back" size={19} />
         </Pressable>
       </View>
     </View>
   );
 }
-const styles = StyleSheet.create({
+const styles = createAdaptiveStyleSheet({
   screen: { flex: 1, backgroundColor: "#FAF9F6" },
   map: { position: "absolute", left: 0, right: 0, top: 0, bottom: 0 },
   controls: { zIndex: 20 },

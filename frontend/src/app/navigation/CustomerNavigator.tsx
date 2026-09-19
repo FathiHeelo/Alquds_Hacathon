@@ -49,7 +49,7 @@ function CustomerTabs() {
 function CustomerTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
   const stackNavigation = navigation.getParent<NativeStackNavigationProp<CustomerStackParamList>>();
   const tabs = [
     { route: "CustomerMap" as const, icon: "map-outline" as const, label: t("navigation.home") },
@@ -59,7 +59,7 @@ function CustomerTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   ];
 
   return (
-    <View style={[footerStyles.footer, { backgroundColor: theme.navigationBackground, borderTopColor: theme.border, paddingBottom: Math.max(insets.bottom, 8) }]}>
+    <View style={[footerStyles.footer, { backgroundColor: theme.navigationBackground, borderTopColor: theme.border, flexDirection: isRTL ? "row-reverse" : "row", paddingBottom: Math.max(insets.bottom, 8) }]}>
       {tabs.slice(0, 2).map((tab) => <CustomerTabButton descriptors={descriptors} key={tab.route} navigation={navigation} state={state} {...tab} />)}
       <Pressable
         accessibilityLabel={t("navigation.requests")}
@@ -77,6 +77,8 @@ function CustomerTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 type CustomerTabButtonProps = Pick<BottomTabBarProps, "state" | "descriptors" | "navigation"> & { route: keyof CustomerTabParamList; icon: keyof typeof Ionicons.glyphMap; label: string };
 
 function CustomerTabButton({ route, icon, label, state, descriptors, navigation }: CustomerTabButtonProps) {
+  const { theme } = useTheme();
+  const { isRTL } = useI18n();
   const isFocused = state.routes[state.index]?.name === route;
   const routeState = state.routes.find((item) => item.name === route);
   const descriptor = routeState ? descriptors[routeState.key] : undefined;
@@ -92,14 +94,14 @@ function CustomerTabButton({ route, icon, label, state, descriptors, navigation 
       }}
       style={footerStyles.tab}
     >
-      <Ionicons color={isFocused ? "#BF8537" : "#AAB5C6"} name={icon} size={20} />
-      <Text style={[footerStyles.label, isFocused && footerStyles.activeLabel]}>{label}</Text>
+      <Ionicons color={isFocused ? theme.primaryPressed : theme.textMuted} name={icon} size={20} />
+      <Text style={[footerStyles.label, { color: isFocused ? theme.primaryPressed : theme.textMuted, writingDirection: isRTL ? "rtl" : "ltr" }]}>{label}</Text>
     </Pressable>
   );
 }
 
 const footerStyles = StyleSheet.create({
-  footer: { direction: "ltr", alignItems: "center", backgroundColor: colors.background, borderTopColor: "#F3F1EC", borderTopWidth: 1, flexDirection: "row-reverse", justifyContent: "space-around", paddingHorizontal: 8 },
+  footer: { alignItems: "center", backgroundColor: colors.background, borderTopColor: "#F3F1EC", borderTopWidth: 1, justifyContent: "space-around", paddingHorizontal: 8 },
   tab: { alignItems: "center", flex: 1, gap: 2, justifyContent: "center", minHeight: 56 },
   label: { color: "#AAB5C6", fontFamily: typography.fontFamily, fontSize: 10, fontWeight: typography.weight.semibold, writingDirection: "rtl" },
   activeLabel: { color: colors.primaryPressed },
