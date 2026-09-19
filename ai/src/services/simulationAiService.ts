@@ -2,6 +2,7 @@ import type { AiService } from "./AiService";
 import { diagnoseProblem as diagnoseProblemWithEngine } from "../engines/diagnosis/diagnosisEngine";
 import { estimateFairPrice as estimateFairPriceWithEngine } from "../engines/fair-price/priceEngine";
 import { rankTechnicians as rankTechniciansWithEngine } from "../engines/matching/matchingEngine";
+import { generateOfferAssistant as generateOfferAssistantWithEngine } from "../engines/offer-assistant/offerAssistantEngine";
 export function createSimulationAiService(): AiService {
   return {
     async structureVoiceRequest(input) {
@@ -98,13 +99,10 @@ export function createSimulationAiService(): AiService {
         .sort((a, b) => b.score - a.score);
     },
     async rankTechnicians(input) {
-  return rankTechniciansWithEngine(input);
+      return rankTechniciansWithEngine(input);
     },
     async generateOfferAssistant(input) {
-      return {
-        suggestedMessage: `I can help with ${input.diagnosis} today.`,
-        suggestedPrice: Math.round((input.fairPriceMin + input.fairPriceMax) / 2)
-      };
+      return generateOfferAssistantWithEngine(input);
     },
     async assessRisk(input) {
       return {
