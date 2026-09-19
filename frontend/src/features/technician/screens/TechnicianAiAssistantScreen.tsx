@@ -8,6 +8,7 @@ import type { TechnicianStackParamList } from "../../../app/navigation/navigatio
 import { aiAdapter } from "../../../services/ai/aiAdapter";
 import { colors, shadows, typography } from "../../../shared/theme";
 import { getTechnicianRequest } from "../technicianData";
+import { PalestinianVoiceOfferCard } from "../components/PalestinianVoiceOfferCard";
 
 type Props = NativeStackScreenProps<TechnicianStackParamList, "TechnicianAiAssistant">;
 
@@ -20,7 +21,7 @@ export function TechnicianAiAssistantScreen({ route, navigation }: Props) {
 
   useEffect(() => {
     if (!isPro) return;
-    void aiAdapter.generateOfferAssistant({ diagnosis: request.description, fairPriceMin: 110, fairPriceMax: 150 }).then(setResult).catch(() => setError(true));
+    void aiAdapter.generateOfferAssistant({ diagnosis: request.description, fairPriceMin: 110, fairPriceMax: 150 }).then((generated) => setResult({ ...generated, suggestedMessage: `أهلاً ${request.customerName}، أنا قريب من ${request.area} ومعي القطع اللازمة. أقدر أوصل خلال 20 دقيقة وأنفذ الصيانة بسعر ${generated.suggestedPrice} ₪ مع ضمان أسبوعين.` })).catch(() => setError(true));
   }, [isPro, request.description]);
 
   return <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
@@ -28,6 +29,7 @@ export function TechnicianAiAssistantScreen({ route, navigation }: Props) {
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       {!isPro ? <View style={styles.locked}><Ionicons name="lock-closed" size={32} color="#8C6D14" /><Text style={styles.lockedTitle}>هذه الميزة خاصة بـ Pro</Text><Text style={styles.lockedText}>فعّل الاشتراك للحصول على تشخيص وسعر ورسالة عرض مقترحة.</Text><Pressable onPress={() => navigation.navigate("TechnicianPro")} style={styles.primary}><Text style={styles.primaryText}>التعرف على Pro</Text></Pressable></View> : <>
         <View style={styles.request}><View style={styles.requestIcon}><Ionicons name="water" size={20} color="#1D4ED8" /></View><View style={styles.requestCopy}><Text style={styles.eyebrow}>الطلب قيد التحليل</Text><Text style={styles.problem}>{request.problem}</Text><Text style={styles.customer}>العميل: {request.customerName} • {request.distanceKm} كم</Text></View></View>
+        <PalestinianVoiceOfferCard request={request} onResult={({ suggestedMessage, suggestedPrice }) => setResult({ suggestedMessage, suggestedPrice })} />
         {error ? <View style={styles.error}><Ionicons name="alert-circle" size={24} color="#BE123C" /><Text style={styles.errorTitle}>تعذر تشغيل المساعد الآن</Text><Text style={styles.errorText}>يمكنك متابعة إنشاء العرض يدوياً.</Text></View> : !result ? <View style={styles.loading}><View style={styles.spark}><Ionicons name="sparkles" size={28} color="#C59B27" /></View><Text style={styles.loadingTitle}>نحلّل المشكلة...</Text><Text style={styles.loadingText}>نراجع الوصف ونقدّر القطع والمدة والسعر العادل.</Text></View> : <>
           <View style={styles.analysis}><View style={styles.analysisHead}><Ionicons name="sparkles" size={18} color="#8C6D14" /><Text style={styles.analysisTitle}>تحليل جبر الذكي</Text><View style={styles.ready}><Text style={styles.readyText}>جاهز</Text></View></View><Detail icon="search" label="التشخيص المحتمل" value="تلف وصلة صرف السيفون أو تشقق الأنبوب البلاستيكي" /><Detail icon="cube" label="القطع المقترحة" value="وصلة سيفون + أنبوب صرف قصير + مادة عزل" /><Detail icon="time" label="المدة المتوقعة" value="30–40 دقيقة" last /></View>
           <View style={styles.priceCard}><View><Text style={styles.priceLabel}>السعر العادل في المنطقة</Text><Text style={styles.priceRange}>{request.fairPrice}</Text></View><View style={styles.suggested}><Text style={styles.suggestedLabel}>عرضك المقترح</Text><Text style={styles.suggestedValue}>{result.suggestedPrice} ₪</Text></View></View>
