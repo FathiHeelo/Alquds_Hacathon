@@ -11,7 +11,25 @@ export const customerAiClient: CustomerAiClient = {
   async structureRequest(request) {
     available();
     if (request.voice) return aiAdapter.structureVoiceRequest({ transcript: request.voice.transcript });
-    return { description: request.description, category: request.category, urgency: request.urgency };
+    const technicianType =
+    request.category === "plumbing"
+        ? "plumber"
+        : request.category === "electrical"
+            ? "electrician"
+            : request.category === "ac"
+                ? "ac_technician"
+                : request.category === "appliances"
+                    ? "appliance_technician"
+                    : "general_technician";
+
+return {
+    normalizedDescription: request.description,
+    category: request.category,
+    urgency: request.urgency,
+    technicianType,
+    extractedKeywords: [],
+    requiresConfirmation: false,
+};
   },
   async diagnose(request) {
     available();

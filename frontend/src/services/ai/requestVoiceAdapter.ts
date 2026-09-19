@@ -21,8 +21,12 @@ export async function suggestVoiceRequest(): Promise<VoiceSuggestion> {
       aiAdapter.structureVoiceRequest({ transcript: demoVoiceRequest.transcript }),
       new Promise<never>((_, reject) => { timeout = setTimeout(() => reject(new Error("Voice timeout")), 5000); })
     ]);
-    if (!result.description?.trim() || !Object.values(Urgency).includes(result.urgency)) throw new Error("Invalid voice result");
-    return { description: result.description,
+    if (!result.normalizedDescription?.trim() || !Object.values(Urgency).includes(result.urgency)) {
+    throw new Error("Invalid voice result");
+}
+
+return {
+    description: result.normalizedDescription,
       category: serviceCategories.find(({ id }) => id === result.category)?.id,
       urgency: result.urgency, voice: { transcript: demoVoiceRequest.transcript, source: "ai" } };
   } catch {
