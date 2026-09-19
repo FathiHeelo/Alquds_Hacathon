@@ -1,4 +1,5 @@
 import type { AiService } from "./AiService";
+import { diagnoseProblem as diagnoseProblemWithEngine } from "../engines/diagnosis/diagnosisEngine";
 
 export function createSimulationAiService(): AiService {
   return {
@@ -80,11 +81,8 @@ export function createSimulationAiService(): AiService {
   };
     },
     async diagnoseProblem(input) {
-      return {
-        likelyIssue: input.category === "plumbing" ? "Kitchen sink supply or drain leak" : "General repair issue",
-        confidence: 0.82,
-        urgency: input.description.toLowerCase().includes("water") ? "high" : "medium"
-      };
+  return diagnoseProblemWithEngine(input);
+
     },
     async estimateFairPrice(input) {
       const base = input.category === "plumbing" ? 180 : 120;
