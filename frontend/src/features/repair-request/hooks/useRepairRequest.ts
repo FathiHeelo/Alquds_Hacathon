@@ -18,8 +18,6 @@ export type VoiceDemoState =
   | "ai_analysis"
   | "follow_up";
 
-export const demoFollowUpQuestion =
-  "هل التسريب بزيد لما تستخدم المجلى؟";
 
 export function useRepairRequest(technicianId?: string) {
   const [draft, setDraft] = useState<RepairRequestDraft>(() => ({
@@ -41,20 +39,20 @@ export function useRepairRequest(technicianId?: string) {
   const [suggestion, setSuggestion] = useState<VoiceSuggestion>();
   const [voiceState, setVoiceState] = useState<VoiceDemoState>("idle");
   const [recordingSeconds, setRecordingSeconds] = useState(0);
-  const [voiceAnswer, setVoiceAnswer] = useState<string>();
 
   const locked = useRef(false);
   const locationEdited = useRef(false);
   const recordingTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const processingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
+    useEffect(() => {
     let active = true;
 
     void getCustomerLocation().then((location) => {
       if (active && location && !locationEdited.current) {
         setDraft((value) => ({ ...value, location }));
       }
+    });
 
     return () => {
       active = false;
@@ -119,7 +117,6 @@ export function useRepairRequest(technicianId?: string) {
     setVoiceState("idle");
     setRecordingSeconds(0);
     setSuggestion(undefined);
-    setVoiceAnswer(undefined);
     setError(undefined);
   }
 
@@ -130,7 +127,6 @@ export function useRepairRequest(technicianId?: string) {
 
     clearVoiceTimers();
     setSuggestion(undefined);
-    setVoiceAnswer(undefined);
     setRecordingSeconds(0);
     setVoiceState("recording");
 
@@ -155,29 +151,22 @@ export function useRepairRequest(technicianId?: string) {
         setVoiceState("ai_analysis");
 
         const result = await suggestVoiceRequest();
-        setSuggestion(result);
-        setVoiceState("follow_up");
+
+setDraft((value) => ({
+  ...value,
+  description: result.description,
+  category: result.category ?? value.category,
+  urgency: result.urgency,
+  voice: result.voice,
+}));
+
+setSuggestion(result);
+setVoiceState("transcript_ready");
 
         return result;
       });
     }, 900);
   }
-
-  function answerVoiceFollowUp(answer: string) {
-    if (voiceState !== "follow_up" || !suggestion) return;
-
-    setVoiceAnswer(answer);
-
-    update({
-      description: `${suggestion.description}\n\nمعلومة إضافية من العميل: ${answer}`,
-      category: suggestion.category ?? draft.category,
-      urgency: suggestion.urgency,
-      voice: suggestion.voice,
-    });
-
-    setVoiceState("ai_analysis");
-  }
-
   return {
     draft,
     errors,
@@ -187,8 +176,6 @@ export function useRepairRequest(technicianId?: string) {
     suggestion,
     voiceState,
     recordingSeconds,
-    voiceAnswer,
-    followUpQuestion: demoFollowUpQuestion,
 
     update,
     review,
@@ -202,8 +189,6 @@ export function useRepairRequest(technicianId?: string) {
     startVoiceDemo,
     stopVoiceDemo,
 
-    answerVoiceFollowUp,
-
     applyVoice: () => {
       if (suggestion) {
         update({
@@ -216,9 +201,6 @@ export function useRepairRequest(technicianId?: string) {
 
       setSuggestion(undefined);
     },
-
-    loadVoice: () => run("voice", async () => setSuggestion(await suggestVoiceRequest())),
-
     attachMedia: () =>
       run("media", async () => {
         const media = await pickRequestMedia();
