@@ -12,7 +12,10 @@ const updateSchema = z.object({
   yearsExperience: z.number().int().min(0).max(60).optional(),
   serviceAreas: z.array(z.string().trim().min(1).max(60)).max(30).optional(),
   availability: z.enum(["available", "busy", "offline"]).optional(),
-  bio: z.string().trim().max(1000).optional()
+  bio: z.string().trim().max(1000).optional(),
+  lat: z.number().min(-90).max(90).optional(),
+  lng: z.number().min(-180).max(180).optional(),
+  acceptsUrgentRequests: z.boolean().optional()
 });
 const listQuery = z.object({ specialty: z.string().optional(), area: z.string().optional() });
 

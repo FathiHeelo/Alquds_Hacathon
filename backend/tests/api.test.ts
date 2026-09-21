@@ -101,6 +101,36 @@ describe("S02 repair requests", () => {
   });
 });
 
+describe("AI urgent dispatch", () => {
+  it("expands from verified location data and creates exactly one job for the first successful acceptance", async () => {
+    const urgent = await api().post("/api/v1/repair-requests").set(auth(customer)).send({
+      categoryId: "plumbing",
+      description: "A pressurized water supply connection is leaking heavily",
+      locationSummary: "Old City, Jerusalem",
+      lat: 31.7804,
+      lng: 35.2332,
+      urgency: "high",
+      aiSummary: { diagnosis: { routing: { type: "URGENT_TECHNICIAN" } } }
+    });
+    expect(urgent.status).toBe(201);
+    const started = await api().post(`/api/v1/repair-requests/${urgent.body.id}/urgent-dispatch`).set(auth(customer));
+    expect(started.status).toBe(201);
+    expect(started.body.radiusKm).toBe(3);
+    expect(started.body.eligibleCount).toBeGreaterThanOrEqual(1);
+    expect((await api().post(`/api/v1/repair-requests/${urgent.body.id}/urgent-dispatch/accept`).set(auth(technician2)).send({ price: 180, etaMinutes: 15 })).status).toBe(403);
+
+    const [first, second] = await Promise.all([
+      api().post(`/api/v1/repair-requests/${urgent.body.id}/urgent-dispatch/accept`).set(auth(technician)).send({ price: 180, etaMinutes: 15 }),
+      api().post(`/api/v1/repair-requests/${urgent.body.id}/urgent-dispatch/accept`).set(auth(technician)).send({ price: 180, etaMinutes: 15 })
+    ]);
+    expect([first.status, second.status].sort()).toEqual([201, 409]);
+    const winner = first.status === 201 ? first : second;
+    expect(winner.body.requestId).toBe(urgent.body.id);
+    const state = await api().get(`/api/v1/repair-requests/${urgent.body.id}/urgent-dispatch`).set(auth(customer));
+    expect(state.body.status).toBe("assigned");
+  });
+});
+
 describe("S03 offers & job lifecycle", () => {
   it("creates and lists offers", async () => {
     const offer = await api().post(`/api/v1/repair-requests/${requestId}/offers`).set(auth(technician)).send({ price: 120, message: "I can come today", etaMinutes: 45 });

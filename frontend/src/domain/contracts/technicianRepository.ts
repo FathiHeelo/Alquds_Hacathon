@@ -6,4 +6,5 @@ export interface TechnicianRepository {
   getById(id: string): Promise<Technician | null>;
   getMine(): Promise<Technician | null>;
   setAvailability(availability: "available" | "busy" | "offline"): Promise<Technician>;
+  setUrgentAvailability(enabled: boolean, location?: GeoPoint): Promise<Technician>;
 }

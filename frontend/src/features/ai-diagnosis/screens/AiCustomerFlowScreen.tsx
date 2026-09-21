@@ -9,6 +9,8 @@ import { aiStyles, Detail, DiagnosisCard, PriceCard } from "../components/AiResu
 import { useAiCustomerFlow } from "../hooks/useAiCustomerFlow";
 import { RequestNotFoundError } from "../services/loadCustomerAiFlow";
 import { presentMatchingReason } from "../../../services/ai/aiPresentation";
+import { FollowUpQuestionsCard } from "../components/FollowUpQuestionsCard";
+import { RoutingDecisionCard } from "../components/RoutingDecisionCard";
 
 export function AiCustomerFlowScreen({ route, navigation }: NativeStackScreenProps<CustomerStackParamList, "CustomerAiEntry">) {
   const flow = useAiCustomerFlow(route.params.requestId);
@@ -32,13 +34,17 @@ export function AiCustomerFlowScreen({ route, navigation }: NativeStackScreenPro
         <View style={aiStyles.section}>{flow.result.diagnosis
           ? <DiagnosisCard result={flow.result.diagnosis} request={flow.request} />
           : <EmptyState message="التشخيص غير متاح حالياً. يمكنك متابعة طلبك دون تشخيص." />}</View>
+        {flow.result.diagnosis?.followUpQuestions.length ? <View style={aiStyles.section}><FollowUpQuestionsCard questions={flow.result.diagnosis.followUpQuestions} busy={flow.loading} onSubmit={(answers) => void flow.refine(answers)} /></View> : null}
+        {!flow.result.awaitingAnswers ? <>
+        {flow.result.diagnosis ? <View style={aiStyles.section}><RoutingDecisionCard diagnosis={flow.result.diagnosis} requestId={route.params.requestId} onReturn={() => navigation.popTo("CustomerTabs")} /></View> : null}
+        {flow.result.diagnosis && ["NORMAL_TECHNICIAN", "URGENT_TECHNICIAN"].includes(flow.result.diagnosis.routing.type) ? <>
         <View style={aiStyles.section}>{flow.result.price
           ? <PriceCard result={flow.result.price} />
           : <EmptyState message="تقدير السعر غير متاح حالياً." />}</View>
         {flow.result.risk ? <View style={aiStyles.section}>
           <Detail label="فحص الثقة" value={flow.result.risk.signals.length ? `رصد جابر ${flow.result.risk.signals.length} إشارة للمراجعة البشرية دون اتخاذ إجراء تلقائي.` : "لم يرصد جابر إشارات تستدعي المراجعة."} />
         </View> : null}
-        <View style={aiStyles.section}>
+        {flow.result.diagnosis.routing.type === "NORMAL_TECHNICIAN" ? <View style={aiStyles.section}>
           <LocalizedText style={[aiStyles.text, aiStyles.title]}>{flow.result.unavailable.includes("matching") ? "الفنيون في فئة طلبك" : "الفنيون المقترحون"}</LocalizedText>
           {flow.result.unavailable.includes("technicians") ? <ErrorState message="تعذر تحميل الفنيين." onRetry={() => void flow.retry()} /> :
             !flow.result.recommendations.length ? <EmptyState message="لا توجد ترشيحات حالياً. يمكنك المتابعة للعروض أو العودة للخريطة." /> : null}
@@ -49,9 +55,11 @@ export function AiCustomerFlowScreen({ route, navigation }: NativeStackScreenPro
               {match.reasons.map((reason, index) => <LocalizedText key={`${index}-${reason}`} style={[aiStyles.text, aiStyles.muted]}>{presentMatchingReason(reason)}</LocalizedText>)}
             </View> : null}
           </TechnicianPreview>)}
-        </View>
+        </View> : null}
+        </> : null}
+        </> : null}
       </> : null}
-      <View style={aiStyles.section}><Button onPress={() => continueToOffers()}>{flow.loading ? "متابعة بالطلب دون انتظار" : "الانتقال للعروض"}</Button></View>
+      {!flow.result?.awaitingAnswers && flow.result?.diagnosis?.routing.type === "NORMAL_TECHNICIAN" ? <View style={aiStyles.section}><Button onPress={() => continueToOffers()}>{flow.loading ? "متابعة بالطلب دون انتظار" : "الانتقال للعروض"}</Button></View> : null}
     </> : null}
     <Button variant="outlined" onPress={() => navigation.popTo("CustomerTabs")}>العودة للخريطة</Button>
   </ScreenContainer>;

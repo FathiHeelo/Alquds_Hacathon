@@ -20,6 +20,7 @@ export interface Technician {
   isAvailable: boolean;
   isVerified: boolean;
   isPro: boolean;
+  acceptsUrgentRequests?: boolean;
   location?: GeoPoint;
   ratingCount?: number;
   yearsExperience?: number;

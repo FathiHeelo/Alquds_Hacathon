@@ -38,4 +38,12 @@ export class DemoRepairRequestRepository implements RepairRequestRepository {
   async listForTechnician() {
     return technicianRequests;
   }
+
+  async updateAiAssessment(id: string, diagnosis: NonNullable<RepairRequest["aiSummary"]>["diagnosis"]): Promise<RepairRequest> {
+    const current = this.requests.get(id);
+    if (!current || !diagnosis) throw new AppError("VALIDATION_ERROR", "تعذر تحديث تشخيص الطلب.");
+    const updated: RepairRequest = { ...current, category: diagnosis.category, urgency: diagnosis.urgency, aiSummary: { diagnosis } };
+    this.requests.set(id, copy(updated));
+    return copy(updated);
+  }
 }

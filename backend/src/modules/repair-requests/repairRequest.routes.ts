@@ -5,6 +5,7 @@ import { guard } from "../../middleware/auth";
 import { validate, validated } from "../../middleware/validate";
 import { offersRouter } from "../offers/offers.routes";
 import { repairRequestService, type RequestInput } from "./repairRequest.service";
+import { urgentDispatchService } from "../dispatch/urgentDispatch.service";
 
 export const repairRequestsRouter = Router();
 export const categoriesRouter = Router();
@@ -24,6 +25,7 @@ const createSchema = z.object({
   media: z.array(mediaSchema).max(10).optional()
 });
 const updateSchema = createSchema.partial();
+const urgentAcceptSchema = z.object({ price: z.number().positive().max(100000), etaMinutes: z.number().int().positive().max(1440).optional() });
 
 categoriesRouter.get("/", guard(), async (_request, response) => {
   response.json(await repairRequestService.categories());
@@ -51,6 +53,22 @@ repairRequestsRouter.patch("/:id", guard("customer"), validate("body", updateSch
 
 repairRequestsRouter.post("/:id/cancel", guard("customer"), async (request, response) => {
   response.json(await repairRequestService.cancel(String(request.params.id), request.auth!.id));
+});
+
+repairRequestsRouter.post("/:id/urgent-dispatch", guard("customer"), async (request, response) => {
+  response.status(201).json(await urgentDispatchService.start(String(request.params.id), request.auth!.id));
+});
+
+repairRequestsRouter.get("/:id/urgent-dispatch", guard(), async (request, response) => {
+  response.json(await urgentDispatchService.get(String(request.params.id), request.auth!));
+});
+
+repairRequestsRouter.post("/:id/urgent-dispatch/expand", guard("customer"), async (request, response) => {
+  response.json(await urgentDispatchService.expand(String(request.params.id), request.auth!.id));
+});
+
+repairRequestsRouter.post("/:id/urgent-dispatch/accept", guard("technician"), validate("body", urgentAcceptSchema), async (request, response) => {
+  response.status(201).json(await urgentDispatchService.accept(String(request.params.id), request.auth!.id, validated(request, "body")));
 });
 
 // /repair-requests/:id/offers (create + list)

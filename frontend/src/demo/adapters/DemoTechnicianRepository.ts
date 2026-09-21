@@ -32,4 +32,8 @@ export class DemoTechnicianRepository implements TechnicianRepository {
   async setAvailability(availability: "available" | "busy" | "offline"): Promise<Technician> {
     return { ...demoTechnicians[0], isAvailable: availability === "available" };
   }
+
+  async setUrgentAvailability(enabled: boolean, location?: GeoPoint): Promise<Technician> {
+    return { ...demoTechnicians[0], acceptsUrgentRequests: enabled, location: location ?? demoTechnicians[0]?.location };
+  }
 }

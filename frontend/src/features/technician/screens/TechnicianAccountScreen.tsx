@@ -16,6 +16,7 @@ import { appConfig } from "../../../app/config/appConfig";
 import { technicianRepository } from "../../../services/repositories";
 import type { Technician } from "../../../domain/models/technician";
 import { subscriptionApi } from "../../../services/api/subscriptionApi";
+import { getCustomerLocation } from "../../../services/location/locationService";
 
 const menu = [
   { section: "earnings" as const, icon: "wallet-outline" as const, title: "الأرباح والمحفظة", subtitle: "الدخل، الدفعات والفواتير", color: "#047857", background: "#D1FAE5" },
@@ -31,12 +32,13 @@ export function TechnicianAccountScreen() {
   const [available, setAvailable] = useState(appConfig.demoMode);
   const [technician, setTechnician] = useState<Technician | undefined>(() => appConfig.demoMode ? demoTechnicians[0] : undefined);
   const [isPro, setIsPro] = useState(false);
+  const [acceptsUrgent, setAcceptsUrgent] = useState(false);
   const [loading, setLoading] = useState(!appConfig.demoMode);
   const [loadFailed, setLoadFailed] = useState(false);
   useEffect(() => {
     if (appConfig.demoMode) { setIsPro(demoTechnicians[0]?.isPro ?? false); return; }
     let active = true;
-    void Promise.all([technicianRepository.getMine(), subscriptionApi.getMine().catch(() => undefined)]).then(([profile, subscription]) => { if (active) { setTechnician(profile ?? undefined); setAvailable(profile?.isAvailable ?? false); setIsPro(subscription?.isPro ?? profile?.isPro ?? false); } }).catch(() => { if (active) setLoadFailed(true); }).finally(() => { if (active) setLoading(false); });
+    void Promise.all([technicianRepository.getMine(), subscriptionApi.getMine().catch(() => undefined)]).then(([profile, subscription]) => { if (active) { setTechnician(profile ?? undefined); setAvailable(profile?.isAvailable ?? false); setAcceptsUrgent(profile?.acceptsUrgentRequests ?? false); setIsPro(subscription?.isPro ?? profile?.isPro ?? false); } }).catch(() => { if (active) setLoadFailed(true); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
   return <SafeAreaView edges={["top"]} style={styles.safe}>
@@ -44,6 +46,7 @@ export function TechnicianAccountScreen() {
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.profile}><View style={styles.profileGlow} />{technician ? <TechnicianPortrait technician={technician} round size={68} /> : <View style={{ alignItems: "center", backgroundColor: colors.secondary, borderRadius: 34, height: 68, justifyContent: "center", width: 68 }}><Ionicons name="person" size={30} color={colors.primary} /></View>}<View style={styles.profileCopy}><View style={styles.nameRow}><LocalizedText style={styles.name}>{technician?.name ?? (loading ? "جارٍ تحميل الحساب" : loadFailed ? "تعذر تحميل حساب الفني" : "حساب الفني")}</LocalizedText>{isPro ? <LocalizedText style={styles.pro}>Pro</LocalizedText> : null}</View><LocalizedText style={styles.specialty}>{technician?.specialty ?? ""}</LocalizedText>{technician?.isVerified ? <View style={styles.verified}><Ionicons name="shield-checkmark" size={12} color="#6EE7B7" /><LocalizedText style={styles.verifiedText}>هوية موثقة</LocalizedText></View> : null}</View><Pressable disabled={!technician} onPress={() => navigation.navigate("TechnicianProfile")} style={[styles.edit, !technician && { opacity: 0.4 }]}><Ionicons name="create-outline" size={17} color="white" /></Pressable></View>
       <View style={styles.availability}><View style={styles.availabilityCopy}><LocalizedText style={styles.availabilityTitle}>استقبال طلبات جديدة</LocalizedText><LocalizedText style={styles.availabilityText}>{loading ? "جارٍ تحميل حالة التوفر" : loadFailed ? "تعذر تحميل الحالة" : available ? "متاح لاستقبال الطلبات" : "غير متاح لاستقبال الطلبات"}</LocalizedText></View><Switch disabled={!technician} value={available} onValueChange={(value) => { setAvailable(value); if (!appConfig.demoMode) void technicianRepository.setAvailability(value ? "available" : "offline").then(setTechnician).catch(() => setAvailable(!value)); }} trackColor={{ false: "#CBD5E1", true: "#A7E6CD" }} thumbColor={available ? "#10B981" : "#94A3B8"} /></View>
+      <View style={[styles.availability, { backgroundColor: "#FFF7ED", borderColor: "#FDBA74" }]}><View style={styles.availabilityCopy}><LocalizedText style={styles.availabilityTitle}>استقبال التوجيهات العاجلة</LocalizedText><LocalizedText style={styles.availabilityText}>يتطلب حساباً موثقاً، حالة متاحة، وموقعاً صالحاً.</LocalizedText></View><Switch disabled={!technician || !available || !technician?.isVerified} value={acceptsUrgent} onValueChange={(value) => { setAcceptsUrgent(value); void (async () => { const location = value ? await getCustomerLocation() : undefined; if (value && !location) throw new Error("location unavailable"); const updated = await technicianRepository.setUrgentAvailability(value, location); setTechnician(updated); })().catch(() => setAcceptsUrgent(!value)); }} trackColor={{ false: "#CBD5E1", true: "#FDBA74" }} thumbColor={acceptsUrgent ? "#C2410C" : "#94A3B8"} /></View>
       <View style={styles.stats}><Stat value={technician?.ratingCount ? technician.rating.toFixed(1) : "—"} label="التقييم" icon="star" /><Stat value={technician ? String(technician.completedJobs) : "—"} label="عمل مكتمل" icon="checkmark-circle" /><Stat value={isPro ? "Pro" : "—"} label="الاشتراك" icon="star" /></View>
       <Pressable onPress={() => navigation.navigate("TechnicianPro")} style={styles.proCard}><View style={styles.proStar}><Ionicons name="star" size={22} color="#8C6D14" /></View><View style={styles.proCopy}><LocalizedText style={styles.proTitle}>{isPro ? "عَمِّرها Pro مفعّل" : "تعرّف على عَمِّرها Pro"}</LocalizedText><LocalizedText style={styles.proSubtitle}>حالة اشتراكك ومزاياه حسب حسابك</LocalizedText></View><Ionicons name="chevron-back" size={18} color="#8C6D14" /></Pressable>
       <LocalizedText style={styles.sectionTitle}>إدارة الحساب</LocalizedText>

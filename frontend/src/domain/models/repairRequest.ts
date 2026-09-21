@@ -1,6 +1,7 @@
 import type { Urgency } from "../enums/status";
 import type { CustomerLocation, GeoPoint } from "./location";
 import type { ServiceCategoryId } from "./technician";
+import type { DiagnosisResult } from "@ammerha/ai";
 
 export const PreferredTime = { Asap: "asap", Today: "today", Tomorrow: "tomorrow" } as const;
 export type PreferredTime = (typeof PreferredTime)[keyof typeof PreferredTime];
@@ -28,6 +29,7 @@ export interface RepairRequestDraft {
   location: RepairRequestLocation;
   media: RequestMedia[];
   voice?: RequestVoice;
+  aiSummary?: { diagnosis?: DiagnosisResult };
   createdAt: string;
 }
 

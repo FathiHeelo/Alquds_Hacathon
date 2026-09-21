@@ -25,13 +25,13 @@ async function main(): Promise<void> {
   );
 
   assert(
-    plumbing.confidenceLevel === "high",
-    "Plumbing case should have high confidence.",
+    plumbing.confidenceLevel === "medium",
+    "Preliminary plumbing diagnosis should remain medium confidence until the answers are provided.",
   );
 
   assert(
-    plumbing.needsConfirmation === false,
-    "Known plumbing case should not require confirmation.",
+    plumbing.needsConfirmation === true,
+    "Known plumbing case should request the missing high-value details.",
   );
 
   assert(
@@ -57,8 +57,8 @@ async function main(): Promise<void> {
   );
 
   assert(
-    electrical.confidenceLevel === "high",
-    "Electrical case should have high confidence.",
+    electrical.confidenceLevel === "medium",
+    "Preliminary electrical diagnosis should remain medium confidence until the answers are provided.",
   );
 
   // 3. AC not cooling
@@ -79,8 +79,8 @@ async function main(): Promise<void> {
   );
 
   assert(
-    ac.confidenceLevel === "high",
-    "AC case should have high confidence.",
+    ac.confidenceLevel === "medium",
+    "Preliminary AC diagnosis should remain medium confidence until the answer is provided.",
   );
 
   // 4. Washing-machine leak
@@ -101,8 +101,8 @@ async function main(): Promise<void> {
   );
 
   assert(
-    appliance.confidenceLevel === "high",
-    "Washing-machine case should have high confidence.",
+    appliance.confidenceLevel === "medium",
+    "Preliminary washing-machine diagnosis should remain medium confidence until the answer is provided.",
   );
 
   // 5. Unknown / insufficient information

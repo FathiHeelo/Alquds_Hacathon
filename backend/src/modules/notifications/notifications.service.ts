@@ -14,7 +14,9 @@ export const NotificationType = {
   Completed: "completed",
   RatingRequest: "rating_request",
   Reward: "reward",
-  JobCancelled: "job_cancelled"
+  JobCancelled: "job_cancelled",
+  UrgentDispatch: "urgent_dispatch",
+  UrgentDispatchAccepted: "urgent_dispatch_accepted"
 } as const;
 
 export const notify = (userId: string, type: string, title: string, body?: string, data?: Prisma.InputJsonValue, db?: Db) =>

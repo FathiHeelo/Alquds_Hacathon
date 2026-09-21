@@ -12,4 +12,8 @@ export class ApiRepairRequestRepository implements RepairRequestRepository {
   async getRequest(id: string) { try { return mapRepairRequest(await apiClient.request<RepairRequestDto>(`/repair-requests/${id}`, undefined, "customer")); } catch (error) { if (error instanceof AppError && error.code === "NOT_FOUND") return undefined; throw error; } }
   async listMine() { return (await apiClient.request<RepairRequestDto[]>("/repair-requests", undefined, "customer")).map(mapRepairRequest); }
   async listForTechnician() { return (await apiClient.request<RepairRequestDto[]>("/repair-requests/feed", undefined, "technician")).map(mapRepairRequestForTechnician); }
+  async updateAiAssessment(id: string, diagnosis: NonNullable<import("../../../domain/models/repairRequest").RepairRequest["aiSummary"]>["diagnosis"]) {
+    const dto = await apiClient.request<RepairRequestDto>(`/repair-requests/${id}`, { method: "PATCH", body: JSON.stringify({ categoryId: toBackendCategory(diagnosis?.category), urgency: diagnosis?.urgency, aiSummary: { diagnosis } }) }, "customer");
+    return mapRepairRequest(dto);
+  }
 }

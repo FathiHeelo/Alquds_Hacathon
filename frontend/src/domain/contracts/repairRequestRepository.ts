@@ -8,4 +8,5 @@ export interface RepairRequestRepository {
   getRequest(id: string): Promise<RepairRequest | undefined>;
   listMine(): Promise<readonly RepairRequest[]>;
   listForTechnician(): Promise<readonly TechnicianRequestItem[]>;
+  updateAiAssessment(id: string, diagnosis: NonNullable<RepairRequest["aiSummary"]>["diagnosis"]): Promise<RepairRequest>;
 }

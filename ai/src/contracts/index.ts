@@ -9,8 +9,14 @@ export type {
 } from "./ai.types";
 
 export type {
+  AssistanceCategory,
+  AssistanceRouteType,
+  DiagnosisAnswer,
   DiagnosisInput,
   DiagnosisResult,
+  FollowUpOption,
+  FollowUpQuestion,
+  RoutingRecommendation,
 } from "./diagnosis.types";
 
 export type {

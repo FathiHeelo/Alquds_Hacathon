@@ -103,6 +103,13 @@ enum RiskLevel {
   high
 }
 
+enum UrgentDispatchStatus {
+  searching
+  assigned
+  cancelled
+  expired
+}
+
 enum AdminActionType {
   review
   warn
@@ -146,6 +153,9 @@ model TechnicianProfile {
   ratingAvg          Float              @default(0)
   ratingCount        Int                @default(0)
   bio                String?            @db.Text
+  lat                 Float?
+  lng                 Float?
+  acceptsUrgentRequests Boolean          @default(false)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
@@ -183,9 +193,25 @@ model RepairRequest {
   media    RepairRequestMedia[]
   offers   Offer[]
   job      Job?
+  urgentDispatch UrgentDispatch?
 
   @@index([status, categoryId])
   @@index([customerId])
+}
+
+model UrgentDispatch {
+  id                    String               @id @default(cuid())
+  requestId             String               @unique
+  radiusKm              Int                  @default(3)
+  eligibleTechnicianIds Json
+  acceptedTechnicianId  String?
+  status                UrgentDispatchStatus @default(searching)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  request RepairRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([status])
 }
 
 model RepairRequestMedia {

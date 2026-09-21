@@ -7,7 +7,6 @@ import { technicianRepository } from "../../../services/repositories";
 import { aiStyles, PriceCard } from "../../ai-diagnosis/components/AiResults";
 import { useOffers } from "../hooks/useOffers";
 import { OfferCard } from "../components/OfferCard";
-import { comparePrice } from "../services/priceComparison";
 import { useEffect, useState } from "react";
 import type { Technician } from "../../../domain/models/technician";
 import type { RepairRequest } from "../../../domain/models/repairRequest";

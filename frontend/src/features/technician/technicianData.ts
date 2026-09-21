@@ -12,6 +12,7 @@ export interface TechnicianRequestItem {
   distanceKm?: number;
   fairPrice: string;
   urgency: "عاجل" | "اليوم" | "عادي";
+  routingType?: import("@ammerha/ai").AssistanceRouteType;
   createdAt: string;
   latitude?: number;
   longitude?: number;

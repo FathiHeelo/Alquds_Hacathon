@@ -8,7 +8,8 @@ const schema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   JWT_SECRET: z.string().min(1).default("change-me"),
   JWT_EXPIRES_IN: z.string().default("7d"),
-  COMMISSION_RATE: z.coerce.number().min(0).max(1).default(0.1)
+  COMMISSION_RATE: z.coerce.number().min(0).max(1).default(0.1),
+  URGENT_DISPATCH_RADII_KM: z.string().default("3,6,9")
 });
 
 const parsed = schema.safeParse(process.env);
@@ -24,5 +25,6 @@ export const env = {
   databaseUrl: parsed.data.DATABASE_URL,
   jwtSecret: parsed.data.JWT_SECRET,
   jwtExpiresIn: parsed.data.JWT_EXPIRES_IN,
-  commissionRate: parsed.data.COMMISSION_RATE
+  commissionRate: parsed.data.COMMISSION_RATE,
+  urgentDispatchRadiiKm: [...new Set(parsed.data.URGENT_DISPATCH_RADII_KM.split(",").map(Number).filter((value) => Number.isFinite(value) && value > 0))].sort((a, b) => a - b)
 } as const;
