@@ -15,7 +15,7 @@ export function TechnicianMapMarker({ isSelected, technician }: { isSelected: bo
       <View style={[styles.online, !technician.isAvailable && styles.offline]} />
       <View style={[styles.trade, { backgroundColor: technician.isPro ? colors.secondary : category === "electrical" ? "#F59E0B" : "#0EA5C6" }]}><Ionicons name={icon} color={technician.isPro ? colors.primary : "white"} size={10} /></View>
     </View>
-    <LocalizedText numberOfLines={1} style={styles.label}>{technician.name.split(" ")[0]}{technician.isPro ? " (Pro)" : ""} · {technician.distanceKm.toFixed(1)} كم</LocalizedText>
+    <LocalizedText numberOfLines={1} style={styles.label}>{technician.name.split(" ")[0]}{technician.isPro ? " (Pro)" : ""}{technician.distanceKm != null ? ` · ${technician.distanceKm.toFixed(1)} كم` : ""}</LocalizedText>
   </View>;
 }
 const styles = createAdaptiveStyleSheet({

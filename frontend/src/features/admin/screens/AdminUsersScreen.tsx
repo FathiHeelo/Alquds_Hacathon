@@ -1,23 +1,26 @@
-import { LocalizedTextInput } from "../../../shared/i18n/LocalizedTextInput";
 import { LocalizedText } from "../../../shared/i18n/LocalizedText";
 import { createAdaptiveStyleSheet } from "../../../shared/theme/adaptiveStyles";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useMemo, useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useEffect, useState } from "react";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { AdminStackParamList } from "../../../app/navigation/navigation.types";
 import { colors, shadows, typography } from "../../../shared/theme";
-import { platformUsers } from "../adminData";
 import { AdminHeader } from "../components/AdminHeader";
+import { adminApi } from "../../../services/api/adminApi";
+import { appConfig } from "../../../app/config/appConfig";
 
 export function AdminUsersScreen({ navigation }: NativeStackScreenProps<AdminStackParamList, "AdminUsers">) {
-  const [query, setQuery] = useState(""); const [filter, setFilter] = useState<"all" | "technician" | "customer">("all");
-  const users = useMemo(() => platformUsers.filter((user) => (!query || `${user.name} ${user.role}`.includes(query)) && (filter === "all" || (filter === "technician" ? user.role.includes("فني") : user.role === "عميل"))), [query, filter]);
-  return <SafeAreaView edges={["top", "bottom"]} style={styles.safe}><AdminHeader title="المستخدمون والفنيون" subtitle="إدارة الحسابات وحالة النشاط" onBack={() => navigation.goBack()} /><View style={styles.search}><Ionicons name="search" size={17} color="#94A3B8" /><LocalizedTextInput value={query} onChangeText={setQuery} placeholder="ابحث بالاسم أو نوع الحساب" placeholderTextColor="#94A3B8" style={styles.input} /></View><View style={styles.filters}>{(["all", "technician", "customer"] as const).map((item) => <Pressable key={item} onPress={() => setFilter(item)} style={[styles.filter, filter === item && styles.activeFilter]}><LocalizedText style={[styles.filterText, filter === item && styles.activeText]}>{item === "all" ? "الكل" : item === "technician" ? "الفنيون" : "العملاء"}</LocalizedText></Pressable>)}</View><ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-    <View style={styles.metrics}><Metric label="كل المستخدمين" value="1,284" /><Metric label="فنيون موثقون" value="312" /><Metric label="نشطون اليوم" value="486" /></View>
-    {users.map((user) => <Pressable key={user.id} onPress={() => Alert.alert(user.name, `${user.role}\n${user.status}\n${user.jobs} طلب/عمل مسجل`)} style={({ pressed }) => [styles.user, pressed && styles.pressed]}><View style={styles.avatar}><LocalizedText style={styles.avatarText}>{user.name.charAt(0)}</LocalizedText><View style={[styles.statusDot, user.tone === "danger" ? styles.danger : user.tone === "warning" ? styles.warning : styles.success]} /></View><View style={styles.copy}><LocalizedText style={styles.name}>{user.name}</LocalizedText><LocalizedText style={styles.role}>{user.role} • {user.jobs} عملية</LocalizedText></View><View style={[styles.badge, user.tone === "danger" ? styles.dangerBg : user.tone === "warning" ? styles.warningBg : styles.successBg]}><LocalizedText style={[styles.badgeText, user.tone === "danger" ? styles.dangerText : user.tone === "warning" ? styles.warningText : styles.successText]}>{user.status}</LocalizedText></View><Ionicons name="chevron-back" size={15} color="#94A3B8" /></Pressable>)}
+  const [summary, setSummary] = useState<Record<string, unknown>>();
+  const [failed, setFailed] = useState(false);
+  useEffect(() => { if (appConfig.demoMode) return; let active = true; void adminApi.summary().then((value) => { if (active) setSummary(value); }).catch(() => { if (active) setFailed(true); }); return () => { active = false; }; }, []);
+  const value = (key: string) => typeof summary?.[key] === "number" ? String(summary[key]) : "—";
+  return <SafeAreaView edges={["top", "bottom"]} style={styles.safe}><AdminHeader title="المستخدمون والفنيون" subtitle="إحصاءات الحسابات المتاحة عبر الخدمة" onBack={() => navigation.goBack()} /><ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <View style={styles.metrics}><Metric label="كل المستخدمين" value={value("users")} /><Metric label="الفنيون" value={value("technicians")} /><Metric label="مشتركو Pro" value={value("proSubscribers")} /></View>
+    <View style={styles.metrics}><Metric label="أعمال مكتملة" value={value("completedJobs")} /></View>
+    <View style={styles.user}><View style={styles.copy}><LocalizedText style={styles.name}>{failed ? "تعذر تحميل الإحصاءات" : appConfig.demoMode ? "بيانات الحسابات غير متاحة في وضع العرض" : "قائمة الحسابات التفصيلية غير متاحة عبر الخدمة"}</LocalizedText><LocalizedText style={styles.role}>تعرض لوحة الإدارة حالياً أعداداً إجمالية فقط؛ لا توجد واجهة API لعرض المستخدمين فردياً.</LocalizedText></View></View>
   </ScrollView></SafeAreaView>;
 }
 function Metric({ label, value }: { label: string; value: string }) { return <View style={styles.metric}><LocalizedText style={styles.metricLabel}>{label}</LocalizedText><LocalizedText style={styles.metricValue}>{value}</LocalizedText></View>; }

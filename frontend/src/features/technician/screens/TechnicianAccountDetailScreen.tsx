@@ -2,25 +2,53 @@ import { LocalizedText } from "../../../shared/i18n/LocalizedText";
 import { createAdaptiveStyleSheet } from "../../../shared/theme/adaptiveStyles";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { TechnicianStackParamList } from "../../../app/navigation/navigation.types";
 import { colors, shadows, typography } from "../../../shared/theme";
+import { appConfig } from "../../../app/config/appConfig";
+import { technicianRepository } from "../../../services/repositories";
+import { apiClient } from "../../../services/api/apiClient";
+import type { Technician } from "../../../domain/models/technician";
 
 type Props = NativeStackScreenProps<TechnicianStackParamList, "TechnicianAccountDetail">;
 type Section = Props["route"]["params"]["section"];
 const titles: Record<Section, string> = { earnings: "الأرباح والمحفظة", services: "الخدمات ومناطق العمل", verification: "التوثيق والوثائق", settings: "الإعدادات والخصوصية", support: "الدعم ومركز المساعدة" };
 
 export function TechnicianAccountDetailScreen({ navigation, route }: Props) {
+  const [technician, setTechnician] = useState<Technician>();
+  const [earnings, setEarnings] = useState<{ netEarnings: number; gross: number; platformFees: number; completedJobs: number }>();
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    if (appConfig.demoMode) return;
+    let active = true;
+    void technicianRepository.getMine().then((value) => { if (active) setTechnician(value ?? undefined); }).catch(() => { if (active) setFailed(true); });
+    void apiClient.request<{ netEarnings: number; gross: number; platformFees: number; completedJobs: number }>("/reports/earnings/me", undefined, "technician").then((value) => { if (active) setEarnings(value); }).catch(() => { if (active) setEarnings(undefined); });
+    return () => { active = false; };
+  }, []);
   return <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
     <View style={styles.header}><Pressable onPress={() => navigation.goBack()} style={styles.back}><Ionicons name="arrow-forward" size={18} color="#475569" /></Pressable><LocalizedText style={styles.headerTitle}>{titles[route.params.section]}</LocalizedText><View style={styles.headerSpace} /></View>
-    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>{renderSection(route.params.section)}</ScrollView>
+    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>{renderSection(route.params.section, technician, earnings, failed)}</ScrollView>
   </SafeAreaView>;
 }
 
-function renderSection(section: Section) {
+function renderSection(section: Section, technician?: Technician, earnings?: { netEarnings: number; gross: number; platformFees: number; completedJobs: number }, failed = false) {
+  const money = (value?: number) => value == null ? "—" : `${value.toLocaleString()} ₪`;
+  if (!appConfig.demoMode && section === "earnings") return <>
+    <View style={styles.wallet}><LocalizedText style={styles.walletLabel}>صافي الأرباح المسجلة</LocalizedText><LocalizedText style={styles.walletValue}>{money(earnings?.netEarnings)}</LocalizedText><LocalizedText style={styles.walletHint}>{failed && !earnings ? "تعذر تحميل البيانات" : "إجمالي صافي الأرباح من الأعمال ذات السجلات المالية"}</LocalizedText></View>
+    <View style={styles.metrics}><Metric label="قيمة الأعمال" value={money(earnings?.gross)} /><Metric label="عمولات المنصة" value={money(earnings?.platformFees)} /><Metric label="أعمال مكتملة" value={earnings ? String(earnings.completedJobs) : "—"} /></View>
+    <View style={styles.card}><LocalizedText style={styles.itemSubtitle}>لا توفر الخدمة حالياً الرصيد المتاح للسحب أو سجل الحركات.</LocalizedText></View>
+  </>;
+  if (!appConfig.demoMode && section === "services") return <>
+    <View style={styles.info}><Ionicons name="construct" size={18} color="#1D4ED8" /><LocalizedText style={styles.infoText}>هذه بيانات الملف المهني المسجلة في حسابك.</LocalizedText></View>
+    <View style={styles.card}><SimpleRow icon="construct" title="التخصص" value={technician?.specialty ?? (failed ? "تعذر التحميل" : "—")} /><SimpleRow icon="time" title="سنوات الخبرة" value={technician?.yearsExperience == null ? "—" : String(technician.yearsExperience)} last /></View>
+    <LocalizedText style={styles.sectionTitle}>مناطق العمل</LocalizedText><View style={styles.card}>{technician?.serviceAreas?.length ? technician.serviceAreas.map((area, index) => <SimpleRow key={area} icon="map" title={area} value="مسجل" last={index === technician.serviceAreas!.length - 1} />) : <View style={styles.item}><LocalizedText style={styles.itemSubtitle}>لا توجد مناطق عمل مسجلة.</LocalizedText></View>}</View>
+  </>;
+  if (!appConfig.demoMode && section === "verification") return <View style={styles.verifiedHero}><Ionicons name={technician?.isVerified ? "shield-checkmark" : "shield-outline"} size={30} color={technician?.isVerified ? "#047857" : "#8C6D14"} /><LocalizedText style={styles.verifiedTitle}>{technician?.isVerified ? "الملف موثق" : failed ? "تعذر تحميل حالة التوثيق" : "الملف غير موثق"}</LocalizedText><LocalizedText style={styles.verifiedText}>لا تتوفر تفاصيل المستندات عبر واجهة الخدمة الحالية.</LocalizedText></View>;
+  if (!appConfig.demoMode && section === "support") return <View style={styles.supportHero}><Ionicons name="headset" size={27} color="#8C6D14" /><LocalizedText style={styles.verifiedTitle}>مركز الدعم</LocalizedText><LocalizedText style={styles.verifiedText}>لا تتوفر واجهة خدمة للدعم الفني حالياً.</LocalizedText></View>;
+  if (!appConfig.demoMode && section === "settings") return <View style={styles.supportHero}><Ionicons name="settings-outline" size={27} color="#8C6D14" /><LocalizedText style={styles.verifiedTitle}>الإعدادات</LocalizedText><LocalizedText style={styles.verifiedText}>لا تتوفر واجهة خدمة لحفظ إعدادات الإشعارات أو الخصوصية حالياً.</LocalizedText></View>;
   if (section === "earnings") return <>
     <View style={styles.wallet}><LocalizedText style={styles.walletLabel}>الرصيد المتاح للسحب</LocalizedText><LocalizedText style={styles.walletValue}>1,240 ₪</LocalizedText><LocalizedText style={styles.walletHint}>آخر تحديث: اليوم 10:30 ص</LocalizedText><Pressable onPress={() => Alert.alert("طلب السحب", "تم إرسال طلب تحويل الرصيد إلى حسابك المسجل.")} style={styles.walletButton}><LocalizedText style={styles.walletButtonText}>سحب الرصيد</LocalizedText></Pressable></View>
     <View style={styles.metrics}><Metric label="دخل هذا الشهر" value="4,860 ₪" /><Metric label="عمولة عَمِّرها" value="486 ₪" /><Metric label="أعمال مكتملة" value="28" /></View>

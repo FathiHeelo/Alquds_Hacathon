@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { rewardRepository } from "../../../services/repositories";
 import type { Reward, RewardAccount } from "../../../domain/models/reward";
-import { LoadingState } from "../../../shared/components";
+import { ErrorState, LoadingState } from "../../../shared/components";
 import { useI18n } from "../../../shared/i18n/I18nProvider";
 import { radius, spacing, typography, useTheme } from "../../../shared/theme";
 
@@ -15,12 +15,16 @@ const rewardIcons: Record<string, keyof typeof Ionicons.glyphMap> = { "reward-el
 export function RewardsScreen() {
   const [account, setAccount] = useState<RewardAccount>();
   const [rewards, setRewards] = useState<readonly Reward[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const { t, isRTL } = useI18n();
   const { theme, textScale, isHighContrast } = useTheme();
   const direction = isRTL ? "row-reverse" : "row";
   const align = isRTL ? "right" : "left";
-  useEffect(() => { void Promise.all([rewardRepository.getAccount(), rewardRepository.getRewards()]).then(([nextAccount, nextRewards]) => { setAccount(nextAccount); setRewards(nextRewards); }); }, []);
-  if (!account) return <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}><LoadingState /></SafeAreaView>;
+  useEffect(() => { let active = true; setLoading(true); setFailed(false); void Promise.all([rewardRepository.getAccount(), rewardRepository.getRewards()]).then(([nextAccount, nextRewards]) => { if (active) { setAccount(nextAccount); setRewards(nextRewards); } }).catch(() => { if (active) setFailed(true); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, [reloadKey]);
+  if (loading) return <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}><LoadingState /></SafeAreaView>;
+  if (failed || !account) return <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}><ErrorState message="تعذر تحميل المكافآت من الخدمة." onRetry={() => setReloadKey((value) => value + 1)} /></SafeAreaView>;
   const redeem = async (reward: Reward) => { try { setAccount(await rewardRepository.redeem(reward.id)); Alert.alert(t("rewards.successTitle"), t("rewards.successBody")); } catch { Alert.alert(t("rewards.insufficient"), t("rewards.earnBody")); } };
   const size = (value: number) => value * textScale;
   return <SafeAreaView edges={["top"]} style={[styles.safe, { backgroundColor: theme.background }]}>
@@ -29,12 +33,12 @@ export function RewardsScreen() {
       <View style={[styles.balanceCard, { backgroundColor: theme.primary, borderColor: theme.borderStrong, borderWidth: isHighContrast ? 2 : 0 }]}><Ionicons name="sparkles" size={26} color={theme.textInverse} /><Text style={[styles.balanceLabel, { color: theme.textInverse, fontSize: size(11), textAlign: align }]}>{t("rewards.balance")}</Text><View style={[styles.balanceRow, { flexDirection: direction }]}><Text style={[styles.balance, { color: theme.textInverse, fontSize: size(36) }]}>{account.balance}</Text><Text style={[styles.balanceUnit, { color: theme.textInverse, fontSize: size(12) }]}>{t("rewards.points")}</Text></View></View>
       <View style={[styles.notice, { backgroundColor: theme.primarySoft, borderColor: theme.border, flexDirection: direction }]}><Ionicons name="information-circle" size={18} color={theme.primaryPressed} /><Text style={[styles.noticeText, { color: theme.textSecondary, fontSize: size(10), textAlign: align }]}>{t("rewards.notCash")}</Text></View>
       <View style={[styles.sectionHeading, { flexDirection: direction }]}><Text style={[styles.sectionTitle, { color: theme.text, fontSize: size(15), textAlign: align }]}>{t("rewards.offers")}</Text><Text style={[styles.approved, { color: theme.primaryPressed, fontSize: size(9) }]}>{t("rewards.approved")}</Text></View>
-      <View style={styles.list}>{rewards.map((reward) => { const canRedeem = account.balance >= reward.pointsCost; return <View key={reward.id} style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.border, borderWidth: isHighContrast ? 2 : 1 }]}>
+      <View style={styles.list}>{!rewards.length ? <Text style={{ color: theme.textMuted, fontFamily: typography.fontFamily, fontSize: size(10), textAlign: align }}>{t("rewards.empty")}</Text> : rewards.map((reward) => { const canRedeem = account.balance >= reward.pointsCost; return <View key={reward.id} style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.border, borderWidth: isHighContrast ? 2 : 1 }]}>
         <View style={[styles.cardTop, { flexDirection: direction }]}><View style={[styles.rewardIcon, { backgroundColor: theme.primarySoft }]}><Ionicons name={rewardIcons[reward.id] ?? "gift"} size={23} color={theme.primaryPressed} /></View><View style={styles.cardCopy}><View style={[styles.categoryRow, { flexDirection: direction }]}><Text style={[styles.partner, { color: theme.text, fontSize: size(12), textAlign: align }]}>{t(reward.partnerKey)}</Text><Text style={[styles.category, { color: theme.primaryPressed, fontSize: size(8) }]}>{t(reward.categoryKey)}</Text></View><Text style={[styles.rewardTitle, { color: theme.textSecondary, fontSize: size(11), textAlign: align }]}>{t(reward.titleKey)}</Text><Text style={[styles.description, { color: theme.textMuted, fontSize: size(9), textAlign: align }]}>{t(reward.descriptionKey)}</Text></View></View>
         <View style={[styles.footer, { borderTopColor: theme.border, flexDirection: direction }]}><View><Text style={[styles.benefit, { color: theme.success, fontSize: size(11), textAlign: align }]}>{t(reward.benefitKey)}</Text><Text style={[styles.cost, { color: theme.textMuted, fontSize: size(9), textAlign: align }]}>{reward.pointsCost} {t("rewards.points")}</Text></View><Pressable accessibilityRole="button" accessibilityState={{ disabled: !canRedeem }} onPress={() => void redeem(reward)} style={({ pressed }) => [styles.redeem, { backgroundColor: canRedeem ? theme.primary : theme.surfaceSecondary, borderColor: theme.borderStrong, opacity: pressed ? 0.72 : 1 }]}><Text style={[styles.redeemText, { color: canRedeem ? theme.textInverse : theme.textMuted, fontSize: size(10) }]}>{t(canRedeem ? "rewards.redeem" : "rewards.insufficient")}</Text></Pressable></View>
       </View>; })}</View>
       <Text style={[styles.sectionTitle, { color: theme.text, fontSize: size(15), textAlign: align }]}>{t("rewards.history")}</Text>
-      <View style={[styles.history, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>{account.history.map((item) => <View key={item.id} style={[styles.historyRow, { borderBottomColor: theme.border, flexDirection: direction }]}><Text style={[styles.historyLabel, { color: theme.textSecondary, fontSize: size(10), textAlign: align }]}>{t(item.labelKey)}</Text><Text style={[styles.historyPoints, { color: item.points >= 0 ? theme.success : theme.warning, fontSize: size(11) }]}>{item.points > 0 ? "+" : ""}{item.points}</Text></View>)}</View>
+      <View style={[styles.history, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>{account.history.length ? account.history.map((item) => <View key={item.id} style={[styles.historyRow, { borderBottomColor: theme.border, flexDirection: direction }]}><Text style={[styles.historyLabel, { color: theme.textSecondary, fontSize: size(10), textAlign: align }]}>{t(item.labelKey)}</Text><Text style={[styles.historyPoints, { color: item.points >= 0 ? theme.success : theme.warning, fontSize: size(11) }]}>{item.points > 0 ? "+" : ""}{item.points}</Text></View>) : <Text style={{ color: theme.textMuted, fontFamily: typography.fontFamily, fontSize: size(10), padding: 12, textAlign: align }}>{t("rewards.noHistory")}</Text>}</View>
       <View style={[styles.earn, { backgroundColor: theme.surfaceSecondary, borderColor: theme.border, flexDirection: direction }]}><Ionicons name="star-outline" size={22} color={theme.primaryPressed} /><View style={styles.earnCopy}><Text style={[styles.earnTitle, { color: theme.text, fontSize: size(11), textAlign: align }]}>{t("rewards.earn")}</Text><Text style={[styles.earnText, { color: theme.textMuted, fontSize: size(9), textAlign: align }]}>{t("rewards.earnBody")}</Text></View></View>
     </ScrollView>
   </SafeAreaView>;

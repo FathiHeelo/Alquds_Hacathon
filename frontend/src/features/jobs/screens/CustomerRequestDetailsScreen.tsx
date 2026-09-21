@@ -3,27 +3,48 @@ import { createAdaptiveStyleSheet } from "../../../shared/theme/adaptiveStyles";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { CustomerStackParamList } from "../../../app/navigation/navigation.types";
 import { demoTechnicians } from "../../../demo/fixtures/technicians";
+import { customerJobRepository, repairRequestRepository, technicianRepository } from "../../../services/repositories";
+import { appConfig } from "../../../app/config/appConfig";
 import { colors, shadows, typography } from "../../../shared/theme";
 import { TechnicianPortrait } from "../../map/components/TechnicianPortrait";
-import { getCustomerRequest } from "../customerRequests";
+import { getCustomerRequest, mapDomainRequestToCustomerItem, type CustomerRequestItem, type CustomerRequestState } from "../customerRequests";
 
 type Props = NativeStackScreenProps<CustomerStackParamList, "CustomerRequestDetails">;
 
 export function CustomerRequestDetailsScreen({ route, navigation }: Props) {
-  const request = getCustomerRequest(route.params.requestId);
+  const [request, setRequest] = useState<CustomerRequestItem | undefined>(() => appConfig.demoMode ? getCustomerRequest(route.params.requestId) : undefined);
+  const [technician, setTechnician] = useState(() => appConfig.demoMode ? demoTechnicians.find(({ id }) => id === getCustomerRequest(route.params.requestId)?.technicianId) : undefined);
+  const [loading, setLoading] = useState(!appConfig.demoMode);
+  useEffect(() => {
+    if (appConfig.demoMode) return;
+    let active = true;
+    void Promise.all([repairRequestRepository.getRequest(route.params.requestId), customerJobRepository.list()]).then(async ([repair, jobs]) => {
+      if (!repair) { if (active) setRequest(undefined); return; }
+      const job = jobs.find((item) => item.requestId === repair.id);
+      const state: CustomerRequestState = job?.status ?? "pending";
+      const mapped = mapDomainRequestToCustomerItem(repair);
+      mapped.jobId = job?.id ?? ""; mapped.offerId = job?.offerId ?? ""; mapped.technicianId = job?.technicianId ?? "";
+      mapped.state = state; mapped.statusLabel = ({ pending: "بانتظار عروض الفنيين", accepted: "تم قبول العرض", on_the_way: "الفني في الطريق", scheduled: "موعد محجوز", in_progress: "العمل جارٍ", completed: "مكتمل", cancelled: "ملغي" } as Record<CustomerRequestState, string>)[state];
+      mapped.statusDetail = job ? state === "on_the_way" && job.expectedArrival ? `الوصول المتوقع ${job.expectedArrival}` : job.locationLabel : "سيظهر طلبك للفنيين القريبين"; mapped.price = job?.agreedPrice ?? 0;
+      if (active) setRequest(mapped);
+      if (job) { const profile = await technicianRepository.getById(job.technicianId); if (active) setTechnician(profile ?? undefined); }
+    }).catch((error: unknown) => { if (active) { setRequest(undefined); setTechnician(undefined); Alert.alert("تعذر تحميل الطلب", error instanceof Error ? error.message : "حاول مرة أخرى."); } }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [route.params.requestId]);
+  if (loading) return <SafeAreaView style={styles.safe}><View style={styles.missing}><LocalizedText style={styles.sectionTitle}>جارٍ تحميل الطلب</LocalizedText></View></SafeAreaView>;
   if (!request) return <SafeAreaView style={styles.safe}><View style={styles.missing}><LocalizedText style={styles.sectionTitle}>تعذر العثور على الطلب</LocalizedText></View></SafeAreaView>;
-  const technician = demoTechnicians.find(({ id }) => id === request.technicianId)!;
-  const isActive = request.state === "on_the_way" || request.state === "scheduled";
+  const isActive = ["accepted", "on_the_way", "scheduled", "in_progress"].includes(request.state) && Boolean(request.jobId);
   const isCompleted = request.state === "completed";
   const steps = isCompleted
-    ? ["تم استلام الطلب", "تم قبول العرض", "اكتملت الصيانة", "تم الدفع والتقييم"]
+    ? ["تم استلام الطلب", "تم قبول العرض", "اكتملت الصيانة"]
     : request.state === "cancelled"
       ? ["تم استلام الطلب", "تم إلغاء الطلب"]
-      : ["تم قبول العرض والاتفاق", request.state === "on_the_way" ? "الفني يتحرك نحوك" : "موعد الصيانة محجوز", "بدء تنفيذ الصيانة", "إتمام العمل والدفع"];
+      : request.state === "pending" ? ["تم استلام الطلب", "بانتظار عروض الفنيين"] : ["تم استلام الطلب", "تم قبول العرض", request.state === "on_the_way" ? "الفني في الطريق" : request.state === "in_progress" ? "العمل جارٍ" : "موعد الصيانة", "اكتمال العمل"];
   const activeIndex = isCompleted ? steps.length - 1 : request.state === "cancelled" ? 1 : 1;
 
   return <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
@@ -38,14 +59,14 @@ export function CustomerRequestDetailsScreen({ route, navigation }: Props) {
         <View style={styles.statusCopy}><LocalizedText style={styles.eyebrow}>حالة الطلب الحالية</LocalizedText><LocalizedText style={styles.statusTitle}>{request.statusLabel}</LocalizedText><LocalizedText style={styles.statusDetail}>{request.statusDetail}</LocalizedText></View>
       </View>
 
-      <View style={styles.card}>
+      {technician ? <View style={styles.card}>
         <LocalizedText style={styles.sectionTitle}>الفني المسؤول</LocalizedText>
         <View style={styles.technicianRow}>
           <TechnicianPortrait technician={technician} round size={54} />
-          <View style={styles.technicianCopy}><View style={styles.nameRow}><LocalizedText style={styles.technicianName}>{technician.name}</LocalizedText><Ionicons name="checkmark-circle" size={14} color={colors.primaryPressed} /></View><LocalizedText style={styles.muted}>{technician.specialty}</LocalizedText><LocalizedText style={styles.rating}>★ {technician.rating.toFixed(1)} · {technician.completedJobs} عملية</LocalizedText></View>
-          {isActive ? <View style={styles.contactRow}><Pressable accessibilityLabel="الاتصال بالفني" onPress={() => void Linking.openURL("tel:+970599000000")} style={styles.roundButton}><Ionicons name="call" size={17} color="#176B51" /></Pressable><Pressable accessibilityLabel="مراسلة الفني" onPress={() => navigation.navigate("CustomerChat", { jobId: request.jobId, requestId: request.id, technicianId: request.technicianId })} style={[styles.roundButton, styles.chatButton]}><Ionicons name="chatbubble-ellipses" size={17} color="#8C6D14" /></Pressable></View> : null}
+          <View style={styles.technicianCopy}><View style={styles.nameRow}><LocalizedText style={styles.technicianName}>{technician.name}</LocalizedText>{technician.isVerified ? <Ionicons name="checkmark-circle" size={14} color={colors.primaryPressed} /> : null}</View><LocalizedText style={styles.muted}>{technician.specialty}</LocalizedText><LocalizedText style={styles.rating}>{technician.ratingCount ? `★ ${technician.rating.toFixed(1)} · ${technician.ratingCount} تقييم` : "لا توجد تقييمات بعد"} · {technician.completedJobs} عملية مكتملة</LocalizedText></View>
+          {isActive ? <View style={styles.contactRow}><Pressable accessibilityLabel="مراسلة الفني" onPress={() => navigation.navigate("CustomerChat", { jobId: request.jobId, requestId: request.id, technicianId: request.technicianId })} style={[styles.roundButton, styles.chatButton]}><Ionicons name="chatbubble-ellipses" size={17} color="#8C6D14" /></Pressable></View> : null}
         </View>
-      </View>
+      </View> : <View style={styles.card}><LocalizedText style={styles.sectionTitle}>بانتظار تعيين الفني</LocalizedText><LocalizedText style={styles.muted}>سيظهر ملف الفني هنا بعد قبول أحد العروض.</LocalizedText></View>}
 
       <View style={styles.card}>
         <LocalizedText style={styles.sectionTitle}>مراحل تنفيذ العمل</LocalizedText>
@@ -70,7 +91,7 @@ export function CustomerRequestDetailsScreen({ route, navigation }: Props) {
         {request.state !== "cancelled" ? <View style={styles.guarantee}><Ionicons name="shield-checkmark" size={16} color="#176B51" /><LocalizedText style={styles.guaranteeText}>دفع آمن وضمان عَمِّرها على تنفيذ العمل</LocalizedText></View> : null}
       </View>
 
-      {isCompleted ? <Pressable onPress={() => Alert.alert("الفاتورة", `تم دفع ${request.price} ₪ بنجاح`)} style={styles.primaryButton}><Ionicons name="receipt" size={18} color={colors.text} /><LocalizedText style={styles.primaryButtonText}>عرض الفاتورة والتقييم</LocalizedText></Pressable> : isActive ? <Pressable onPress={() => navigation.navigate("CustomerChat", { jobId: request.jobId, requestId: request.id, technicianId: request.technicianId })} style={styles.primaryButton}><Ionicons name="chatbubble-ellipses" size={18} color={colors.text} /><LocalizedText style={styles.primaryButtonText}>متابعة الطلب مع الفني</LocalizedText></Pressable> : null}
+      {isCompleted ? <Pressable onPress={() => Alert.alert("السعر المتفق عليه", `${request.price} ₪`)} style={styles.primaryButton}><Ionicons name="receipt" size={18} color={colors.text} /><LocalizedText style={styles.primaryButtonText}>تفاصيل السعر والتقييم</LocalizedText></Pressable> : isActive ? <Pressable onPress={() => navigation.navigate("CustomerChat", { jobId: request.jobId, requestId: request.id, technicianId: request.technicianId })} style={styles.primaryButton}><Ionicons name="chatbubble-ellipses" size={18} color={colors.text} /><LocalizedText style={styles.primaryButtonText}>متابعة الطلب مع الفني</LocalizedText></Pressable> : null}
     </ScrollView>
   </SafeAreaView>;
 }

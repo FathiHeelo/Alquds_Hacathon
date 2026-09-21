@@ -11,35 +11,41 @@ import { Animated, Pressable, ScrollView, StyleSheet, Text, TextInput, View } fr
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { CustomerStackParamList, CustomerTabParamList } from "../../../app/navigation/navigation.types";
-import { demoTechnicians } from "../../../demo/fixtures/technicians";
 import { colors, shadows, typography, useTheme } from "../../../shared/theme";
 import { TechnicianPortrait } from "../../map/components/TechnicianPortrait";
+import { customerChatRepository, customerJobRepository, technicianRepository } from "../../../services/repositories";
+import type { ChatMessage } from "../../../domain/contracts/chatRepository";
+import type { Technician } from "../../../domain/models/technician";
+import type { Job } from "../../../domain/models/job";
 
 type MessagesNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<CustomerTabParamList, "CustomerMessages">,
   NativeStackNavigationProp<CustomerStackParamList>
 >;
 
-const conversations = [
-  { technicianId: "tech-tariq-maqdisi", jobId: "demo-job-offer-tariq-plumbing", requestId: "old_city_plumbing_leak", message: "وصلت الآن مدخل عقبة الخالدية، وباقي دقيقتين.", time: "10:18 ص", unread: 2, online: true },
-  { technicianId: "tech-mahmoud-khatib", jobId: "demo-job-offer-mahmoud-plumbing", requestId: "old_city_plumbing_leak", message: "أرسلت لك تفاصيل الفحص والقطع المطلوبة.", time: "أمس", unread: 0, online: true },
-  { technicianId: "tech-samer-halawani", jobId: "demo-job-offer-samer-ac", requestId: "ac_follow_up", message: "تم، موعدنا غدًا الساعة التاسعة صباحًا.", time: "الثلاثاء", unread: 0, online: false }
-] as const;
+type Conversation = { job: Job; technician?: Technician; last?: ChatMessage };
 
 export function CustomerMessagesScreen() {
   const navigation = useNavigation<MessagesNavigation>();
   const [query, setQuery] = useState("");
-  const [unreadOnly, setUnreadOnly] = useState(false);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
   const { reduceMotion } = useTheme();
-  const entrance = useRef(conversations.map(() => new Animated.Value(0))).current;
+  const entrance = useRef(Array.from({ length: 30 }, () => new Animated.Value(0))).current;
+  useEffect(() => {
+    let active = true;
+    void customerJobRepository.list().then(async (jobs) => Promise.all(jobs.filter((job) => job.conversationId).map(async (job) => {
+      const [technician, messages] = await Promise.all([technicianRepository.getById(job.technicianId), customerChatRepository.getMessages(job.id)]);
+      return { job, technician: technician ?? undefined, last: messages.at(-1) };
+    }))).then((rows) => { if (active) setConversations(rows); }).catch(() => { if (active) { setConversations([]); setFailed(true); } }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
   useEffect(() => {
     if (reduceMotion) { entrance.forEach((value) => value.setValue(1)); return; }
     Animated.stagger(70, entrance.map((value) => Animated.timing(value, { toValue: 1, duration: 260, useNativeDriver: true }))).start();
   }, [entrance, reduceMotion]);
-  const filtered = useMemo(() => conversations.filter((conversation) => {
-    const technician = demoTechnicians.find(({ id }) => id === conversation.technicianId)!;
-    return (!unreadOnly || conversation.unread > 0) && (!query.trim() || `${technician.name} ${technician.specialty} ${conversation.message}`.includes(query.trim()));
-  }), [query, unreadOnly]);
+  const filtered = useMemo(() => conversations.filter((conversation) => (!query.trim() || `${conversation.technician?.name ?? "الفني"} ${conversation.technician?.specialty ?? ""} ${conversation.last?.text ?? ""}`.includes(query.trim()))), [query, conversations]);
 
   return <SafeAreaView edges={["top"]} style={styles.safe}>
     <View style={styles.header}>
@@ -47,27 +53,26 @@ export function CustomerMessagesScreen() {
       <View style={styles.headerIcon}><Ionicons name="chatbubbles" color={colors.primaryPressed} size={21} /></View>
     </View>
     <View style={styles.searchBox}><Ionicons name="search" size={18} color="#94A3B8" /><LocalizedTextInput value={query} onChangeText={setQuery} placeholder="ابحث عن فني أو محادثة" placeholderTextColor="#94A3B8" style={styles.searchInput} /></View>
-    <View style={styles.tabs}>
-      <Pressable onPress={() => setUnreadOnly(false)} style={[styles.tab, !unreadOnly && styles.activeTab]}><LocalizedText style={[styles.tabText, !unreadOnly && styles.activeTabText]}>كل المحادثات</LocalizedText></Pressable>
-      <Pressable onPress={() => setUnreadOnly(true)} style={[styles.tab, unreadOnly && styles.activeTab]}><LocalizedText style={[styles.tabText, unreadOnly && styles.activeTabText]}>غير مقروءة</LocalizedText><View style={styles.unreadMini}><LocalizedText style={styles.unreadMiniText}>2</LocalizedText></View></Pressable>
-    </View>
+    <View style={styles.tabs}><View style={[styles.tab, styles.activeTab]}><LocalizedText style={[styles.tabText, styles.activeTabText]}>كل المحادثات</LocalizedText></View></View>
     <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
       {filtered.map((conversation) => {
-        const index = conversations.indexOf(conversation);
-        const technician = demoTechnicians.find(({ id }) => id === conversation.technicianId)!;
-        return <Animated.View key={conversation.technicianId} style={{ opacity: entrance[index], transform: [{ translateY: entrance[index].interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }}>
-          <Pressable accessibilityRole="button" accessibilityLabel={`فتح محادثة ${technician.name}`} onPress={() => navigation.navigate("CustomerChat", { jobId: conversation.jobId, requestId: conversation.requestId, technicianId: conversation.technicianId })} style={({ pressed }) => [styles.conversation, pressed && styles.pressed]}>
-            <View style={styles.portrait}><TechnicianPortrait technician={technician} round size={48} /><View style={[styles.online, !conversation.online && styles.offline]} /></View>
+        const index = filtered.indexOf(conversation);
+        const technician = conversation.technician;
+        const name = technician?.name ?? "الفني";
+        return <Animated.View key={conversation.job.id} style={{ opacity: entrance[index] ?? 1, transform: [{ translateY: (entrance[index] ?? entrance[0]).interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }}>
+          <Pressable accessibilityRole="button" accessibilityLabel={`فتح محادثة ${name}`} onPress={() => navigation.navigate("CustomerChat", { jobId: conversation.job.id, requestId: conversation.job.requestId, technicianId: conversation.job.technicianId })} style={({ pressed }) => [styles.conversation, pressed && styles.pressed]}>
+            <View style={styles.portrait}>{technician ? <TechnicianPortrait technician={technician} round size={48} /> : <View style={styles.avatar}><Ionicons name="person" size={21} color={colors.primary} /></View>}</View>
             <View style={styles.copy}>
-              <View style={styles.nameRow}><LocalizedText style={styles.name}>{technician.name}</LocalizedText>{technician.isPro ? <LocalizedText style={styles.pro}>Pro</LocalizedText> : <Ionicons name="checkmark-circle" color={colors.primaryPressed} size={13} />}</View>
-              <LocalizedText numberOfLines={1} style={[styles.message, conversation.unread > 0 && styles.unreadMessage]}>{conversation.message}</LocalizedText>
-              <LocalizedText numberOfLines={1} style={styles.context}>{technician.specialty}</LocalizedText>
+              <View style={styles.nameRow}><LocalizedText style={styles.name}>{name}</LocalizedText>{technician?.isPro ? <LocalizedText style={styles.pro}>Pro</LocalizedText> : null}</View>
+              <LocalizedText numberOfLines={1} style={styles.message}>{conversation.last?.text ?? "لا توجد رسائل بعد"}</LocalizedText>
+              <LocalizedText numberOfLines={1} style={styles.context}>{technician?.specialty ?? conversation.job.description ?? "طلب صيانة"}</LocalizedText>
             </View>
-            <View style={styles.meta}><LocalizedText style={styles.time}>{conversation.time}</LocalizedText>{conversation.unread > 0 ? <View style={styles.unread}><LocalizedText style={styles.unreadText}>{conversation.unread}</LocalizedText></View> : <Ionicons name="checkmark-done" size={15} color="#10B981" />}</View>
+            <View style={styles.meta}><LocalizedText style={styles.time}>{conversation.last?.createdAt ?? ""}</LocalizedText><Ionicons name="chevron-back" size={15} color="#94A3B8" /></View>
           </Pressable>
         </Animated.View>;
       })}
-      {!filtered.length ? <View style={styles.empty}><Ionicons name="chatbubble-ellipses-outline" size={34} color="#CBD5E1" /><LocalizedText style={styles.emptyText}>لا توجد محادثات مطابقة</LocalizedText></View> : null}
+      {loading ? <View style={styles.empty}><LocalizedText style={styles.emptyText}>جارٍ تحميل المحادثات...</LocalizedText></View> : null}
+      {!loading && !filtered.length ? <View style={styles.empty}><Ionicons name="chatbubble-ellipses-outline" size={34} color="#CBD5E1" /><LocalizedText style={styles.emptyText}>{failed ? "تعذر تحميل المحادثات" : "لا توجد محادثات بعد"}</LocalizedText></View> : null}
       <View style={styles.privacy}><Ionicons name="shield-checkmark" size={17} color="#8C6D14" /><LocalizedText style={styles.privacyText}>جميع محادثاتك محمية داخل عَمِّرها</LocalizedText></View>
     </ScrollView>
   </SafeAreaView>;
@@ -82,6 +87,6 @@ const styles = createAdaptiveStyleSheet({
   searchInput: { color: colors.text, flex: 1, fontFamily: typography.fontFamily, fontSize: 12, textAlign: "right", writingDirection: "rtl" },
   tabs: { flexDirection: "row-reverse", gap: 8, paddingHorizontal: 14, paddingTop: 12 }, tab: { alignItems: "center", borderRadius: 12, flexDirection: "row-reverse", gap: 5, paddingHorizontal: 12, paddingVertical: 7 }, activeTab: { backgroundColor: colors.secondary }, tabText: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 11, fontWeight: "600" }, activeTabText: { color: "white" }, unreadMini: { alignItems: "center", backgroundColor: colors.primary, borderRadius: 8, height: 16, justifyContent: "center", minWidth: 16 }, unreadMiniText: { color: colors.text, fontSize: 8, fontWeight: "800" },
   list: { gap: 9, padding: 14, paddingBottom: 28 }, conversation: { ...shadows.subtle, alignItems: "center", backgroundColor: "white", borderColor: "#ECE7DC", borderRadius: 17, borderWidth: 1, flexDirection: "row-reverse", gap: 10, minHeight: 84, padding: 11 }, pressed: { opacity: 0.72, transform: [{ scale: 0.985 }] },
-  portrait: { position: "relative" }, online: { backgroundColor: "#10B981", borderColor: "white", borderRadius: 6, borderWidth: 2, bottom: -1, height: 12, position: "absolute", right: -1, width: 12 }, offline: { backgroundColor: "#94A3B8" }, copy: { flex: 1 }, nameRow: { alignItems: "center", flexDirection: "row-reverse", gap: 4 }, name: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 13, fontWeight: "700" }, pro: { backgroundColor: "#FFF4C8", borderRadius: 4, color: "#8C6D14", fontSize: 8, fontWeight: "800", paddingHorizontal: 4 }, message: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 10, marginTop: 4, textAlign: "right", writingDirection: "rtl" }, unreadMessage: { color: colors.text, fontWeight: "700" }, context: { color: "#A3A3A3", fontFamily: typography.fontFamily, fontSize: 8, marginTop: 4, textAlign: "right" }, meta: { alignItems: "center", alignSelf: "stretch", justifyContent: "space-between", paddingVertical: 5 }, time: { color: "#94A3B8", fontFamily: typography.fontFamily, fontSize: 8 }, unread: { alignItems: "center", backgroundColor: colors.primary, borderRadius: 10, height: 20, justifyContent: "center", width: 20 }, unreadText: { color: colors.text, fontSize: 9, fontWeight: "800" },
+  portrait: { position: "relative" }, avatar: { alignItems: "center", backgroundColor: colors.secondary, borderRadius: 24, height: 48, justifyContent: "center", width: 48 }, online: { backgroundColor: "#10B981", borderColor: "white", borderRadius: 6, borderWidth: 2, bottom: -1, height: 12, position: "absolute", right: -1, width: 12 }, offline: { backgroundColor: "#94A3B8" }, copy: { flex: 1 }, nameRow: { alignItems: "center", flexDirection: "row-reverse", gap: 4 }, name: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 13, fontWeight: "700" }, pro: { backgroundColor: "#FFF4C8", borderRadius: 4, color: "#8C6D14", fontSize: 8, fontWeight: "800", paddingHorizontal: 4 }, message: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 10, marginTop: 4, textAlign: "right", writingDirection: "rtl" }, unreadMessage: { color: colors.text, fontWeight: "700" }, context: { color: "#A3A3A3", fontFamily: typography.fontFamily, fontSize: 8, marginTop: 4, textAlign: "right" }, meta: { alignItems: "center", alignSelf: "stretch", justifyContent: "space-between", paddingVertical: 5 }, time: { color: "#94A3B8", fontFamily: typography.fontFamily, fontSize: 8 }, unread: { alignItems: "center", backgroundColor: colors.primary, borderRadius: 10, height: 20, justifyContent: "center", width: 20 }, unreadText: { color: colors.text, fontSize: 9, fontWeight: "800" },
   empty: { alignItems: "center", gap: 7, paddingVertical: 50 }, emptyText: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 12 }, privacy: { alignItems: "center", backgroundColor: "#FFF8E3", borderColor: "#EEDB9D", borderRadius: 13, borderWidth: 1, flexDirection: "row-reverse", gap: 7, justifyContent: "center", marginTop: 4, padding: 10 }, privacyText: { color: "#8C6D14", fontFamily: typography.fontFamily, fontSize: 9, fontWeight: "600" }
 });

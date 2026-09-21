@@ -4,6 +4,7 @@ import type { CustomerLocation } from "../../../domain/models/location";
 import type { ServiceCategoryId, Technician, TechnicianSearchCriteria } from "../../../domain/models/technician";
 import { technicianRepository } from "../../../services/repositories";
 import { getCustomerLocation, jerusalemDemoLocation } from "../../../services/location/locationService";
+import { appConfig } from "../../../app/config/appConfig";
 
 
 export interface CustomerMapFilters {
@@ -22,7 +23,7 @@ const initialFilters: CustomerMapFilters = {
 };
 
 export function useCustomerMap() {
-  const [location, setLocation] = useState<CustomerLocation>(jerusalemDemoLocation);
+  const [location, setLocation] = useState<CustomerLocation | undefined>(() => appConfig.demoMode ? jerusalemDemoLocation : undefined);
   const [filters, setFilters] = useState<CustomerMapFilters>(initialFilters);
   const [technicians, setTechnicians] = useState<readonly Technician[]>([]);
   const [selectedId, setSelectedId] = useState<string>();
@@ -30,7 +31,7 @@ export function useCustomerMap() {
   const [error, setError] = useState<unknown>();
 
   useEffect(() => {
-    void getCustomerLocation().then(setLocation);
+    void getCustomerLocation().then((value) => { if (value) setLocation(value); });
   }, []);
 
   const criteria = useMemo<TechnicianSearchCriteria>(

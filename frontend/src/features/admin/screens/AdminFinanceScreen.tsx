@@ -2,23 +2,26 @@ import { LocalizedText } from "../../../shared/i18n/LocalizedText";
 import { createAdaptiveStyleSheet } from "../../../shared/theme/adaptiveStyles";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { AdminStackParamList } from "../../../app/navigation/navigation.types";
 import { colors, shadows, typography } from "../../../shared/theme";
 import { AdminHeader } from "../components/AdminHeader";
-
-const days = [{ label: "س", value: 36 }, { label: "ح", value: 52 }, { label: "ن", value: 43 }, { label: "ث", value: 68 }, { label: "ر", value: 56 }, { label: "خ", value: 84 }, { label: "ج", value: 72 }];
-const transactions = [{ title: "عمولة صيانة #AM-2421", amount: "+18 ₪", time: "10:22 ص" }, { title: "اشتراك Pro • طارق", amount: "+49 ₪", time: "9:40 ص" }, { title: "استرداد طلب #AM-2412", amount: "-35 ₪", time: "أمس" }];
+import { adminApi } from "../../../services/api/adminApi";
+import { appConfig } from "../../../app/config/appConfig";
 
 export function AdminFinanceScreen({ navigation }: NativeStackScreenProps<AdminStackParamList, "AdminFinance">) {
+  const [summary, setSummary] = useState<Record<string, unknown>>();
+  const [failed, setFailed] = useState(false);
+  useEffect(() => { if (appConfig.demoMode) return; let active = true; void adminApi.summary().then((value) => { if (active) setSummary(value); }).catch(() => { if (active) setFailed(true); }); return () => { active = false; }; }, []);
+  const commissions = summary?.commissions && typeof summary.commissions === "object" ? summary.commissions as Record<string, unknown> : {};
+  const amount = (value: unknown) => typeof value === "number" ? `${value.toLocaleString()} ₪` : "—";
   return <SafeAreaView edges={["top", "bottom"]} style={styles.safe}><AdminHeader title="المالية والعمولات" subtitle="إيرادات المنصة والتسويات" onBack={() => navigation.goBack()} /><ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-    <View style={styles.hero}><LocalizedText style={styles.heroLabel}>صافي إيرادات هذا الشهر</LocalizedText><LocalizedText style={styles.heroValue}>38,420 ₪</LocalizedText><View style={styles.heroTrend}><Ionicons name="trending-up" size={14} color="#6EE7B7" /><LocalizedText style={styles.heroTrendText}>+12.8% عن الشهر الماضي</LocalizedText></View></View>
-    <View style={styles.metrics}><Metric label="عمولات اليوم" value="1,480 ₪" /><Metric label="اشتراكات Pro" value="3,332 ₪" /><Metric label="بانتظار التسوية" value="820 ₪" /></View>
-    <View style={styles.card}><View style={styles.cardTop}><LocalizedText style={styles.cardTitle}>نشاط آخر 7 أيام</LocalizedText><LocalizedText style={styles.cardHint}>بالشيكل</LocalizedText></View><View style={styles.chart}>{days.map((day) => <View key={day.label} style={styles.barWrap}><View style={[styles.bar, { height: day.value }]} /><LocalizedText style={styles.day}>{day.label}</LocalizedText></View>)}</View></View>
-    <View style={styles.card}><LocalizedText style={styles.cardTitle}>آخر الحركات المالية</LocalizedText>{transactions.map((item, index) => <View key={item.title} style={[styles.transaction, index === transactions.length - 1 && styles.last]}><View style={styles.transactionIcon}><Ionicons name={item.amount.startsWith("-") ? "arrow-undo" : "cash"} size={17} color={item.amount.startsWith("-") ? "#BE123C" : "#047857"} /></View><View style={styles.transactionCopy}><LocalizedText style={styles.transactionTitle}>{item.title}</LocalizedText><LocalizedText style={styles.time}>{item.time}</LocalizedText></View><LocalizedText style={[styles.amount, item.amount.startsWith("-") && styles.negative]}>{item.amount}</LocalizedText></View>)}</View>
-    <Pressable onPress={() => Alert.alert("تقرير مالي", "تم تجهيز تقرير المالية بصيغة قابلة للتصدير.")} style={styles.primary}><Ionicons name="download" size={17} color={colors.text} /><LocalizedText style={styles.primaryText}>تصدير التقرير المالي</LocalizedText></Pressable>
+    <View style={styles.hero}><LocalizedText style={styles.heroLabel}>إجمالي عمولات المنصة المسجلة</LocalizedText><LocalizedText style={styles.heroValue}>{amount(commissions.platformFees)}</LocalizedText><LocalizedText style={styles.heroTrendText}>{failed ? "تعذر تحميل ملخص المالية" : "القيمة الإجمالية المحسوبة من سجلات الأعمال المكتملة"}</LocalizedText></View>
+    <View style={styles.metrics}><Metric label="إجمالي الأعمال" value={amount(commissions.gross)} /><Metric label="أعمال مالية مسجلة" value={typeof commissions.jobs === "number" ? String(commissions.jobs) : "—"} /><Metric label="مشتركو Pro النشطون" value={typeof summary?.proSubscribers === "number" ? String(summary.proSubscribers) : "—"} /></View>
+    <View style={styles.card}><LocalizedText style={styles.cardTitle}>ملخص المنصة</LocalizedText><LocalizedText style={styles.transactionTitle}>عدد الأعمال المكتملة: {typeof summary?.completedJobs === "number" ? summary.completedJobs : "—"}</LocalizedText><LocalizedText style={styles.time}>لا توفر الخدمة حالياً تقارير يومية أو قائمة حركات مالية مفصلة.</LocalizedText></View>
   </ScrollView></SafeAreaView>;
 }
 function Metric({ label, value }: { label: string; value: string }) { return <View style={styles.metric}><LocalizedText style={styles.metricLabel}>{label}</LocalizedText><LocalizedText style={styles.metricValue}>{value}</LocalizedText></View>; }

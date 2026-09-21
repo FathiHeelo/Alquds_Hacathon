@@ -3,37 +3,37 @@ import { createAdaptiveStyleSheet } from "../../../shared/theme/adaptiveStyles";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useEffect, useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { CustomerStackParamList } from "../../../app/navigation/navigation.types";
-import { reviewRepository, technicianRepository } from "../../../services/repositories";
+import { customerJobRepository, reviewRepository, technicianRepository } from "../../../services/repositories";
 import type { Review } from "../../../domain/models/review";
 import type { Technician } from "../../../domain/models/technician";
+import type { Job } from "../../../domain/models/job";
 import { ErrorState, LoadingState } from "../../../shared/components";
 import { colors, shadows, typography } from "../../../shared/theme";
 import { TechnicianPortrait } from "../../map/components/TechnicianPortrait";
-
-const beforeImage = require("../../../../assets/portfolio/plumbing-before.jpg");
-const afterImage = require("../../../../assets/portfolio/plumbing-after.jpg");
 
 type Props = NativeStackScreenProps<CustomerStackParamList, "CustomerTechnicianProfile">;
 
 export function TechnicianProfileScreen({ route, navigation }: Props) {
   const [technician, setTechnician] = useState<Technician | null>();
   const [reviews, setReviews] = useState<readonly Review[]>([]);
+  const [chatJob, setChatJob] = useState<Job>();
 
   useEffect(() => {
-    void technicianRepository.getById(route.params.technicianId).then(setTechnician);
-    void reviewRepository.getForTechnician(route.params.technicianId).then(setReviews);
+    let active = true;
+    void technicianRepository.getById(route.params.technicianId).then((value) => { if (active) setTechnician(value); }).catch(() => { if (active) setTechnician(null); });
+    void reviewRepository.getForTechnician(route.params.technicianId).then((value) => { if (active) setReviews(value); }).catch(() => { if (active) setReviews([]); });
+    void customerJobRepository.list().then((jobs) => { if (active) setChatJob(jobs.find((job) => job.technicianId === route.params.technicianId && job.conversationId)); }).catch(() => { if (active) setChatJob(undefined); });
+    return () => { active = false; };
   }, [route.params.technicianId]);
 
   if (technician === undefined) return <SafeAreaView style={styles.safe}><LoadingState /></SafeAreaView>;
   if (!technician) return <SafeAreaView style={styles.safe}><ErrorState message="تعذر العثور على ملف الفني." onRetry={() => navigation.goBack()} /></SafeAreaView>;
 
-  const review = reviews[0];
-  const requestId = route.params.requestId ?? "old_city_plumbing_leak";
-  const jobId = "demo-job-offer-tariq-plumbing";
+  const reviewCount = technician.ratingCount ?? reviews.length;
 
   return <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
     <View style={styles.hero}>
@@ -42,7 +42,7 @@ export function TechnicianProfileScreen({ route, navigation }: Props) {
         <Pressable accessibilityLabel="العودة" onPress={() => navigation.goBack()} style={styles.heroButton}><Ionicons name="arrow-forward" size={18} color="white" /></Pressable>
         <View style={styles.badges}>{technician.isPro ? <View style={styles.proBadge}><Ionicons name="star" size={11} color="#FCD34D" /><LocalizedText style={styles.proText}>عَمِّرها Pro</LocalizedText></View> : null}{technician.isVerified ? <View style={styles.verifiedBadge}><Ionicons name="shield-checkmark" size={11} color="#6EE7B7" /><LocalizedText style={styles.verifiedText}>موثق بالهوية</LocalizedText></View> : null}</View>
       </View>
-      <LocalizedText style={styles.memberSince}>عضوية منذ 3 سنوات • القدس</LocalizedText>
+      {technician.serviceAreas?.length ? <LocalizedText style={styles.memberSince}>مناطق العمل: {technician.serviceAreas.join("، ")}</LocalizedText> : null}
     </View>
 
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -52,35 +52,23 @@ export function TechnicianProfileScreen({ route, navigation }: Props) {
           <View style={[styles.available, !technician.isAvailable && styles.unavailable]}><View style={[styles.availableDot, !technician.isAvailable && styles.unavailableDot]} /><LocalizedText style={[styles.availableText, !technician.isAvailable && styles.unavailableText]}>{technician.isAvailable ? "متاح الآن" : "غير متاح"}</LocalizedText></View>
         </View>
         <View style={styles.stats}>
-          <Stat value={`★ ${technician.rating.toFixed(1)}`} label="التقييم العام" color="#D69E00" />
+          <Stat value={technician.ratingCount ? `★ ${technician.rating.toFixed(1)}` : "—"} label="التقييم العام" color="#D69E00" />
           <Stat value={`${technician.completedJobs}`} label="صيانة مكتملة" />
-          <Stat value="99%" label="إنجاز في الوقت" color="#047857" />
-          <Stat value="9 سنوات" label="خبرة بالقدس" color="#8C6D14" />
+          {technician.yearsExperience != null ? <Stat value={`${technician.yearsExperience} سنة`} label="الخبرة" color="#8C6D14" /> : null}
         </View>
       </View>
 
-      <View style={styles.card}>
-        <View style={styles.sectionHeading}><LocalizedText style={styles.sectionTitle}>معرض الأعمال الموثقة</LocalizedText><View style={styles.approved}><Ionicons name="checkmark-circle" size={12} color="#8C6D14" /><LocalizedText style={styles.approvedText}>فحص معتمد</LocalizedText></View></View>
-        <LocalizedText style={styles.sectionSubtitle}>قبل وبعد الصيانة</LocalizedText>
-        <View style={styles.gallery}>
-          <View style={[styles.photoWrap, styles.beforeWrap]}><Image source={beforeImage} style={styles.photo} /><View style={[styles.photoLabel, styles.beforeLabel]}><LocalizedText style={styles.photoLabelText}>قبل: تسريب وصدأ</LocalizedText></View></View>
-          <View style={[styles.photoWrap, styles.afterWrap]}><Image source={afterImage} style={styles.photo} /><View style={[styles.photoLabel, styles.afterLabel]}><LocalizedText style={styles.photoLabelText}>بعد: عزل وإصلاح متقن</LocalizedText></View></View>
-        </View>
-        <LocalizedText style={styles.galleryCaption}>توثيق صيانة حقيقية تم تنفيذها الأسبوع الماضي في حارة السعدية بالبلدة القديمة.</LocalizedText>
-      </View>
+      {technician.bio ? <View style={styles.card}><LocalizedText style={styles.sectionTitle}>نبذة عن الفني</LocalizedText><LocalizedText style={styles.reviewText}>{technician.bio}</LocalizedText></View> : null}
+      <View style={styles.card}><LocalizedText style={styles.sectionTitle}>معرض الأعمال</LocalizedText><LocalizedText style={styles.sectionSubtitle}>لا توجد صور أعمال متاحة في الملف حالياً.</LocalizedText></View>
 
       <View style={styles.card}>
-        <View style={styles.sectionHeading}><LocalizedText style={styles.sectionTitle}>آراء أهل القدس</LocalizedText><LocalizedText style={styles.allReviews}>{reviews.length || 154} تقييم موثق</LocalizedText></View>
-        <View style={styles.reviewCard}>
-          <View style={styles.reviewTop}><View><LocalizedText style={styles.reviewer}>خليل السلايمة</LocalizedText><LocalizedText style={styles.reviewerArea}>واد الجوز</LocalizedText></View><LocalizedText style={styles.stars}>★★★★★</LocalizedText></View>
-          <LocalizedText style={styles.reviewText}>“{review?.comment ?? "ملتزم بالوقت، محترم جداً وما غلّى بالسعر أبداً. فني ابن بلد يعتمد عليه."}”</LocalizedText>
-          <View style={styles.reviewVerified}><Ionicons name="checkmark-circle" size={11} color="#047857" /><LocalizedText style={styles.reviewVerifiedText}>صيانة موثقة عبر عَمِّرها</LocalizedText></View>
-        </View>
+        <View style={styles.sectionHeading}><LocalizedText style={styles.sectionTitle}>التقييمات</LocalizedText><LocalizedText style={styles.allReviews}>{reviewCount} تقييم</LocalizedText></View>
+        {reviews.length ? reviews.map((item) => <View key={item.id} style={styles.reviewCard}><View style={styles.reviewTop}><LocalizedText style={styles.stars}>{"★".repeat(Math.max(0, Math.min(5, Math.round(item.overall))))}</LocalizedText><LocalizedText style={styles.reviewer}>تقييم موثق • {item.overall}/5</LocalizedText></View><LocalizedText style={styles.reviewText}>{item.comment || "لم يضف العميل تعليقاً."}</LocalizedText></View>) : <LocalizedText style={styles.sectionSubtitle}>لا توجد تقييمات بعد.</LocalizedText>}
       </View>
     </ScrollView>
 
     <View style={styles.footer}>
-      <Pressable accessibilityLabel="مراسلة الفني" onPress={() => navigation.navigate("CustomerChat", { jobId, requestId, technicianId: technician.id })} style={styles.chatButton}><Ionicons name="chatbubble-ellipses" size={20} color={colors.text} /></Pressable>
+      {chatJob ? <Pressable accessibilityLabel="مراسلة الفني" onPress={() => navigation.navigate("CustomerChat", { jobId: chatJob.id, requestId: chatJob.requestId, technicianId: technician.id })} style={styles.chatButton}><Ionicons name="chatbubble-ellipses" size={20} color={colors.text} /></Pressable> : null}
       <Pressable disabled={!technician.isAvailable} onPress={() => navigation.navigate("CustomerRepairRequest", { technicianId: technician.id })} style={({ pressed }) => [styles.requestButton, !technician.isAvailable && styles.disabled, pressed && styles.pressed]}><Ionicons name="construct" size={18} color={colors.text} /><LocalizedText style={styles.requestText}>طلب صيانة مع {technician.name.split(" ")[0]}</LocalizedText></Pressable>
     </View>
   </SafeAreaView>;

@@ -3,7 +3,7 @@ import { createAdaptiveStyleSheet } from "../../../shared/theme/adaptiveStyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -12,6 +12,11 @@ import { useDemoSession } from "../../../app/providers/DemoSessionProvider";
 import { demoTechnicians } from "../../../demo/fixtures/technicians";
 import { colors, shadows, typography } from "../../../shared/theme";
 import { TechnicianPortrait } from "../../map/components/TechnicianPortrait";
+import { appConfig } from "../../../app/config/appConfig";
+import { technicianRepository } from "../../../services/repositories";
+import type { Technician } from "../../../domain/models/technician";
+import { subscriptionApi } from "../../../services/api/subscriptionApi";
+import { getCustomerLocation } from "../../../services/location/locationService";
 
 const menu = [
   { section: "earnings" as const, icon: "wallet-outline" as const, title: "الأرباح والمحفظة", subtitle: "الدخل، الدفعات والفواتير", color: "#047857", background: "#D1FAE5" },
@@ -24,15 +29,26 @@ const menu = [
 export function TechnicianAccountScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<TechnicianStackParamList>>();
   const { logout } = useDemoSession();
-  const [available, setAvailable] = useState(true);
-  const technician = demoTechnicians[0];
+  const [available, setAvailable] = useState(appConfig.demoMode);
+  const [technician, setTechnician] = useState<Technician | undefined>(() => appConfig.demoMode ? demoTechnicians[0] : undefined);
+  const [isPro, setIsPro] = useState(false);
+  const [acceptsUrgent, setAcceptsUrgent] = useState(false);
+  const [loading, setLoading] = useState(!appConfig.demoMode);
+  const [loadFailed, setLoadFailed] = useState(false);
+  useEffect(() => {
+    if (appConfig.demoMode) { setIsPro(demoTechnicians[0]?.isPro ?? false); return; }
+    let active = true;
+    void Promise.all([technicianRepository.getMine(), subscriptionApi.getMine().catch(() => undefined)]).then(([profile, subscription]) => { if (active) { setTechnician(profile ?? undefined); setAvailable(profile?.isAvailable ?? false); setAcceptsUrgent(profile?.acceptsUrgentRequests ?? false); setIsPro(subscription?.isPro ?? profile?.isPro ?? false); } }).catch(() => { if (active) setLoadFailed(true); }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
   return <SafeAreaView edges={["top"]} style={styles.safe}>
     <View style={styles.header}><View><LocalizedText style={styles.title}>حساب الفني</LocalizedText><LocalizedText style={styles.subtitle}>إدارة ملفك وخدماتك وأرباحك</LocalizedText></View><View style={styles.headerIcon}><Ionicons name="person" size={21} color={colors.primaryPressed} /></View></View>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <View style={styles.profile}><View style={styles.profileGlow} /><TechnicianPortrait technician={technician} round size={68} /><View style={styles.profileCopy}><View style={styles.nameRow}><LocalizedText style={styles.name}>{technician.name}</LocalizedText><LocalizedText style={styles.pro}>Pro</LocalizedText></View><LocalizedText style={styles.specialty}>{technician.specialty}</LocalizedText><View style={styles.verified}><Ionicons name="shield-checkmark" size={12} color="#6EE7B7" /><LocalizedText style={styles.verifiedText}>هوية وشهادة مهنية موثقتان</LocalizedText></View></View><Pressable onPress={() => navigation.navigate("TechnicianProfile")} style={styles.edit}><Ionicons name="create-outline" size={17} color="white" /></Pressable></View>
-      <View style={styles.availability}><View style={styles.availabilityCopy}><LocalizedText style={styles.availabilityTitle}>استقبال طلبات جديدة</LocalizedText><LocalizedText style={styles.availabilityText}>{available ? "أنت ظاهر على خريطة القدس الآن" : "ملفك مخفي مؤقتاً عن الطلبات"}</LocalizedText></View><Switch value={available} onValueChange={setAvailable} trackColor={{ false: "#CBD5E1", true: "#A7E6CD" }} thumbColor={available ? "#10B981" : "#94A3B8"} /></View>
-      <View style={styles.stats}><Stat value="4.9" label="التقييم" icon="star" /><Stat value="154" label="عمل مكتمل" icon="checkmark-circle" /><Stat value="99%" label="في الموعد" icon="time" /></View>
-      <Pressable onPress={() => navigation.navigate("TechnicianPro")} style={styles.proCard}><View style={styles.proStar}><Ionicons name="star" size={22} color="#8C6D14" /></View><View style={styles.proCopy}><LocalizedText style={styles.proTitle}>عَمِّرها Pro مفعّل</LocalizedText><LocalizedText style={styles.proSubtitle}>أولوية الظهور والمساعد الذكي وتقارير الأداء</LocalizedText></View><Ionicons name="chevron-back" size={18} color="#8C6D14" /></Pressable>
+      <View style={styles.profile}><View style={styles.profileGlow} />{technician ? <TechnicianPortrait technician={technician} round size={68} /> : <View style={{ alignItems: "center", backgroundColor: colors.secondary, borderRadius: 34, height: 68, justifyContent: "center", width: 68 }}><Ionicons name="person" size={30} color={colors.primary} /></View>}<View style={styles.profileCopy}><View style={styles.nameRow}><LocalizedText style={styles.name}>{technician?.name ?? (loading ? "جارٍ تحميل الحساب" : loadFailed ? "تعذر تحميل حساب الفني" : "حساب الفني")}</LocalizedText>{isPro ? <LocalizedText style={styles.pro}>Pro</LocalizedText> : null}</View><LocalizedText style={styles.specialty}>{technician?.specialty ?? ""}</LocalizedText>{technician?.isVerified ? <View style={styles.verified}><Ionicons name="shield-checkmark" size={12} color="#6EE7B7" /><LocalizedText style={styles.verifiedText}>هوية موثقة</LocalizedText></View> : null}</View><Pressable disabled={!technician} onPress={() => navigation.navigate("TechnicianProfile")} style={[styles.edit, !technician && { opacity: 0.4 }]}><Ionicons name="create-outline" size={17} color="white" /></Pressable></View>
+      <View style={styles.availability}><View style={styles.availabilityCopy}><LocalizedText style={styles.availabilityTitle}>استقبال طلبات جديدة</LocalizedText><LocalizedText style={styles.availabilityText}>{loading ? "جارٍ تحميل حالة التوفر" : loadFailed ? "تعذر تحميل الحالة" : available ? "متاح لاستقبال الطلبات" : "غير متاح لاستقبال الطلبات"}</LocalizedText></View><Switch disabled={!technician} value={available} onValueChange={(value) => { setAvailable(value); if (!appConfig.demoMode) void technicianRepository.setAvailability(value ? "available" : "offline").then(setTechnician).catch(() => setAvailable(!value)); }} trackColor={{ false: "#CBD5E1", true: "#A7E6CD" }} thumbColor={available ? "#10B981" : "#94A3B8"} /></View>
+      <View style={[styles.availability, { backgroundColor: "#FFF7ED", borderColor: "#FDBA74" }]}><View style={styles.availabilityCopy}><LocalizedText style={styles.availabilityTitle}>استقبال التوجيهات العاجلة</LocalizedText><LocalizedText style={styles.availabilityText}>يتطلب حساباً موثقاً، حالة متاحة، وموقعاً صالحاً.</LocalizedText></View><Switch disabled={!technician || !available || !technician?.isVerified} value={acceptsUrgent} onValueChange={(value) => { setAcceptsUrgent(value); void (async () => { const location = value ? await getCustomerLocation() : undefined; if (value && !location) throw new Error("location unavailable"); const updated = await technicianRepository.setUrgentAvailability(value, location); setTechnician(updated); })().catch(() => setAcceptsUrgent(!value)); }} trackColor={{ false: "#CBD5E1", true: "#FDBA74" }} thumbColor={acceptsUrgent ? "#C2410C" : "#94A3B8"} /></View>
+      <View style={styles.stats}><Stat value={technician?.ratingCount ? technician.rating.toFixed(1) : "—"} label="التقييم" icon="star" /><Stat value={technician ? String(technician.completedJobs) : "—"} label="عمل مكتمل" icon="checkmark-circle" /><Stat value={isPro ? "Pro" : "—"} label="الاشتراك" icon="star" /></View>
+      <Pressable onPress={() => navigation.navigate("TechnicianPro")} style={styles.proCard}><View style={styles.proStar}><Ionicons name="star" size={22} color="#8C6D14" /></View><View style={styles.proCopy}><LocalizedText style={styles.proTitle}>{isPro ? "عَمِّرها Pro مفعّل" : "تعرّف على عَمِّرها Pro"}</LocalizedText><LocalizedText style={styles.proSubtitle}>حالة اشتراكك ومزاياه حسب حسابك</LocalizedText></View><Ionicons name="chevron-back" size={18} color="#8C6D14" /></Pressable>
       <LocalizedText style={styles.sectionTitle}>إدارة الحساب</LocalizedText>
       <View style={styles.menu}>{menu.map((item, index) => <Pressable key={item.section} onPress={() => item.section === "settings" ? navigation.navigate("TechnicianPreferences") : navigation.navigate("TechnicianAccountDetail", { section: item.section })} style={({ pressed }) => [styles.menuItem, index < menu.length - 1 && styles.menuDivider, pressed && styles.pressed]}><View style={[styles.menuIcon, { backgroundColor: item.background }]}><Ionicons name={item.icon} size={19} color={item.color} /></View><View style={styles.menuCopy}><LocalizedText style={styles.menuTitle}>{item.title}</LocalizedText><LocalizedText style={styles.menuSubtitle}>{item.subtitle}</LocalizedText></View><Ionicons name="chevron-back" size={17} color="#94A3B8" /></Pressable>)}</View>
       <View style={styles.safeNote}><Ionicons name="lock-closed" size={15} color="#176B51" /><LocalizedText style={styles.safeText}>بيانات العملاء لا تُحفظ في حسابك ولا تظهر خارج طلباتهم داخل عَمِّرها.</LocalizedText></View>

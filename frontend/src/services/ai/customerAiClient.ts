@@ -10,20 +10,36 @@ function available() {
 export const customerAiClient: CustomerAiClient = {
   async structureRequest(request) {
     available();
-    if (request.voice) return aiAdapter.structureVoiceRequest({ transcript: request.voice.transcript });
-    return { description: request.description, category: request.category, urgency: request.urgency };
+    return aiAdapter.structureVoiceRequest({ transcript: request.voice?.transcript ?? request.description });
   },
-  async diagnose(request) {
+  async diagnose(request, answers) {
     available();
-    return aiAdapter.diagnoseProblem({ category: request.category, description: request.description });
+    return aiAdapter.diagnoseProblem({ category: request.category, description: request.description, urgency: request.urgency, voiceTranscript: request.voice?.transcript, photoContext: request.media.length ? "attachment_provided_no_visual_analysis" : undefined, answers: answers ? [...answers] : undefined });
   },
-  async estimatePrice(request) {
+  async estimatePrice(request, diagnosis) {
     available();
-    return aiAdapter.estimateFairPrice({ category: request.category, urgency: request.urgency });
+    const context = diagnosis ?? request.aiSummary?.diagnosis;
+    return aiAdapter.estimateFairPrice({ category: context?.category ?? request.category, urgency: context?.urgency ?? request.urgency, durationBucket: context?.fairPriceContext?.durationBucket, partsBucket: context?.fairPriceContext?.partsBucket });
   },
-  async match(technicians) {
+  async match(request, technicians) {
     available();
-    return aiAdapter.matchTechnicians(technicians.map(({ id, distanceKm, rating, completedJobs }) =>
-      ({ id, distanceKm, rating, completedJobs })));
+    return aiAdapter.rankTechnicians({
+      category: request.category,
+      candidates: technicians.map(({ id, distanceKm, rating, completedJobs, categoryIds, specialty, isAvailable, isVerified, isPro }) => ({
+        id,
+        distanceKm: distanceKm ?? Number.POSITIVE_INFINITY,
+        rating,
+        completedJobs,
+        categoryIds,
+        specialty,
+        isAvailable,
+        isVerified,
+        isPro
+      }))
+    });
+  },
+  async assessRisk(request) {
+    available();
+    return aiAdapter.assessRisk({ userId: request.customerId, requestText: request.description });
   }
 };

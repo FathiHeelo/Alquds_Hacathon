@@ -69,7 +69,7 @@ export function CustomerMapScreen() {
           Keyboard.dismiss();
           map.selectTechnician(undefined);
         }}>
-        <Marker coordinate={map.location} anchor={{ x: 0.5, y: 0.42 }}>
+        {map.location ? <Marker coordinate={map.location} anchor={{ x: 0.5, y: 0.42 }}>
           <View style={styles.locationWrap}>
             <View style={styles.locationTarget}>
               <Animated.View style={[styles.halo, { opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.1, 0.3] }), transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }]} />
@@ -77,8 +77,8 @@ export function CustomerMapScreen() {
             </View>
             <LocalizedText style={styles.locationLabel}>موقعك: {map.location.label}</LocalizedText>
           </View>
-        </Marker>
-        {map.technicians.map((technician) => <Marker accessibilityLabel={`عرض معلومات الفني ${technician.name}`} coordinate={technician.location} identifier={technician.id} key={technician.id} stopPropagation anchor={{ x: 0.5, y: 0.4 }}
+        </Marker> : null}
+        {map.technicians.filter((technician) => technician.location).map((technician) => <Marker accessibilityLabel={`عرض معلومات الفني ${technician.name}`} coordinate={technician.location!} identifier={technician.id} key={technician.id} stopPropagation anchor={{ x: 0.5, y: 0.4 }}
           onPress={() => { markerPressAt.current = Date.now(); Keyboard.dismiss(); map.selectTechnician(technician.id); }}>
           <TechnicianMapMarker isSelected={map.selectedTechnician?.id === technician.id} technician={technician} />
         </Marker>)}
@@ -94,6 +94,7 @@ export function CustomerMapScreen() {
       {map.isLoading ? <View style={styles.state}><LoadingState /></View> : null}
       {map.error ? <View style={styles.state}><ErrorState onRetry={map.retry} /></View> : null}
       {!map.isLoading && !map.error && !map.technicians.length ? <View style={styles.state}><LocalizedText style={styles.empty}>{uiText.map.noResults}</LocalizedText></View> : null}
+      {!map.isLoading && !map.error && map.technicians.length > 0 && map.technicians.every((technician) => !technician.location) ? <View style={styles.state}><LocalizedText style={styles.empty}>الخدمة لم ترسل مواقع الفنيين، لذلك لا تظهر علامات على الخريطة.</LocalizedText></View> : null}
       <View pointerEvents="box-none" style={[styles.bottom, { bottom: bottomSpace }]}>
         {map.selectedTechnician ? <Animated.View style={{ opacity: cardAnimation, transform: [{ translateY: cardAnimation.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }] }}>
           <TechnicianPreview onDismiss={() => map.selectTechnician(undefined)}

@@ -16,11 +16,16 @@ export interface Technician {
   categoryIds: readonly ServiceCategoryId[];
   rating: number;
   completedJobs: number;
-  distanceKm: number;
+  distanceKm?: number;
   isAvailable: boolean;
   isVerified: boolean;
   isPro: boolean;
-  location: GeoPoint;
+  acceptsUrgentRequests?: boolean;
+  location?: GeoPoint;
+  ratingCount?: number;
+  yearsExperience?: number;
+  serviceAreas?: readonly string[];
+  bio?: string;
 }
 
 export interface TechnicianSearchCriteria {

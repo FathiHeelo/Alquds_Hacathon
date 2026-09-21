@@ -1,9 +1,19 @@
+import type {
+  RepairCategory,
+  TechnicianType,
+  Urgency,
+} from "./ai.types";
+
 export interface VoiceRequestInput {
-  transcript: string;
+  transcript?: string;
+  scenarioKey?: string;
 }
 
 export interface StructuredVoiceRequest {
-  category: string;
-  description: string;
-  urgency: "low" | "medium" | "high";
+  normalizedDescription: string;
+  category: RepairCategory;
+  urgency: Urgency;
+  technicianType: TechnicianType;
+  extractedKeywords: string[];
+  requiresConfirmation: boolean;
 }

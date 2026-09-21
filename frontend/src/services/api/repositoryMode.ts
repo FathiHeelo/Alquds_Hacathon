@@ -1,7 +1,7 @@
 import { appConfig } from "../../app/config/appConfig";
 import { AppError } from "../../shared/errors/AppError";
 
-const canFallback = (error: unknown) => error instanceof AppError && ["NETWORK_ERROR", "NETWORK_TIMEOUT", "SERVER_UNAVAILABLE"].includes(error.code);
+const canFallback = (error: unknown) => error instanceof AppError && ["NETWORK_ERROR", "NETWORK_TIMEOUT"].includes(error.code);
 
 export function selectRepository<T extends object>(api: T, demo: T): T {
   if (appConfig.demoMode) return demo;
@@ -15,6 +15,7 @@ export function selectRepository<T extends object>(api: T, demo: T): T {
           if (!appConfig.apiFallbackToDemo || !canFallback(error)) throw error;
           const fallback = Reflect.get(demo, property);
           if (typeof fallback !== "function") throw error;
+          if (__DEV__) console.warn("[AMMERHA] API unavailable — using demo fallback");
           return fallback.apply(demo, args);
         }
       };

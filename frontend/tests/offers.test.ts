@@ -10,7 +10,8 @@ test("demo offers are deterministic and reference the request", async () => {
   assert.deepEqual(offers.map(({ technicianId }) => technicianId), ["tech-tariq-maqdisi", "tech-mahmoud-khatib", "tech-yousef-najjar"]);
   assert.equal(comparePrice(120, 110, 150), "within");
   assert.equal(comparePrice(180, 110, 150), "above");
-  assert.equal(comparePrice(95, 110, 150), "below");
+  assert.equal(comparePrice(155, 110, 150), "slightly_above");
+  assert.equal(comparePrice(95, 110, 150), "good_value");
 });
 
 test("acceptance is explicit, idempotent, and rejects competing offers", async () => {

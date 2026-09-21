@@ -35,7 +35,7 @@ async function main() {
   // ── Technician profiles + entitlements ──
   await prisma.technicianProfile.upsert({
     where: { userId: "demo-technician" },
-    update: {},
+    update: { lat: 31.7807, lng: 35.2326, acceptsUrgentRequests: true },
     create: {
       userId: "demo-technician",
       specialty: "plumbing",
@@ -47,7 +47,10 @@ async function main() {
       isPro: true,
       ratingAvg: 5,
       ratingCount: 1,
-      bio: "Plumber specialised in old-city stone houses."
+      bio: "Plumber specialised in old-city stone houses.",
+      lat: 31.7807,
+      lng: 35.2326,
+      acceptsUrgentRequests: true
     }
   });
   await prisma.technicianProfile.upsert({

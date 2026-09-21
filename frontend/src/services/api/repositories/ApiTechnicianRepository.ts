@@ -6,10 +6,13 @@ import { AppError } from "../../../shared/errors/AppError";
 import { mapTechnician, toBackendCategory } from "./mappers";
 
 export class ApiTechnicianRepository implements TechnicianRepository {
-  async findNearby(origin: GeoPoint, criteria: TechnicianSearchCriteria = {}) {
+  async findNearby(_origin: GeoPoint | undefined, criteria: TechnicianSearchCriteria = {}) {
     const query = criteria.categoryId ? `?specialty=${encodeURIComponent(toBackendCategory(criteria.categoryId))}` : "";
     const rows = await apiClient.request<Parameters<typeof mapTechnician>[0][]>(`/technicians${query}`, undefined, "customer");
-    return rows.map((row) => mapTechnician(row, origin)).filter((item) => (!criteria.query || `${item.name} ${item.specialty}`.toLowerCase().includes(criteria.query.toLowerCase())) && (!criteria.minimumRating || item.rating >= criteria.minimumRating) && (!criteria.availableOnly || item.isAvailable) && (!criteria.maximumDistanceKm || item.distanceKm <= criteria.maximumDistanceKm));
+    return rows.map(mapTechnician).filter((item) => (!criteria.query || `${item.name} ${item.specialty}`.toLowerCase().includes(criteria.query.toLowerCase())) && (!criteria.minimumRating || item.rating >= criteria.minimumRating) && (!criteria.availableOnly || item.isAvailable));
   }
   async getById(id: string) { try { return mapTechnician(await apiClient.request<Parameters<typeof mapTechnician>[0]>(`/technicians/${id}`, undefined, "customer")); } catch (error) { if (error instanceof AppError && error.code === "NOT_FOUND") return null; throw error; } }
+  async getMine() { try { return mapTechnician(await apiClient.request<Parameters<typeof mapTechnician>[0]>("/technicians/me", undefined, "technician")); } catch (error) { if (error instanceof AppError && error.code === "NOT_FOUND") return null; throw error; } }
+  async setAvailability(availability: "available" | "busy" | "offline") { return mapTechnician(await apiClient.request<Parameters<typeof mapTechnician>[0]>("/technicians/me", { method: "PATCH", body: JSON.stringify({ availability }) }, "technician")); }
+  async setUrgentAvailability(enabled: boolean, location?: GeoPoint) { return mapTechnician(await apiClient.request<Parameters<typeof mapTechnician>[0]>("/technicians/me", { method: "PATCH", body: JSON.stringify({ acceptsUrgentRequests: enabled, ...(location ? { lat: location.latitude, lng: location.longitude } : {}) }) }, "technician")); }
 }

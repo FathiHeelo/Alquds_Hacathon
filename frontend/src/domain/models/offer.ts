@@ -6,8 +6,8 @@ export interface Offer {
   technicianId: string;
   price: number;
   message: string;
-  estimatedDurationMinutes: number;
-  etaMinutes: number;
+  estimatedDurationMinutes?: number;
+  etaMinutes?: number;
   status: OfferStatus;
   createdAt: string;
 }

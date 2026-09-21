@@ -9,16 +9,18 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import type { CustomerStackParamList } from "../../../app/navigation/navigation.types";
 import { colors, shadows, typography } from "../../../shared/theme";
 import { notificationRepository } from "../../../services/repositories";
+import { customerJobRepository } from "../../../services/repositories";
+import { appConfig } from "../../../app/config/appConfig";
 
 type Props = NativeStackScreenProps<CustomerStackParamList, "CustomerNotifications">;
 
-type NotificationCardItem = { id: string; icon: "star" | "pricetag" | "bicycle" | "notifications" | "shield-checkmark"; title: string; detail: string; time: string; tone: keyof typeof tones };
+type NotificationCardItem = { id: string; icon: "star" | "pricetag" | "bicycle" | "notifications" | "shield-checkmark"; title: string; detail: string; time: string; createdAt?: string; tone: keyof typeof tones; read: boolean; data?: Record<string, unknown> };
 
 const demoNotifications: NotificationCardItem[] = [
-  { id: "tracking", icon: "bicycle" as const, title: "طارق في طريقه إليك الآن!", detail: "المسافة المتبقية 400 متر فقط نحو عقبة الخالدية.", time: "منذ 3 دقائق", tone: "gold" as const },
-  { id: "reward", icon: "star" as const, title: "مبروك! كسبت 50 نقطة عَمِّرها", detail: "شكراً لتقييمك الصيانة. يمكنك استبدالها بخصم لدى شركائنا.", time: "منذ 25 دقيقة", tone: "green" as const },
-  { id: "safety", icon: "shield-checkmark" as const, title: "أمان بيوت القدس أولاً", detail: "أبقِ جميع الاتفاقات المالية داخل تطبيق عَمِّرها لضمان حقك.", time: "أمس", tone: "slate" as const },
-  { id: "offer", icon: "pricetag" as const, title: "وصلك عرض صيانة جديد", detail: "قدّم محمود الخطيب عرضاً لإصلاح القاطع الكهربائي.", time: "منذ يومين", tone: "blue" as const }
+  { id: "tracking", icon: "bicycle" as const, title: "طارق في طريقه إليك الآن!", detail: "المسافة المتبقية 400 متر فقط نحو عقبة الخالدية.", time: "منذ 3 دقائق", tone: "gold" as const, read: false },
+  { id: "reward", icon: "star" as const, title: "مبروك! كسبت 50 نقطة عَمِّرها", detail: "شكراً لتقييمك الصيانة. يمكنك استبدالها بخصم لدى شركائنا.", time: "منذ 25 دقيقة", tone: "green" as const, read: false },
+  { id: "safety", icon: "shield-checkmark" as const, title: "أمان بيوت القدس أولاً", detail: "أبقِ جميع الاتفاقات المالية داخل تطبيق عَمِّرها لضمان حقك.", time: "أمس", tone: "slate" as const, read: true },
+  { id: "offer", icon: "pricetag" as const, title: "وصلك عرض صيانة جديد", detail: "قدّم محمود الخطيب عرضاً لإصلاح القاطع الكهربائي.", time: "منذ يومين", tone: "blue" as const, read: true }
 ];
 
 const tones = {
@@ -29,40 +31,49 @@ const tones = {
 };
 
 export function NotificationsScreen({ navigation }: Props) {
-  const [notifications, setNotifications] = useState(demoNotifications);
-  const [readIds, setReadIds] = useState<string[]>(["safety", "offer"]);
-  useEffect(() => { void notificationRepository.list().then((feed) => { setNotifications(feed.items.map((item) => ({ id: item.id, icon: (item.type === "reward" ? "star" : item.type === "new_offer" ? "pricetag" : item.type === "on_the_way" ? "bicycle" : "notifications") as "star" | "pricetag" | "bicycle" | "notifications", title: item.title, detail: item.body ?? "", time: new Date(item.createdAt).toLocaleString(), tone: (item.type === "reward" ? "green" : item.type === "new_offer" ? "blue" : item.type === "on_the_way" ? "gold" : "slate") as "green" | "blue" | "gold" | "slate" }))); setReadIds(feed.items.filter((item) => item.read).map((item) => item.id)); }).catch(() => undefined); }, []);
-  const open = (id: string) => {
-    setReadIds((current) => current.includes(id) ? current : [...current, id]);
-    void notificationRepository.markRead(id);
-    if (id === "tracking") navigation.navigate("CustomerRequestDetails", { requestId: "old_city_plumbing_leak" });
-    if (id === "reward") navigation.navigate("CustomerTabs", { screen: "CustomerRewards" });
-    if (id === "offer") navigation.navigate("CustomerOffersEntry", { requestId: "old_city_plumbing_leak" });
+  const [notifications, setNotifications] = useState<NotificationCardItem[]>(() => appConfig.demoMode ? demoNotifications.map((item) => ({ ...item, read: ["safety", "offer"].includes(item.id) })) : []);
+  const [loading, setLoading] = useState(!appConfig.demoMode);
+  const [loadError, setLoadError] = useState(false);
+  useEffect(() => { if (appConfig.demoMode) return; let active = true; void notificationRepository.list().then((feed) => { if (active) setNotifications(feed.items.map((item) => ({ id: item.id, icon: (item.type === "reward" ? "star" : item.type === "new_offer" ? "pricetag" : item.type === "on_the_way" ? "bicycle" : "notifications") as "star" | "pricetag" | "bicycle" | "notifications", title: item.title, detail: item.body ?? "", time: new Date(item.createdAt).toLocaleString(), createdAt: item.createdAt, tone: (item.type === "reward" ? "green" : item.type === "new_offer" ? "blue" : item.type === "on_the_way" ? "gold" : "slate") as "green" | "blue" | "gold" | "slate", read: item.read, data: item.data })) ); }).catch(() => { if (active) { setNotifications([]); setLoadError(true); } }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, []);
+  const today = appConfig.demoMode ? notifications.slice(0, 2) : notifications.filter((item) => item.createdAt && new Date(item.createdAt).toDateString() === new Date().toDateString());
+  const earlier = appConfig.demoMode ? notifications.slice(2) : notifications.filter((item) => !today.includes(item));
+  const unreadCount = notifications.filter((item) => !item.read).length;
+  const open = (item: NotificationCardItem) => {
+    setNotifications((current) => current.map((notification) => notification.id === item.id ? { ...notification, read: true } : notification));
+    void notificationRepository.markRead(item.id);
+    const requestId = typeof item.data?.requestId === "string" ? item.data.requestId : undefined;
+    const jobId = typeof item.data?.jobId === "string" ? item.data.jobId : undefined;
+    if (requestId && item.tone === "blue") navigation.navigate("CustomerOffersEntry", { requestId });
+    else if (requestId) navigation.navigate("CustomerRequestDetails", { requestId });
+    else if (item.tone === "green") navigation.navigate("CustomerTabs", { screen: "CustomerRewards" });
+    else if (jobId) void customerJobRepository.getJob(jobId).then((job) => {
+      if (job) navigation.navigate("CustomerJob", { jobId: job.id, requestId: job.requestId, offerId: job.offerId, technicianId: job.technicianId });
+    }).catch(() => undefined);
   };
 
   return <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
     <View style={styles.header}>
       <Pressable accessibilityLabel="العودة" onPress={() => navigation.goBack()} style={styles.backButton}><Ionicons name="arrow-forward" size={18} color="#475569" /></Pressable>
       <View style={styles.headerCopy}><LocalizedText style={styles.title}>مركز الإشعارات</LocalizedText><LocalizedText style={styles.subtitle}>كل جديد في طلباتك ومكافآتك</LocalizedText></View>
-      <Pressable onPress={() => { setReadIds(notifications.map(({ id }) => id)); void notificationRepository.markAllRead(); }} style={styles.markRead}><LocalizedText style={styles.markReadText}>قراءة الكل</LocalizedText></Pressable>
+      <Pressable onPress={() => { setNotifications((items) => items.map((item) => ({ ...item, read: true }))); void notificationRepository.markAllRead(); }} style={styles.markRead}><LocalizedText style={styles.markReadText}>قراءة الكل</LocalizedText></Pressable>
     </View>
 
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <View style={styles.summary}><View style={styles.summaryIcon}><Ionicons name="notifications" size={20} color="#8C6D14" /></View><View style={styles.summaryCopy}><LocalizedText style={styles.summaryTitle}>{notifications.length - readIds.length} إشعار جديد</LocalizedText><LocalizedText style={styles.summaryText}>سنخبرك فوراً بأي تحديث على طلبات الصيانة</LocalizedText></View></View>
-      <LocalizedText style={styles.dayLabel}>اليوم</LocalizedText>
-      {notifications.slice(0, 2).map((item) => <NotificationCard key={item.id} item={item} read={readIds.includes(item.id)} onPress={() => open(item.id)} />)}
-      <LocalizedText style={styles.dayLabel}>سابقاً</LocalizedText>
-      {notifications.slice(2).map((item) => <NotificationCard key={item.id} item={item} read={readIds.includes(item.id)} onPress={() => open(item.id)} />)}
+      <View style={styles.summary}><View style={styles.summaryIcon}><Ionicons name="notifications" size={20} color="#8C6D14" /></View><View style={styles.summaryCopy}><LocalizedText style={styles.summaryTitle}>{loading ? "جارٍ تحميل الإشعارات" : `${unreadCount} إشعار جديد`}</LocalizedText><LocalizedText style={styles.summaryText}>سنخبرك بأي تحديث على طلبات الصيانة</LocalizedText></View></View>
+      {loading ? <LocalizedText style={styles.dayLabel}>جارٍ تحميل الإشعارات...</LocalizedText> : null}
+      {today.length ? <><LocalizedText style={styles.dayLabel}>اليوم</LocalizedText>{today.map((item) => <NotificationCard key={item.id} item={item} onPress={() => open(item)} />)}</> : null}
+      {earlier.length ? <><LocalizedText style={styles.dayLabel}>سابقاً</LocalizedText>{earlier.map((item) => <NotificationCard key={item.id} item={item} onPress={() => open(item)} />)}</> : null}
+      {!loading && !notifications.length ? <LocalizedText style={styles.dayLabel}>{loadError ? "تعذر تحميل الإشعارات" : "لا توجد إشعارات"}</LocalizedText> : null}
       <View style={styles.safetyNote}><Ionicons name="lock-closed" size={14} color="#8C6D14" /><LocalizedText style={styles.safetyText}>إشعاراتك خاصة ومحمية داخل عَمِّرها</LocalizedText></View>
     </ScrollView>
   </SafeAreaView>;
 }
 
-function NotificationCard({ item, read, onPress }: { item: NotificationCardItem; read: boolean; onPress(): void }) {
+function NotificationCard({ item, onPress }: { item: NotificationCardItem; onPress(): void }) {
   const tone = tones[item.tone];
-  return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.card, { backgroundColor: read ? "white" : tone.background, borderColor: tone.border }, pressed && styles.pressed]}>
+  return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.card, { backgroundColor: item.read ? "white" : tone.background, borderColor: tone.border }, pressed && styles.pressed]}>
     <View style={[styles.icon, { backgroundColor: tone.iconBackground }]}><Ionicons name={item.icon} size={20} color={tone.icon} /></View>
-    <View style={styles.copy}><View style={styles.notificationTitleRow}><LocalizedText style={styles.notificationTitle}>{item.title}</LocalizedText>{!read ? <View style={styles.unreadDot} /> : null}</View><LocalizedText style={styles.detail}>{item.detail}</LocalizedText><LocalizedText style={styles.time}>{item.time}</LocalizedText></View>
+    <View style={styles.copy}><View style={styles.notificationTitleRow}><LocalizedText style={styles.notificationTitle}>{item.title}</LocalizedText>{!item.read ? <View style={styles.unreadDot} /> : null}</View><LocalizedText style={styles.detail}>{item.detail}</LocalizedText><LocalizedText style={styles.time}>{item.time}</LocalizedText></View>
     <Ionicons name="chevron-back" size={16} color="#94A3B8" />
   </Pressable>;
 }

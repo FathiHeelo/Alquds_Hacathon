@@ -36,7 +36,7 @@ export const technicianService = {
   },
   async update(
     userId: string,
-    input: { specialty?: string; yearsExperience?: number; serviceAreas?: string[]; availability?: "available" | "busy" | "offline"; bio?: string }
+    input: { specialty?: string; yearsExperience?: number; serviceAreas?: string[]; availability?: "available" | "busy" | "offline"; bio?: string; lat?: number; lng?: number; acceptsUrgentRequests?: boolean }
   ) {
     await this.get(userId);
     await technicianRepository.updateProfile(userId, input);
