@@ -1,3 +1,5 @@
+import { LocalizedText } from "../../../shared/i18n/LocalizedText";
+import { createAdaptiveStyleSheet } from "../../../shared/theme/adaptiveStyles";
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -15,14 +17,14 @@ export function RequestReview({ draft }: { draft: RepairRequestDraft }) {
   return <View>
     <View style={styles.heading}>
       <View style={styles.headingIcon}><Ionicons name="clipboard" size={19} color="#8C6D14" /></View>
-      <View style={styles.headingCopy}><Text style={styles.title}>ملخص طلب الصيانة</Text><Text style={styles.subtitle}>راجع البيانات قبل إرسالها للفنيين</Text></View>
-      <View style={styles.ready}><Ionicons name="checkmark-circle" size={12} color="#047857" /><Text style={styles.readyText}>جاهز</Text></View>
+      <View style={styles.headingCopy}><LocalizedText style={styles.title}>ملخص طلب الصيانة</LocalizedText><LocalizedText style={styles.subtitle}>راجع البيانات قبل إرسالها للفنيين</LocalizedText></View>
+      <View style={styles.ready}><Ionicons name="checkmark-circle" size={12} color="#047857" /><LocalizedText style={styles.readyText}>جاهز</LocalizedText></View>
     </View>
 
     <View style={styles.problemBox}>
-      <Text style={styles.problemLabel}>المشكلة المسجلة</Text>
-      <Text style={styles.problemText}>“{draft.description}”</Text>
-      <View style={styles.categoryBadge}><Ionicons name="construct" size={12} color="#8C6D14" /><Text style={styles.categoryText}>{category}</Text></View>
+      <LocalizedText style={styles.problemLabel}>المشكلة المسجلة</LocalizedText>
+      <LocalizedText style={styles.problemText}>“{draft.description}”</LocalizedText>
+      <View style={styles.categoryBadge}><Ionicons name="construct" size={12} color="#8C6D14" /><LocalizedText style={styles.categoryText}>{category}</LocalizedText></View>
     </View>
 
     <View style={styles.details}>
@@ -32,17 +34,17 @@ export function RequestReview({ draft }: { draft: RepairRequestDraft }) {
       <DetailRow icon="mic" label="طريقة وصف العطل" value={draft.voice ? "تسجيل صوتي مفرغ تلقائياً" : "وصف كتابي"} iconColor="#8C6D14" iconBackground="#FFF4C8" last={!draft.media.length} />
     </View>
 
-    {draft.media.length ? <View style={styles.mediaSection}><View style={styles.mediaHeading}><Text style={styles.mediaTitle}>المرفقات ({draft.media.length})</Text><Ionicons name="images" size={16} color="#8C6D14" /></View><RequestMediaList media={draft.media} /></View> : null}
+    {draft.media.length ? <View style={styles.mediaSection}><View style={styles.mediaHeading}><LocalizedText style={styles.mediaTitle}>المرفقات ({draft.media.length})</LocalizedText><Ionicons name="images" size={16} color="#8C6D14" /></View><RequestMediaList media={draft.media} /></View> : null}
 
-    <View style={styles.aiNote}><View style={styles.aiIcon}><Ionicons name="sparkles" size={15} color="#8C6D14" /></View><View style={styles.aiCopy}><Text style={styles.aiTitle}>الخطوة التالية</Text><Text style={styles.aiText}>سيحلّل الذكاء الاصطناعي الطلب ويقترح السعر العادل، ثم يرسله للفنيين الأقرب.</Text></View></View>
+    <View style={styles.aiNote}><View style={styles.aiIcon}><Ionicons name="sparkles" size={15} color="#8C6D14" /></View><View style={styles.aiCopy}><LocalizedText style={styles.aiTitle}>الخطوة التالية</LocalizedText><LocalizedText style={styles.aiText}>سيحلّل الذكاء الاصطناعي الطلب ويقترح السعر العادل، ثم يرسله للفنيين الأقرب.</LocalizedText></View></View>
   </View>;
 }
 
 function DetailRow({ icon, label, value, iconColor, iconBackground, last }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string; iconColor: string; iconBackground: string; last?: boolean }) {
-  return <View style={[styles.detailRow, last && styles.lastRow]}><View style={[styles.detailIcon, { backgroundColor: iconBackground }]}><Ionicons name={icon} size={16} color={iconColor} /></View><View style={styles.detailCopy}><Text style={styles.detailLabel}>{label}</Text><Text style={styles.detailValue}>{value}</Text></View><Ionicons name="checkmark-circle" size={15} color="#10B981" /></View>;
+  return <View style={[styles.detailRow, last && styles.lastRow]}><View style={[styles.detailIcon, { backgroundColor: iconBackground }]}><Ionicons name={icon} size={16} color={iconColor} /></View><View style={styles.detailCopy}><LocalizedText style={styles.detailLabel}>{label}</LocalizedText><LocalizedText style={styles.detailValue}>{value}</LocalizedText></View><Ionicons name="checkmark-circle" size={15} color="#10B981" /></View>;
 }
 
-const styles = StyleSheet.create({
+const styles = createAdaptiveStyleSheet({
   heading: { alignItems: "center", flexDirection: "row-reverse", gap: 8 }, headingIcon: { alignItems: "center", backgroundColor: "#FFF4C8", borderRadius: 11, height: 38, justifyContent: "center", width: 38 }, headingCopy: { flex: 1 }, title: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 13, fontWeight: "800", textAlign: "right" }, subtitle: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 8, marginTop: 1, textAlign: "right" }, ready: { alignItems: "center", backgroundColor: "#ECFDF5", borderRadius: 9, flexDirection: "row-reverse", gap: 3, paddingHorizontal: 7, paddingVertical: 5 }, readyText: { color: "#047857", fontFamily: typography.fontFamily, fontSize: 8, fontWeight: "700" },
   problemBox: { backgroundColor: "#F8F7F4", borderColor: "#ECE7DC", borderRadius: 14, borderWidth: 1, marginTop: 13, padding: 11 }, problemLabel: { color: "#94A3B8", fontFamily: typography.fontFamily, fontSize: 8, fontWeight: "700", textAlign: "right" }, problemText: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 10, lineHeight: 17, marginTop: 3, textAlign: "right", writingDirection: "rtl" }, categoryBadge: { alignItems: "center", alignSelf: "flex-end", backgroundColor: "#FFF8E3", borderRadius: 9, flexDirection: "row-reverse", gap: 3, marginTop: 8, paddingHorizontal: 7, paddingVertical: 5 }, categoryText: { color: "#8C6D14", fontFamily: typography.fontFamily, fontSize: 8, fontWeight: "700" },
   details: { marginTop: 8 }, detailRow: { alignItems: "center", borderBottomColor: "#F0ECE3", borderBottomWidth: 1, flexDirection: "row-reverse", gap: 8, minHeight: 57 }, lastRow: { borderBottomWidth: 0 }, detailIcon: { alignItems: "center", borderRadius: 10, height: 34, justifyContent: "center", width: 34 }, detailCopy: { flex: 1 }, detailLabel: { color: "#94A3B8", fontFamily: typography.fontFamily, fontSize: 8, textAlign: "right" }, detailValue: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 10, fontWeight: "700", marginTop: 2, textAlign: "right" },

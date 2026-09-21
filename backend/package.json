@@ -2,22 +2,40 @@
   "name": "@ammerha/backend",
   "private": true,
   "version": "0.1.0",
-  "main": "dist/index.js",
+  "main": "dist/src/server.js",
   "scripts": {
-    "dev": "tsx src/index.ts",
+    "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/index.js",
-    "typecheck": "tsc --noEmit"
+    "start": "node dist/src/server.js",
+    "typecheck": "tsc --noEmit",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
+    "prisma:seed": "prisma db seed",
+    "prisma:clean-test-data": "tsx prisma/cleanup-test-data.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@prisma/client": "^6.16.0",
-    "express": "^5.1.0"
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^18.0.0",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/express": "^5.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.5.0",
+    "@types/supertest": "^7.2.1",
     "prisma": "^6.16.0",
+    "supertest": "^7.2.2",
     "tsx": "^4.20.0",
-    "typescript": "^5.9.0"
+    "typescript": "^5.9.0",
+    "vitest": "^5.0.1"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   }
 }

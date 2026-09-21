@@ -1,4 +1,4 @@
-export const AMMERHA_PLATFORM_FEE_RATE = 0.07;
+export const AMMERHA_PLATFORM_FEE_RATE = 0.1;
 
 export function calculatePlatformFee(servicePrice: number): number {
   return Math.round(servicePrice * AMMERHA_PLATFORM_FEE_RATE * 100) / 100;

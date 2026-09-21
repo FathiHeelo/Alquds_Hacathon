@@ -6,12 +6,15 @@ import { AdminFinanceScreen } from "../../features/admin/screens/AdminFinanceScr
 import { AdminQueueScreen } from "../../features/admin/screens/AdminQueueScreen";
 import { AdminUsersScreen } from "../../features/admin/screens/AdminUsersScreen";
 import { AdminHomeScreen } from "../../features/shell/screens/AdminHomeScreen";
+import { AccessibilitySettingsScreen } from "../../features/settings/screens/AccessibilitySettingsScreen";
 import type { AdminStackParamList } from "./navigation.types";
+import { useTheme } from "../../shared/theme";
 
 const Stack = createNativeStackNavigator<AdminStackParamList>();
 
 export function AdminNavigator() {
-  return <Stack.Navigator screenOptions={{ headerShown: false }}>
+  const { theme } = useTheme();
+  return <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background } }}>
     <Stack.Screen name="AdminDashboard" component={AdminHomeScreen} />
     <Stack.Screen name="AdminVerification">{() => <AdminQueueScreen kind="verification" />}</Stack.Screen>
     <Stack.Screen name="AdminReports">{() => <AdminQueueScreen kind="reports" />}</Stack.Screen>
@@ -19,6 +22,7 @@ export function AdminNavigator() {
     <Stack.Screen name="AdminFinance" component={AdminFinanceScreen} />
     <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
     <Stack.Screen name="AdminAudit" component={AdminAuditScreen} />
+    <Stack.Screen name="AdminSettings" component={AccessibilitySettingsScreen} />
     <Stack.Screen name="AdminCaseDetails" component={AdminCaseDetailsScreen} />
   </Stack.Navigator>;
 }

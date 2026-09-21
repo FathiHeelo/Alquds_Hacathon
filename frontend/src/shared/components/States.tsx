@@ -1,7 +1,8 @@
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
 import { uiText } from "../constants/uiText";
-import { colors, spacing, typography } from "../theme";
+import { spacing, typography, useTheme } from "../theme";
+import { useI18n } from "../i18n/I18nProvider";
 import { Button } from "./Button";
 
 interface StateProps {
@@ -9,19 +10,23 @@ interface StateProps {
 }
 
 function StateLayout({ message, symbol }: StateProps & { symbol: string }) {
+  const { theme, textScale } = useTheme();
+  const { isRTL } = useI18n();
   return (
     <View style={styles.container}>
-      <Text style={styles.symbol}>{symbol}</Text>
-      <Text style={styles.message}>{message}</Text>
+      <Text style={[styles.symbol, { color: theme.primaryPressed }]}>{symbol}</Text>
+      <Text style={[styles.message, { color: theme.textMuted, fontSize: typography.size.sm * textScale, writingDirection: isRTL ? "rtl" : "ltr" }]}>{message}</Text>
     </View>
   );
 }
 
 export function LoadingState({ message = uiText.placeholders.loading }: StateProps) {
+  const { theme, textScale } = useTheme();
+  const { isRTL } = useI18n();
   return (
     <View style={styles.container}>
-      <ActivityIndicator color={colors.primaryPressed} />
-      <Text style={styles.message}>{message}</Text>
+      <ActivityIndicator color={theme.primaryPressed} />
+      <Text style={[styles.message, { color: theme.textMuted, fontSize: typography.size.sm * textScale, writingDirection: isRTL ? "rtl" : "ltr" }]}>{message}</Text>
     </View>
   );
 }
@@ -35,10 +40,12 @@ export function SuccessState({ message = uiText.placeholders.success }: StatePro
 }
 
 export function ErrorState({ message = uiText.placeholders.error, onRetry }: StateProps & { onRetry?: () => void }) {
+  const { theme, textScale } = useTheme();
+  const { isRTL } = useI18n();
   return (
     <View style={styles.container}>
-      <Text style={[styles.symbol, styles.error]}>!</Text>
-      <Text style={styles.message}>{message}</Text>
+      <Text style={[styles.symbol, { color: theme.danger }]}>!</Text>
+      <Text style={[styles.message, { color: theme.textMuted, fontSize: typography.size.sm * textScale, writingDirection: isRTL ? "rtl" : "ltr" }]}>{message}</Text>
       {onRetry ? <Button onPress={onRetry}>{uiText.common.retry}</Button> : null}
     </View>
   );
@@ -46,10 +53,8 @@ export function ErrorState({ message = uiText.placeholders.error, onRetry }: Sta
 
 const styles = StyleSheet.create({
   container: { alignItems: "center", gap: spacing.sm, justifyContent: "center", padding: spacing.lg },
-  symbol: { color: colors.primaryPressed, fontSize: typography.size.xl, fontWeight: typography.weight.bold },
-  error: { color: colors.danger },
+  symbol: { fontSize: typography.size.xl, fontWeight: typography.weight.bold },
   message: {
-    color: colors.textMuted,
     fontFamily: typography.fontFamily,
     fontSize: typography.size.sm,
     textAlign: "center",

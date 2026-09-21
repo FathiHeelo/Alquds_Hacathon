@@ -1,44 +1,65 @@
+import { LocalizedText } from "../../../shared/i18n/LocalizedText";
+import { createAdaptiveStyleSheet } from "../../../shared/theme/adaptiveStyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { AdminStackParamList } from "../../../app/navigation/navigation.types";
-import { adminCases } from "../../admin/adminData";
+import { type AdminCase } from "../../admin/adminData";
 import { AdminHeader } from "../../admin/components/AdminHeader";
 import { colors, shadows, typography } from "../../../shared/theme";
+import { adminApi } from "../../../services/api/adminApi";
+import { loadAdminCases } from "../../admin/services/adminIntegration";
 
 type Navigation = NativeStackNavigationProp<AdminStackParamList>;
 
 const destinations = [
-  { route: "AdminRisk" as const, icon: "shield-half" as const, title: "مركز المخاطر", count: "2 عاجل", color: "#BE123C", background: "#FFF1F2" },
-  { route: "AdminVerification" as const, icon: "id-card" as const, title: "توثيق الفنيين", count: "2 جديد", color: "#047857", background: "#ECFDF5" },
-  { route: "AdminReports" as const, icon: "flag" as const, title: "البلاغات والسلامة", count: "2 مفتوح", color: "#D97706", background: "#FFF7ED" },
-  { route: "AdminFinance" as const, icon: "wallet" as const, title: "المالية والعمولات", count: "اليوم", color: "#8C6D14", background: "#FFF8E3" },
-  { route: "AdminUsers" as const, icon: "people" as const, title: "المستخدمون والفنيون", count: "1,284", color: "#1D4ED8", background: "#DBEAFE" },
-  { route: "AdminAudit" as const, icon: "document-text" as const, title: "سجل الرقابة", count: "آخر إجراء", color: "#475569", background: "#F1F5F9" }
+  { route: "AdminRisk" as const, icon: "shield-half" as const, title: "مركز المخاطر", color: "#BE123C", background: "#FFF1F2" },
+  { route: "AdminVerification" as const, icon: "id-card" as const, title: "توثيق الفنيين", color: "#047857", background: "#ECFDF5" },
+  { route: "AdminReports" as const, icon: "flag" as const, title: "البلاغات والسلامة", color: "#D97706", background: "#FFF7ED" },
+  { route: "AdminFinance" as const, icon: "wallet" as const, title: "المالية والعمولات", color: "#8C6D14", background: "#FFF8E3" },
+  { route: "AdminUsers" as const, icon: "people" as const, title: "المستخدمون والفنيون", color: "#1D4ED8", background: "#DBEAFE" },
+  { route: "AdminAudit" as const, icon: "document-text" as const, title: "سجل الرقابة", color: "#475569", background: "#F1F5F9" }
 ] as const;
 
 export function AdminHomeScreen() {
   const navigation = useNavigation<Navigation>();
-  const risks = adminCases.filter(({ kind }) => kind === "risk");
+  const [summary, setSummary] = useState<Record<string, unknown>>();
+  const [risks, setRisks] = useState<readonly AdminCase[]>([]);
+  const [verifications, setVerifications] = useState<readonly AdminCase[]>([]);
+  const [reports, setReports] = useState<readonly AdminCase[]>([]);
+  const [failed, setFailed] = useState(false);
+  const commissions = summary?.commissions && typeof summary.commissions === "object" ? summary.commissions as Record<string, unknown> : {};
+  const metric = (value: unknown, suffix = "") => typeof value === "number" ? `${value.toLocaleString()}${suffix}` : "—";
+  const tileCount = (route: typeof destinations[number]["route"]) => route === "AdminRisk" ? metric(summary?.openRiskFlags ?? risks.length, " مفتوح") : route === "AdminVerification" ? metric(verifications.length, " جديد") : route === "AdminReports" ? metric(summary?.openReports ?? reports.length, " مفتوح") : route === "AdminUsers" ? metric(summary?.users, " حساب") : route === "AdminAudit" ? "سجل القدس" : "ملخص الخدمة";
+  useEffect(() => {
+    let active = true;
+    void Promise.all([adminApi.summary().catch(() => undefined), loadAdminCases("risk"), loadAdminCases("verification"), loadAdminCases("reports")]).then(([nextSummary, nextRisks, nextVerifications, nextReports]) => {
+      if (!active) return;
+      setSummary(nextSummary); setRisks(nextRisks); setVerifications(nextVerifications); setReports(nextReports); setFailed(!nextSummary && !nextRisks.length && !nextVerifications.length && !nextReports.length);
+    }).catch(() => { if (active) { setSummary(undefined); setRisks([]); setVerifications([]); setReports([]); setFailed(true); } });
+    return () => { active = false; };
+  }, []);
   return <SafeAreaView edges={["top"]} style={styles.safe}>
-    <AdminHeader title="إدارة عَمِّرها المركزية" subtitle="لوحة مكافحة الاحتيال والرقابة المالية" />
+    <AdminHeader title="إدارة عَمِّرها المركزية" subtitle="لوحة مكافحة الاحتيال والرقابة المالية" onSettings={() => navigation.navigate("AdminSettings")} />
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <View style={styles.stats}><Metric label="عمولات اليوم" value="1,480 ₪" color="#047857" /><Metric label="مشتركو Pro" value="68 فني" color="#D69E00" /><Metric label="أمان العمليات" value="98.2%" /></View>
-      <View style={styles.sectionRow}><Text style={styles.sectionTitle}>إدارة المنصة</Text><Text style={styles.live}>تحديث مباشر</Text></View>
-      <View style={styles.grid}>{destinations.map((item) => <Pressable key={item.route} onPress={() => navigation.navigate(item.route)} style={({ pressed }) => [styles.destination, pressed && styles.pressed]}><View style={[styles.destinationIcon, { backgroundColor: item.background }]}><Ionicons name={item.icon} size={20} color={item.color} /></View><Text style={styles.destinationTitle}>{item.title}</Text><Text style={[styles.destinationCount, { color: item.color }]}>{item.count}</Text><Ionicons name="chevron-back" size={15} color="#94A3B8" /></Pressable>)}</View>
-      <View style={styles.sectionRow}><Text style={styles.sectionTitle}>تنبيهات الذكاء للمخاطر</Text><Pressable onPress={() => navigation.navigate("AdminRisk")}><Text style={styles.openAll}>عرض الكل</Text></Pressable></View>
-      <View style={styles.alertCount}><Ionicons name="alert-circle" size={14} color="#BE123C" /><Text style={styles.alertCountText}>2 حالة تتطلب المراجعة الآن</Text></View>
-      {risks.map((item) => <Pressable key={item.id} onPress={() => navigation.navigate("AdminCaseDetails", { caseId: item.id, kind: item.kind })} style={({ pressed }) => [styles.riskCard, item.severity === "critical" ? styles.critical : styles.warning, pressed && styles.pressed]}><View style={styles.riskTop}><Text style={[styles.riskBadge, item.severity === "critical" ? styles.criticalBadge : styles.warningBadge]}>{item.title}</Text><Text style={styles.time}>{item.time}</Text></View><Text style={styles.description}>{item.description}</Text><View style={styles.riskBottom}><Text style={styles.subject}>{item.subject} • {item.area}</Text><Ionicons name="chevron-back" size={16} color="#94A3B8" /></View></Pressable>)}
-      <Pressable onPress={() => navigation.navigate("AdminVerification")} style={styles.verification}><View style={styles.verifyIcon}><Ionicons name="id-card" size={22} color="#047857" /></View><View style={styles.verifyCopy}><Text style={styles.verifyTitle}>طلبات توثيق بانتظارك</Text><Text style={styles.verifyText}>سعيد كمال • فني تكييف • الشيخ جراح</Text></View><View style={styles.verifyButton}><Text style={styles.verifyButtonText}>مراجعة</Text></View></Pressable>
+      <View style={styles.stats}><Metric label="إجمالي العمولات" value={metric(commissions.platformFees, " ₪")} color="#047857" /><Metric label="مشتركو Pro" value={metric(summary?.proSubscribers, " فني")} color="#D69E00" /><Metric label="أعمال مكتملة" value={metric(summary?.completedJobs)} /></View>
+      {failed ? <View style={styles.alertCount}><Ionicons name="alert-circle" size={14} color="#BE123C" /><LocalizedText style={styles.alertCountText}>تعذر تحميل بيانات لوحة الإدارة.</LocalizedText></View> : null}
+      <View style={styles.sectionRow}><LocalizedText style={styles.sectionTitle}>إدارة المنصة</LocalizedText><LocalizedText style={styles.live}>بيانات القدس</LocalizedText></View>
+      <View style={styles.grid}>{destinations.map((item) => <Pressable key={item.route} onPress={() => navigation.navigate(item.route)} style={({ pressed }) => [styles.destination, pressed && styles.pressed]}><View style={[styles.destinationIcon, { backgroundColor: item.background }]}><Ionicons name={item.icon} size={20} color={item.color} /></View><LocalizedText style={styles.destinationTitle}>{item.title}</LocalizedText><LocalizedText style={[styles.destinationCount, { color: item.color }]}>{tileCount(item.route)}</LocalizedText><Ionicons name="chevron-back" size={15} color="#94A3B8" /></Pressable>)}</View>
+      <View style={styles.sectionRow}><LocalizedText style={styles.sectionTitle}>تنبيهات الذكاء للمخاطر</LocalizedText><Pressable onPress={() => navigation.navigate("AdminRisk")}><LocalizedText style={styles.openAll}>عرض الكل</LocalizedText></Pressable></View>
+      <View style={styles.alertCount}><Ionicons name="alert-circle" size={14} color="#BE123C" /><LocalizedText style={styles.alertCountText}>{metric(summary?.openRiskFlags ?? risks.length)} حالة مفتوحة للمراجعة</LocalizedText></View>
+      {risks.slice(0, 2).map((item) => <Pressable key={item.id} onPress={() => navigation.navigate("AdminCaseDetails", { caseId: item.id, kind: item.kind })} style={({ pressed }) => [styles.riskCard, item.severity === "critical" ? styles.critical : styles.warning, pressed && styles.pressed]}><View style={styles.riskTop}><LocalizedText style={[styles.riskBadge, item.severity === "critical" ? styles.criticalBadge : styles.warningBadge]}>{item.title}</LocalizedText><LocalizedText style={styles.time}>{item.time}</LocalizedText></View><LocalizedText style={styles.description}>{item.description}</LocalizedText><View style={styles.riskBottom}><LocalizedText style={styles.subject}>{item.subject} • {item.area}</LocalizedText><Ionicons name="chevron-back" size={16} color="#94A3B8" /></View></Pressable>)}
+      {verifications[0] ? <Pressable onPress={() => navigation.navigate("AdminVerification")} style={styles.verification}><View style={styles.verifyIcon}><Ionicons name="id-card" size={22} color="#047857" /></View><View style={styles.verifyCopy}><LocalizedText style={styles.verifyTitle}>طلبات توثيق بانتظارك</LocalizedText><LocalizedText style={styles.verifyText}>{verifications[0].title} • {verifications[0].subject} • {verifications[0].area}</LocalizedText></View><View style={styles.verifyButton}><LocalizedText style={styles.verifyButtonText}>مراجعة</LocalizedText></View></Pressable> : null}
     </ScrollView>
   </SafeAreaView>;
 }
 
-function Metric({ label, value, color = colors.text }: { label: string; value: string; color?: string }) { return <View style={styles.metric}><Text style={styles.metricLabel}>{label}</Text><Text style={[styles.metricValue, { color }]}>{value}</Text></View>; }
+function Metric({ label, value, color = colors.text }: { label: string; value: string; color?: string }) { return <View style={styles.metric}><LocalizedText style={styles.metricLabel}>{label}</LocalizedText><LocalizedText style={[styles.metricValue, { color }]}>{value}</LocalizedText></View>; }
 
-const styles = StyleSheet.create({
+const styles = createAdaptiveStyleSheet({
   safe: { backgroundColor: "#F8F7F4", flex: 1 }, content: { gap: 10, padding: 14, paddingBottom: 30 }, stats: { flexDirection: "row-reverse", gap: 7 }, metric: { ...shadows.subtle, alignItems: "center", backgroundColor: "white", borderColor: "#ECE7DC", borderRadius: 14, borderWidth: 1, flex: 1, padding: 10 }, metricLabel: { color: "#94A3B8", fontFamily: typography.fontFamily, fontSize: 7, textAlign: "center" }, metricValue: { fontFamily: typography.fontFamily, fontSize: 12, fontWeight: "800", marginTop: 3, textAlign: "center" }, sectionRow: { alignItems: "center", flexDirection: "row-reverse", justifyContent: "space-between", marginTop: 5 }, sectionTitle: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 13, fontWeight: "800", textAlign: "right" }, live: { backgroundColor: "#ECFDF5", borderRadius: 8, color: "#047857", fontFamily: typography.fontFamily, fontSize: 7, fontWeight: "700", paddingHorizontal: 7, paddingVertical: 4 }, openAll: { color: "#8C6D14", fontFamily: typography.fontFamily, fontSize: 8, fontWeight: "700" }, grid: { flexDirection: "row-reverse", flexWrap: "wrap", gap: 8 }, destination: { ...shadows.subtle, alignItems: "center", backgroundColor: "white", borderColor: "#ECE7DC", borderRadius: 16, borderWidth: 1, flexDirection: "row-reverse", gap: 7, minHeight: 67, padding: 9, width: "48.8%" }, destinationIcon: { alignItems: "center", borderRadius: 11, height: 39, justifyContent: "center", width: 39 }, destinationTitle: { color: colors.text, flex: 1, fontFamily: typography.fontFamily, fontSize: 9, fontWeight: "700", textAlign: "right" }, destinationCount: { fontFamily: typography.fontFamily, fontSize: 7, fontWeight: "700", position: "absolute", bottom: 6, right: 55 }, pressed: { opacity: 0.72, transform: [{ scale: 0.985 }] }, alertCount: { alignItems: "center", alignSelf: "flex-start", backgroundColor: "#FFF1F2", borderRadius: 8, flexDirection: "row-reverse", gap: 4, paddingHorizontal: 7, paddingVertical: 5 }, alertCountText: { color: "#BE123C", fontFamily: typography.fontFamily, fontSize: 7, fontWeight: "700" }, riskCard: { ...shadows.subtle, backgroundColor: "white", borderColor: "#ECE7DC", borderRadius: 16, borderRightWidth: 4, borderWidth: 1, padding: 11 }, critical: { borderRightColor: "#E11D48" }, warning: { borderRightColor: "#F59E0B" }, riskTop: { alignItems: "center", flexDirection: "row-reverse", justifyContent: "space-between" }, riskBadge: { borderRadius: 7, fontFamily: typography.fontFamily, fontSize: 8, fontWeight: "700", overflow: "hidden", paddingHorizontal: 6, paddingVertical: 4 }, criticalBadge: { backgroundColor: "#FFE4E6", color: "#9F1239" }, warningBadge: { backgroundColor: "#FEF3C7", color: "#92400E" }, time: { color: "#94A3B8", fontFamily: typography.fontFamily, fontSize: 7 }, description: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 9, lineHeight: 16, marginTop: 7, textAlign: "right" }, riskBottom: { alignItems: "center", borderTopColor: "#F0ECE3", borderTopWidth: 1, flexDirection: "row-reverse", marginTop: 7, paddingTop: 7 }, subject: { color: colors.textMuted, flex: 1, fontFamily: typography.fontFamily, fontSize: 7, textAlign: "right" }, verification: { alignItems: "center", backgroundColor: "white", borderColor: "#ECE7DC", borderRadius: 16, borderWidth: 1, flexDirection: "row-reverse", gap: 8, marginTop: 3, padding: 11 }, verifyIcon: { alignItems: "center", backgroundColor: "#ECFDF5", borderRadius: 11, height: 42, justifyContent: "center", width: 42 }, verifyCopy: { flex: 1 }, verifyTitle: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 10, fontWeight: "800", textAlign: "right" }, verifyText: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 7, marginTop: 3, textAlign: "right" }, verifyButton: { backgroundColor: "#047857", borderRadius: 9, paddingHorizontal: 10, paddingVertical: 7 }, verifyButtonText: { color: "white", fontFamily: typography.fontFamily, fontSize: 8, fontWeight: "700" }
 });

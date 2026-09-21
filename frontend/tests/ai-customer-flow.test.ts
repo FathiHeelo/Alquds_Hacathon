@@ -17,28 +17,32 @@ async function setup(ai: CustomerAiClient = customerAiClient) {
 
 test("old_city_plumbing_leak: saved request to public facade, price and existing technician", async () => {
   const { saved, deps } = await setup();
-  const result = await loadCustomerAiFlow(saved.id, deps);
+  const initial = await loadCustomerAiFlow(saved.id, deps);
+  assert.equal(initial.awaitingAnswers, true);
+  assert.equal(initial.diagnosis?.followUpQuestions.length, 2);
+  const answers = [{ questionId: "leak_when_off", value: "no" }, { questionId: "leak_source", value: "drain" }];
+  const result = await loadCustomerAiFlow(saved.id, deps, undefined, answers);
   assert.deepEqual(result.unavailable, []);
   assert.equal(result.request.id, saved.id);
-  assert.equal(result.structured?.description, saved.description);
+  assert.equal(result.structured?.normalizedDescription, saved.description);
   assert.ok(result.diagnosis?.likelyIssue);
   assert.ok(result.price && result.price.max >= result.price.min);
   assert.equal(result.price?.currency, "ILS");
   assert.equal(result.recommendations[0]?.technician.id, "tech-tariq-maqdisi");
   assert.ok(result.recommendations[0]?.match);
-  assert.deepEqual(await loadCustomerAiFlow(saved.id, deps), result);
+  assert.deepEqual(await loadCustomerAiFlow(saved.id, deps, undefined, answers), result);
 });
 
 test("AI unavailable preserves manual request and unranked F02 technicians", async () => {
   const fail = async (): Promise<never> => { throw new Error("offline"); };
-  const { saved, deps } = await setup({ structureRequest: fail, diagnose: fail, estimatePrice: fail, match: fail });
+  const { saved, deps } = await setup({ structureRequest: fail, diagnose: fail, estimatePrice: fail, match: fail, assessRisk: fail });
   const result = await loadCustomerAiFlow(saved.id, deps);
   assert.equal(result.request.description, saved.description);
   assert.equal(result.diagnosis, undefined);
   assert.equal(result.price, undefined);
   assert.equal(result.recommendations[0]?.technician.id, "tech-tariq-maqdisi");
   assert.equal(result.recommendations[0]?.match, undefined);
-  assert.deepEqual([...result.unavailable].sort(), ["diagnosis", "matching", "price", "structure"]);
+  assert.deepEqual([...result.unavailable].sort(), ["diagnosis", "risk", "structure"]);
 });
 
 test("missing request is recoverable and never calls AI", async () => {
@@ -49,9 +53,9 @@ test("missing request is recoverable and never calls AI", async () => {
 
 test("low confidence and independent price failure keep diagnosis", async () => {
   const { saved, deps } = await setup({ ...customerAiClient,
-    diagnose: async (request) => ({ ...(await customerAiClient.diagnose(request)), confidence: 0.2 }),
+    diagnose: async (request, answers) => ({ ...(await customerAiClient.diagnose(request, answers)), confidence: 0.2 }),
     estimatePrice: async () => { throw new Error("price unavailable"); } });
-  const result = await loadCustomerAiFlow(saved.id, deps);
+  const result = await loadCustomerAiFlow(saved.id, deps, undefined, [{ questionId: "leak_when_off", value: "no" }, { questionId: "leak_source", value: "drain" }]);
   assert.ok(result.diagnosis && isLowConfidence(result.diagnosis.confidence));
   assert.equal(isLowConfidence(0.9), false);
   assert.equal(result.price, undefined);
@@ -60,12 +64,13 @@ test("low confidence and independent price failure keep diagnosis", async () => 
 
 test("repository failure and empty matching both keep the saved request", async () => {
   const { saved, deps } = await setup();
+  const answers = [{ questionId: "leak_when_off", value: "no" }, { questionId: "leak_source", value: "drain" }];
   const failed = await loadCustomerAiFlow(saved.id, { ...deps, technicians: {
     ...deps.technicians, getById: async () => null, findNearby: async () => { throw new Error("offline"); }
-  } });
+  } }, undefined, answers);
   assert.ok(failed.unavailable.includes("technicians"));
   assert.ok(failed.diagnosis);
-  const empty = await loadCustomerAiFlow(saved.id, { ...deps, ai: { ...customerAiClient, match: async () => [] } });
+  const empty = await loadCustomerAiFlow(saved.id, { ...deps, ai: { ...customerAiClient, match: async () => [] } }, undefined, answers);
   assert.deepEqual(empty.recommendations, []);
   assert.equal(empty.request.id, saved.id);
 });

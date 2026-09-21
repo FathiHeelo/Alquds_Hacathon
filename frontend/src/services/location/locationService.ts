@@ -1,5 +1,6 @@
 import * as Location from "expo-location";
 
+import { appConfig } from "../../app/config/appConfig";
 import type { CustomerLocation } from "../../domain/models/location";
 
 export const jerusalemDemoLocation: CustomerLocation = {
@@ -9,9 +10,10 @@ export const jerusalemDemoLocation: CustomerLocation = {
   source: "demo"
 };
 
-export async function getCustomerLocation(): Promise<CustomerLocation> {
+export async function getCustomerLocation(): Promise<CustomerLocation | undefined> {
+  if (appConfig.demoMode) return jerusalemDemoLocation;
   try {
-    const permission = await Location.getForegroundPermissionsAsync();
+    const permission = await Location.requestForegroundPermissionsAsync();
     if (!permission.granted) return jerusalemDemoLocation;
 
     const position = await Location.getCurrentPositionAsync({

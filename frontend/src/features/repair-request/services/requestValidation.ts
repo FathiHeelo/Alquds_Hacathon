@@ -9,8 +9,8 @@ export function validateRepairRequest(draft: RepairRequestDraft): RequestErrors 
   if (!draft.description.trim()) errors.description = "اكتب وصفاً للمشكلة قبل المتابعة.";
   if (!serviceCategories.some(({ id }) => id === draft.category)) errors.category = "اختر نوع الخدمة.";
   const { latitude, longitude, label } = draft.location;
-  if (!label.trim() || !Number.isFinite(latitude) || !Number.isFinite(longitude) ||
-      Math.abs(latitude) > 90 || Math.abs(longitude) > 180) errors.location = "أكد عنوان الصيانة.";
+  const hasCoordinates = latitude != null || longitude != null;
+  if (!label.trim() || (hasCoordinates && (latitude == null || longitude == null || !Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180))) errors.location = "أكد عنوان الصيانة.";
   if (!Object.values(Urgency).includes(draft.urgency)) errors.urgency = "اختر درجة الاستعجال.";
   if (!Object.values(PreferredTime).includes(draft.preferredTime)) errors.preferredTime = "اختر الوقت المناسب.";
   return errors;

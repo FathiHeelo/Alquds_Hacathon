@@ -52,10 +52,9 @@ export function useRepairRequest(technicianId?: string) {
     let active = true;
 
     void getCustomerLocation().then((location) => {
-      if (active && !locationEdited.current) {
+      if (active && location && !locationEdited.current) {
         setDraft((value) => ({ ...value, location }));
       }
-    });
 
     return () => {
       active = false;

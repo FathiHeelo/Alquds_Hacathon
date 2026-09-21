@@ -21,13 +21,6 @@ export const adminCases: readonly AdminCase[] = [
   { id: "report-description", kind: "report", title: "وصف طلب غير دقيق", subject: "الطلب #AM-2418", area: "الطور", time: "أمس", description: "الفني أفاد أن المشكلة الفعلية تختلف عن الصور والوصف المرسل.", severity: "normal", evidence: ["صورتان مرفقتان", "تشخيص AI بثقة 62%", "لم يبدأ العمل بعد"] }
 ] as const;
 
-export const platformUsers = [
-  { id: "u1", name: "طارق المقدسي", role: "فني سباكة", status: "موثق • Pro", jobs: 154, tone: "success" as const },
-  { id: "u2", name: "سعيد كمال", role: "فني تكييف", status: "بانتظار التوثيق", jobs: 0, tone: "warning" as const },
-  { id: "u3", name: "أحمد ناصر", role: "عميل", status: "نشط", jobs: 12, tone: "success" as const },
-  { id: "u4", name: "م. ع.", role: "فني صيانة", status: "قيد التدقيق", jobs: 46, tone: "danger" as const }
-] as const;
-
 export const auditEntries = [
   { action: "اعتماد هوية فني", actor: "المشرف نور", target: "سعيد كمال", time: "اليوم • 10:32 ص", color: "#047857" },
   { action: "بدء تدقيق مخاطر", actor: "النظام الذكي", target: "الحساب م. ع.", time: "اليوم • 9:48 ص", color: "#D97706" },
@@ -35,4 +28,8 @@ export const auditEntries = [
   { action: "إغلاق بلاغ عميل", actor: "فريق السلامة", target: "البلاغ AM-2387", time: "أمس • 2:05 م", color: "#1D4ED8" }
 ] as const;
 
-export function getAdminCase(id: string) { return adminCases.find((item) => item.id === id); }
+let apiCases: readonly AdminCase[] = [];
+export function cacheAdminCases(items: readonly AdminCase[], kind?: AdminCaseKind) {
+  apiCases = kind ? [...apiCases.filter((item) => item.kind !== kind), ...items] : [...apiCases.filter((existing) => !items.some((item) => item.id === existing.id)), ...items];
+}
+export function getAdminCase(id: string) { return apiCases.find((item) => item.id === id) ?? adminCases.find((item) => item.id === id); }

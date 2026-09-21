@@ -1,25 +1,40 @@
+import { LocalizedText } from "../../../shared/i18n/LocalizedText";
+import { createAdaptiveStyleSheet } from "../../../shared/theme/adaptiveStyles";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { AdminStackParamList } from "../../../app/navigation/navigation.types";
 import { colors, shadows, typography } from "../../../shared/theme";
 import { AdminHeader } from "../components/AdminHeader";
+import { adminApi } from "../../../services/api/adminApi";
 
-const days = [{ label: "س", value: 36 }, { label: "ح", value: 52 }, { label: "ن", value: 43 }, { label: "ث", value: 68 }, { label: "ر", value: 56 }, { label: "خ", value: 84 }, { label: "ج", value: 72 }];
-const transactions = [{ title: "عمولة صيانة #AM-2421", amount: "+18 ₪", time: "10:22 ص" }, { title: "اشتراك Pro • طارق", amount: "+49 ₪", time: "9:40 ص" }, { title: "استرداد طلب #AM-2412", amount: "-35 ₪", time: "أمس" }];
+const week = [
+  { day: "السبت", value: 42 }, { day: "الأحد", value: 68 }, { day: "الاثنين", value: 55 },
+  { day: "الثلاثاء", value: 83 }, { day: "الأربعاء", value: 72 }, { day: "الخميس", value: 96 }
+] as const;
+const transactions = [
+  { title: "عمولة صيانة كهرباء • الشيخ جراح", time: "اليوم • 11:20 ص", amount: "+14.5 ₪" },
+  { title: "عمولة سباكة • باب الساهرة", time: "أمس • 4:10 م", amount: "+11 ₪" },
+  { title: "تسوية مستحقات فني Pro", time: "أمس • 1:35 م", amount: "-100 ₪" }
+] as const;
 
 export function AdminFinanceScreen({ navigation }: NativeStackScreenProps<AdminStackParamList, "AdminFinance">) {
+  const [summary, setSummary] = useState<Record<string, unknown>>();
+  const [failed, setFailed] = useState(false);
+  useEffect(() => { let active = true; void adminApi.summary().then((value) => { if (active) setSummary(value); }).catch(() => { if (active) setFailed(true); }); return () => { active = false; }; }, []);
+  const commissions = summary?.commissions && typeof summary.commissions === "object" ? summary.commissions as Record<string, unknown> : {};
+  const amount = (value: unknown) => typeof value === "number" ? `${value.toLocaleString()} ₪` : "—";
   return <SafeAreaView edges={["top", "bottom"]} style={styles.safe}><AdminHeader title="المالية والعمولات" subtitle="إيرادات المنصة والتسويات" onBack={() => navigation.goBack()} /><ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-    <View style={styles.hero}><Text style={styles.heroLabel}>صافي إيرادات هذا الشهر</Text><Text style={styles.heroValue}>38,420 ₪</Text><View style={styles.heroTrend}><Ionicons name="trending-up" size={14} color="#6EE7B7" /><Text style={styles.heroTrendText}>+12.8% عن الشهر الماضي</Text></View></View>
-    <View style={styles.metrics}><Metric label="عمولات اليوم" value="1,480 ₪" /><Metric label="اشتراكات Pro" value="3,332 ₪" /><Metric label="بانتظار التسوية" value="820 ₪" /></View>
-    <View style={styles.card}><View style={styles.cardTop}><Text style={styles.cardTitle}>نشاط آخر 7 أيام</Text><Text style={styles.cardHint}>بالشيكل</Text></View><View style={styles.chart}>{days.map((day) => <View key={day.label} style={styles.barWrap}><View style={[styles.bar, { height: day.value }]} /><Text style={styles.day}>{day.label}</Text></View>)}</View></View>
-    <View style={styles.card}><Text style={styles.cardTitle}>آخر الحركات المالية</Text>{transactions.map((item, index) => <View key={item.title} style={[styles.transaction, index === transactions.length - 1 && styles.last]}><View style={styles.transactionIcon}><Ionicons name={item.amount.startsWith("-") ? "arrow-undo" : "cash"} size={17} color={item.amount.startsWith("-") ? "#BE123C" : "#047857"} /></View><View style={styles.transactionCopy}><Text style={styles.transactionTitle}>{item.title}</Text><Text style={styles.time}>{item.time}</Text></View><Text style={[styles.amount, item.amount.startsWith("-") && styles.negative]}>{item.amount}</Text></View>)}</View>
-    <Pressable onPress={() => Alert.alert("تقرير مالي", "تم تجهيز تقرير المالية بصيغة قابلة للتصدير.")} style={styles.primary}><Ionicons name="download" size={17} color={colors.text} /><Text style={styles.primaryText}>تصدير التقرير المالي</Text></Pressable>
+    <View style={styles.hero}><LocalizedText style={styles.heroLabel}>إجمالي عمولات المنصة المسجلة</LocalizedText><LocalizedText style={styles.heroValue}>{amount(commissions.platformFees)}</LocalizedText><LocalizedText style={styles.heroTrendText}>{failed ? "تعذر تحميل ملخص المالية" : "القيمة الإجمالية المحسوبة من سجلات الأعمال المكتملة"}</LocalizedText></View>
+    <View style={styles.metrics}><Metric label="إجمالي الأعمال" value={amount(commissions.gross)} /><Metric label="أعمال مالية مسجلة" value={typeof commissions.jobs === "number" ? String(commissions.jobs) : "—"} /><Metric label="مشتركو Pro النشطون" value={typeof summary?.proSubscribers === "number" ? String(summary.proSubscribers) : "—"} /></View>
+    <View style={styles.card}><View style={styles.cardTop}><LocalizedText style={styles.cardTitle}>حركة الأسبوع في القدس</LocalizedText><LocalizedText style={styles.cardHint}>بيانات عرض</LocalizedText></View><View style={styles.chart}>{week.map((item) => <View key={item.day} style={styles.barWrap}><View style={[styles.bar, { height: item.value }]} /><LocalizedText style={styles.day}>{item.day}</LocalizedText></View>)}</View></View>
+    <View style={styles.card}><LocalizedText style={styles.cardTitle}>آخر الحركات</LocalizedText>{transactions.map((item, index) => <View key={item.title} style={[styles.transaction, index === transactions.length - 1 && styles.last]}><View style={styles.transactionIcon}><Ionicons name="receipt-outline" size={17} color="#8C6D14" /></View><View style={styles.transactionCopy}><LocalizedText style={styles.transactionTitle}>{item.title}</LocalizedText><LocalizedText style={styles.time}>{item.time}</LocalizedText></View><LocalizedText style={[styles.amount, item.amount.startsWith("-") && styles.negative]}>{item.amount}</LocalizedText></View>)}</View>
   </ScrollView></SafeAreaView>;
 }
-function Metric({ label, value }: { label: string; value: string }) { return <View style={styles.metric}><Text style={styles.metricLabel}>{label}</Text><Text style={styles.metricValue}>{value}</Text></View>; }
-const styles = StyleSheet.create({
+function Metric({ label, value }: { label: string; value: string }) { return <View style={styles.metric}><LocalizedText style={styles.metricLabel}>{label}</LocalizedText><LocalizedText style={styles.metricValue}>{value}</LocalizedText></View>; }
+const styles = createAdaptiveStyleSheet({
   safe: { backgroundColor: "#F8F7F4", flex: 1 }, content: { gap: 11, padding: 14, paddingBottom: 30 }, hero: { ...shadows.raised, backgroundColor: colors.secondary, borderRadius: 21, padding: 17 }, heroLabel: { color: "#CBD5E1", fontFamily: typography.fontFamily, fontSize: 9, textAlign: "right" }, heroValue: { color: colors.primary, fontFamily: typography.fontFamily, fontSize: 29, fontWeight: "900", marginTop: 3, textAlign: "right" }, heroTrend: { alignItems: "center", flexDirection: "row-reverse", gap: 4, marginTop: 5 }, heroTrendText: { color: "#6EE7B7", fontFamily: typography.fontFamily, fontSize: 8 }, metrics: { flexDirection: "row-reverse", gap: 7 }, metric: { ...shadows.subtle, alignItems: "center", backgroundColor: "white", borderColor: "#ECE7DC", borderRadius: 13, borderWidth: 1, flex: 1, padding: 9 }, metricLabel: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 7, textAlign: "center" }, metricValue: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 10, fontWeight: "800", marginTop: 3, textAlign: "center" }, card: { ...shadows.subtle, backgroundColor: "white", borderColor: "#ECE7DC", borderRadius: 17, borderWidth: 1, padding: 12 }, cardTop: { flexDirection: "row-reverse", justifyContent: "space-between" }, cardTitle: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 11, fontWeight: "800", textAlign: "right" }, cardHint: { color: "#94A3B8", fontFamily: typography.fontFamily, fontSize: 7 }, chart: { alignItems: "flex-end", flexDirection: "row-reverse", gap: 10, height: 110, justifyContent: "space-around", marginTop: 10 }, barWrap: { alignItems: "center", flex: 1, justifyContent: "flex-end" }, bar: { backgroundColor: colors.primary, borderRadius: 5, minHeight: 12, width: 16 }, day: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 7, marginTop: 5 }, transaction: { alignItems: "center", borderBottomColor: "#F0ECE3", borderBottomWidth: 1, flexDirection: "row-reverse", gap: 8, minHeight: 59 }, last: { borderBottomWidth: 0 }, transactionIcon: { alignItems: "center", backgroundColor: "#F8F7F4", borderRadius: 10, height: 35, justifyContent: "center", width: 35 }, transactionCopy: { flex: 1 }, transactionTitle: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 9, fontWeight: "700", textAlign: "right" }, time: { color: "#94A3B8", fontFamily: typography.fontFamily, fontSize: 7, marginTop: 2, textAlign: "right" }, amount: { color: "#047857", fontFamily: typography.fontFamily, fontSize: 10, fontWeight: "800" }, negative: { color: "#BE123C" }, primary: { alignItems: "center", backgroundColor: colors.primary, borderRadius: 14, flexDirection: "row-reverse", gap: 6, justifyContent: "center", minHeight: 49 }, primaryText: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 10, fontWeight: "800" }
 });

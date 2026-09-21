@@ -3,6 +3,7 @@ import type {
   RepairRequestRepository
 } from "../../domain/contracts/repairRequestRepository";
 import type { RepairRequest } from "../../domain/models/repairRequest";
+import { technicianRequests } from "../../features/technician/technicianData";
 import { validateRepairRequest } from "../../features/repair-request/services/requestValidation";
 import { AppError } from "../../shared/errors/AppError";
 
@@ -28,5 +29,21 @@ export class DemoRepairRequestRepository implements RepairRequestRepository {
   async getRequest(id: string): Promise<RepairRequest | undefined> {
     const request = this.requests.get(id);
     return request ? copy(request) : undefined;
+  }
+
+  async listMine(): Promise<readonly RepairRequest[]> {
+    return [...this.requests.values()].map(copy);
+  }
+
+  async listForTechnician() {
+    return technicianRequests;
+  }
+
+  async updateAiAssessment(id: string, diagnosis: NonNullable<RepairRequest["aiSummary"]>["diagnosis"]): Promise<RepairRequest> {
+    const current = this.requests.get(id);
+    if (!current || !diagnosis) throw new AppError("VALIDATION_ERROR", "تعذر تحديث تشخيص الطلب.");
+    const updated: RepairRequest = { ...current, category: diagnosis.category, urgency: diagnosis.urgency, aiSummary: { diagnosis } };
+    this.requests.set(id, copy(updated));
+    return copy(updated);
   }
 }
