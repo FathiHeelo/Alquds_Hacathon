@@ -4,7 +4,6 @@ import type { CustomerLocation } from "../../../domain/models/location";
 import type { ServiceCategoryId, Technician, TechnicianSearchCriteria } from "../../../domain/models/technician";
 import { technicianRepository } from "../../../services/repositories";
 import { getCustomerLocation, jerusalemDemoLocation } from "../../../services/location/locationService";
-import { appConfig } from "../../../app/config/appConfig";
 
 
 export interface CustomerMapFilters {
@@ -23,7 +22,7 @@ const initialFilters: CustomerMapFilters = {
 };
 
 export function useCustomerMap() {
-  const [location, setLocation] = useState<CustomerLocation | undefined>(() => appConfig.demoMode ? jerusalemDemoLocation : undefined);
+  const [location, setLocation] = useState<CustomerLocation | undefined>(() => jerusalemDemoLocation);
   const [filters, setFilters] = useState<CustomerMapFilters>(initialFilters);
   const [allTechnicians, setAllTechnicians] = useState<readonly Technician[]>([]);
   const [selectedId, setSelectedId] = useState<string>();

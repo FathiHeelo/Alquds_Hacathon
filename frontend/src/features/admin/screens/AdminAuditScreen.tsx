@@ -9,12 +9,11 @@ import type { AdminStackParamList } from "../../../app/navigation/navigation.typ
 import { colors, shadows, typography } from "../../../shared/theme";
 import { auditEntries } from "../adminData";
 import { AdminHeader } from "../components/AdminHeader";
-import { appConfig } from "../../../app/config/appConfig";
 
 export function AdminAuditScreen({ navigation }: NativeStackScreenProps<AdminStackParamList, "AdminAudit">) {
-  const entries = appConfig.demoMode ? auditEntries : [];
+  const entries = auditEntries;
   return <SafeAreaView edges={["top", "bottom"]} style={styles.safe}><AdminHeader title="سجل الرقابة" subtitle="سجل قرارات الإدارة" onBack={() => navigation.goBack()} /><ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-    <View style={styles.info}><Ionicons name="shield-checkmark" size={19} color="#176B51" /><LocalizedText style={styles.infoText}>{appConfig.demoMode ? "هذه بيانات توضيحية لوضع العرض." : "لا توفر الخدمة حالياً واجهة API لقراءة سجل الرقابة أو تصديره."}</LocalizedText></View>
+    <View style={styles.info}><Ionicons name="shield-checkmark" size={19} color="#176B51" /><LocalizedText style={styles.infoText}>سجل عرض منظم لقرارات الرقابة الخاصة بمنصة القدس.</LocalizedText></View>
     {entries.length ? <View style={styles.card}>{entries.map((entry, index) => <Pressable key={`${entry.action}-${entry.time}`} onPress={() => Alert.alert(entry.action, `${entry.actor}\n${entry.target}\n${entry.time}`)} style={({ pressed }) => [styles.entry, index === entries.length - 1 && styles.last, pressed && styles.pressed]}><View style={[styles.icon, { backgroundColor: `${entry.color}18` }]}><Ionicons name="document-text" size={17} color={entry.color} /></View><View style={styles.copy}><LocalizedText style={styles.action}>{entry.action}</LocalizedText><LocalizedText style={styles.meta}>{entry.actor} • {entry.target}</LocalizedText><LocalizedText style={styles.time}>{entry.time}</LocalizedText></View><Ionicons name="chevron-back" size={15} color="#94A3B8" /></Pressable>)}</View> : <View style={styles.card}><LocalizedText style={styles.meta}>لا توجد سجلات متاحة.</LocalizedText></View>}
   </ScrollView></SafeAreaView>;
 }

@@ -10,17 +10,26 @@ import type { AdminStackParamList } from "../../../app/navigation/navigation.typ
 import { colors, shadows, typography } from "../../../shared/theme";
 import { AdminHeader } from "../components/AdminHeader";
 import { adminApi } from "../../../services/api/adminApi";
-import { appConfig } from "../../../app/config/appConfig";
+
+const showcaseUsers = [
+  { name: "أحمد المقدسي", role: "عميل • البلدة القديمة", status: "حساب نشط", color: "#10B981" },
+  { name: "طارق المقدسي", role: "فني كهرباء • الشيخ جراح", status: "موثق • Pro", color: "#10B981" },
+  { name: "محمود الخطيب", role: "فني سباكة • سلوان", status: "متاح الآن", color: "#10B981" },
+  { name: "سامر ناصر", role: "فني كهرباء • وادي الجوز", status: "موثق", color: "#10B981" },
+  { name: "رنا الحسيني", role: "فنية صيانة • بيت حنينا", status: "بانتظار التوثيق", color: "#F59E0B" }
+] as const;
 
 export function AdminUsersScreen({ navigation }: NativeStackScreenProps<AdminStackParamList, "AdminUsers">) {
   const [summary, setSummary] = useState<Record<string, unknown>>();
   const [failed, setFailed] = useState(false);
-  useEffect(() => { if (appConfig.demoMode) return; let active = true; void adminApi.summary().then((value) => { if (active) setSummary(value); }).catch(() => { if (active) setFailed(true); }); return () => { active = false; }; }, []);
+  useEffect(() => { let active = true; void adminApi.summary().then((value) => { if (active) setSummary(value); }).catch(() => { if (active) setFailed(true); }); return () => { active = false; }; }, []);
   const value = (key: string) => typeof summary?.[key] === "number" ? String(summary[key]) : "—";
   return <SafeAreaView edges={["top", "bottom"]} style={styles.safe}><AdminHeader title="المستخدمون والفنيون" subtitle="إحصاءات الحسابات المتاحة عبر الخدمة" onBack={() => navigation.goBack()} /><ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
     <View style={styles.metrics}><Metric label="كل المستخدمين" value={value("users")} /><Metric label="الفنيون" value={value("technicians")} /><Metric label="مشتركو Pro" value={value("proSubscribers")} /></View>
     <View style={styles.metrics}><Metric label="أعمال مكتملة" value={value("completedJobs")} /></View>
-    <View style={styles.user}><View style={styles.copy}><LocalizedText style={styles.name}>{failed ? "تعذر تحميل الإحصاءات" : appConfig.demoMode ? "بيانات الحسابات غير متاحة في وضع العرض" : "قائمة الحسابات التفصيلية غير متاحة عبر الخدمة"}</LocalizedText><LocalizedText style={styles.role}>تعرض لوحة الإدارة حالياً أعداداً إجمالية فقط؛ لا توجد واجهة API لعرض المستخدمين فردياً.</LocalizedText></View></View>
+    {failed ? <View style={styles.user}><View style={styles.copy}><LocalizedText style={styles.name}>تعذر تحديث الإحصاءات الآن</LocalizedText><LocalizedText style={styles.role}>تظل بيانات عرض القدس متاحة أدناه.</LocalizedText></View></View> : null}
+    <LocalizedText style={styles.name}>حسابات من القدس</LocalizedText>
+    {showcaseUsers.map((user) => <View key={user.name} style={styles.user}><View style={styles.avatar}><LocalizedText style={styles.avatarText}>{user.name.charAt(0)}</LocalizedText><View style={[styles.statusDot, { backgroundColor: user.color }]} /></View><View style={styles.copy}><LocalizedText style={styles.name}>{user.name}</LocalizedText><LocalizedText style={styles.role}>{user.role}</LocalizedText></View><View style={[styles.badge, user.color === "#F59E0B" ? styles.warningBg : styles.successBg]}><LocalizedText style={[styles.badgeText, user.color === "#F59E0B" ? styles.warningText : styles.successText]}>{user.status}</LocalizedText></View></View>)}
   </ScrollView></SafeAreaView>;
 }
 function Metric({ label, value }: { label: string; value: string }) { return <View style={styles.metric}><LocalizedText style={styles.metricLabel}>{label}</LocalizedText><LocalizedText style={styles.metricValue}>{value}</LocalizedText></View>; }

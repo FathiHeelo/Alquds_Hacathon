@@ -10,18 +10,28 @@ import type { AdminStackParamList } from "../../../app/navigation/navigation.typ
 import { colors, shadows, typography } from "../../../shared/theme";
 import { AdminHeader } from "../components/AdminHeader";
 import { adminApi } from "../../../services/api/adminApi";
-import { appConfig } from "../../../app/config/appConfig";
+
+const week = [
+  { day: "السبت", value: 42 }, { day: "الأحد", value: 68 }, { day: "الاثنين", value: 55 },
+  { day: "الثلاثاء", value: 83 }, { day: "الأربعاء", value: 72 }, { day: "الخميس", value: 96 }
+] as const;
+const transactions = [
+  { title: "عمولة صيانة كهرباء • الشيخ جراح", time: "اليوم • 11:20 ص", amount: "+14.5 ₪" },
+  { title: "عمولة سباكة • باب الساهرة", time: "أمس • 4:10 م", amount: "+11 ₪" },
+  { title: "تسوية مستحقات فني Pro", time: "أمس • 1:35 م", amount: "-100 ₪" }
+] as const;
 
 export function AdminFinanceScreen({ navigation }: NativeStackScreenProps<AdminStackParamList, "AdminFinance">) {
   const [summary, setSummary] = useState<Record<string, unknown>>();
   const [failed, setFailed] = useState(false);
-  useEffect(() => { if (appConfig.demoMode) return; let active = true; void adminApi.summary().then((value) => { if (active) setSummary(value); }).catch(() => { if (active) setFailed(true); }); return () => { active = false; }; }, []);
+  useEffect(() => { let active = true; void adminApi.summary().then((value) => { if (active) setSummary(value); }).catch(() => { if (active) setFailed(true); }); return () => { active = false; }; }, []);
   const commissions = summary?.commissions && typeof summary.commissions === "object" ? summary.commissions as Record<string, unknown> : {};
   const amount = (value: unknown) => typeof value === "number" ? `${value.toLocaleString()} ₪` : "—";
   return <SafeAreaView edges={["top", "bottom"]} style={styles.safe}><AdminHeader title="المالية والعمولات" subtitle="إيرادات المنصة والتسويات" onBack={() => navigation.goBack()} /><ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
     <View style={styles.hero}><LocalizedText style={styles.heroLabel}>إجمالي عمولات المنصة المسجلة</LocalizedText><LocalizedText style={styles.heroValue}>{amount(commissions.platformFees)}</LocalizedText><LocalizedText style={styles.heroTrendText}>{failed ? "تعذر تحميل ملخص المالية" : "القيمة الإجمالية المحسوبة من سجلات الأعمال المكتملة"}</LocalizedText></View>
     <View style={styles.metrics}><Metric label="إجمالي الأعمال" value={amount(commissions.gross)} /><Metric label="أعمال مالية مسجلة" value={typeof commissions.jobs === "number" ? String(commissions.jobs) : "—"} /><Metric label="مشتركو Pro النشطون" value={typeof summary?.proSubscribers === "number" ? String(summary.proSubscribers) : "—"} /></View>
-    <View style={styles.card}><LocalizedText style={styles.cardTitle}>ملخص المنصة</LocalizedText><LocalizedText style={styles.transactionTitle}>عدد الأعمال المكتملة: {typeof summary?.completedJobs === "number" ? summary.completedJobs : "—"}</LocalizedText><LocalizedText style={styles.time}>لا توفر الخدمة حالياً تقارير يومية أو قائمة حركات مالية مفصلة.</LocalizedText></View>
+    <View style={styles.card}><View style={styles.cardTop}><LocalizedText style={styles.cardTitle}>حركة الأسبوع في القدس</LocalizedText><LocalizedText style={styles.cardHint}>بيانات عرض</LocalizedText></View><View style={styles.chart}>{week.map((item) => <View key={item.day} style={styles.barWrap}><View style={[styles.bar, { height: item.value }]} /><LocalizedText style={styles.day}>{item.day}</LocalizedText></View>)}</View></View>
+    <View style={styles.card}><LocalizedText style={styles.cardTitle}>آخر الحركات</LocalizedText>{transactions.map((item, index) => <View key={item.title} style={[styles.transaction, index === transactions.length - 1 && styles.last]}><View style={styles.transactionIcon}><Ionicons name="receipt-outline" size={17} color="#8C6D14" /></View><View style={styles.transactionCopy}><LocalizedText style={styles.transactionTitle}>{item.title}</LocalizedText><LocalizedText style={styles.time}>{item.time}</LocalizedText></View><LocalizedText style={[styles.amount, item.amount.startsWith("-") && styles.negative]}>{item.amount}</LocalizedText></View>)}</View>
   </ScrollView></SafeAreaView>;
 }
 function Metric({ label, value }: { label: string; value: string }) { return <View style={styles.metric}><LocalizedText style={styles.metricLabel}>{label}</LocalizedText><LocalizedText style={styles.metricValue}>{value}</LocalizedText></View>; }

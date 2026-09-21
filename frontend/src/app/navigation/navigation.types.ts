@@ -52,5 +52,6 @@ export type AdminStackParamList = {
   AdminFinance: undefined;
   AdminUsers: undefined;
   AdminAudit: undefined;
+  AdminSettings: undefined;
   AdminCaseDetails: { caseId: string; kind: "risk" | "verification" | "report" };
 };
