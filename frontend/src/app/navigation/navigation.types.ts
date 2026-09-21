@@ -13,6 +13,7 @@ export type CustomerStackParamList = {
   CustomerTechnicianProfile: { technicianId: string; requestId?: string; offerId?: string };
   CustomerRepairRequest: { technicianId?: string };
   CustomerAiEntry: { requestId: string };
+  CustomerUrgentSearch: { requestId: string; demo?: boolean };
   CustomerOffersEntry: { requestId: string; technicianId?: string };
   CustomerOfferDetails: { requestId: string; offerId: string; technicianId?: string };
   CustomerJobEntry: { jobId: string; requestId: string; offerId: string; technicianId: string };
