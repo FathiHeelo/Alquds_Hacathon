@@ -6,8 +6,8 @@ import type { Db } from "../../shared/db";
 const include = {
   financial: true,
   request: { include: { category: true } },
-  offer: { select: { id: true, price: true, etaMinutes: true } },
-  conversation: { select: { id: true } },
+  offer: { select: { id: true, price: true, etaMinutes: true, technician: { select: { id: true, name: true, technicianProfile: { select: { specialty: true, isVerified: true, isPro: true, ratingAvg: true, ratingCount: true } } } } } },
+  conversation: { select: { id: true, messages: { select: { body: true, createdAt: true }, orderBy: { createdAt: "desc" as const }, take: 1 } } },
   review: true
 } as const;
 

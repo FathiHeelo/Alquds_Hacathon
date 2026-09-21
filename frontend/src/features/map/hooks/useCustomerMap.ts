@@ -25,7 +25,7 @@ const initialFilters: CustomerMapFilters = {
 export function useCustomerMap() {
   const [location, setLocation] = useState<CustomerLocation | undefined>(() => appConfig.demoMode ? jerusalemDemoLocation : undefined);
   const [filters, setFilters] = useState<CustomerMapFilters>(initialFilters);
-  const [technicians, setTechnicians] = useState<readonly Technician[]>([]);
+  const [allTechnicians, setAllTechnicians] = useState<readonly Technician[]>([]);
   const [selectedId, setSelectedId] = useState<string>();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<unknown>();
@@ -49,20 +49,25 @@ export function useCustomerMap() {
     setIsLoading(true);
     setError(undefined);
     try {
-      const result = await technicianRepository.findNearby(location, criteria);
-      setTechnicians(result);
+      const result = await technicianRepository.findNearby(undefined, { categoryId: filters.categoryId });
+      setAllTechnicians(result);
       setSelectedId((current) => result.some(({ id }) => id === current) ? current : undefined);
     } catch (caught) {
       setError(caught);
     } finally {
       setIsLoading(false);
     }
-  }, [criteria, location]);
+  }, [filters.categoryId]);
 
   useEffect(() => {
     void loadTechnicians();
   }, [loadTechnicians]);
 
+  const technicians = useMemo(() => allTechnicians.filter((technician) =>
+    (!criteria.query || `${technician.name} ${technician.specialty}`.toLowerCase().includes(criteria.query.toLowerCase())) &&
+    (!criteria.minimumRating || technician.rating >= criteria.minimumRating) &&
+    (!criteria.availableOnly || technician.isAvailable)
+  ), [allTechnicians, criteria]);
   const selectedTechnician = technicians.find(({ id }) => id === selectedId);
 
   return {

@@ -10,11 +10,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { TechnicianStackParamList } from "../../../app/navigation/navigation.types";
 import { colors, shadows, typography } from "../../../shared/theme";
-import { technicianChatRepository, technicianJobRepository } from "../../../services/repositories";
-import type { ChatMessage } from "../../../domain/contracts/chatRepository";
+import { technicianJobRepository } from "../../../services/repositories";
 import type { Job } from "../../../domain/models/job";
 
-type Conversation = { job: Job; last?: ChatMessage };
+type Conversation = { job: Job; last?: Job["lastMessage"] };
 
 export function TechnicianMessagesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<TechnicianStackParamList>>();
@@ -22,7 +21,7 @@ export function TechnicianMessagesScreen() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
-  useEffect(() => { let active = true; void technicianJobRepository.list().then((jobs) => Promise.all(jobs.filter((job) => job.conversationId).map(async (job) => ({ job, last: (await technicianChatRepository.getMessages(job.id)).at(-1) })))).then((rows) => { if (active) setConversations(rows); }).catch(() => { if (active) { setConversations([]); setFailed(true); } }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, []);
+  useEffect(() => { let active = true; void technicianJobRepository.list().then((jobs) => jobs.filter((job) => job.conversationId).map((job) => ({ job, last: job.lastMessage }))).then((rows) => { if (active) setConversations(rows); }).catch(() => { if (active) { setConversations([]); setFailed(true); } }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, []);
   const filtered = useMemo(() => conversations.filter(({ job, last }) => (!query.trim() || `عميل ${job.description ?? ""} ${last?.text ?? ""}`.includes(query.trim()))), [conversations, query]);
 
   return <SafeAreaView edges={["top"]} style={styles.safe}>

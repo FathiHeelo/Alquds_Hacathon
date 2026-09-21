@@ -25,8 +25,66 @@ export function mapRepairRequestForTechnician(dto: RepairRequestDto): import("..
   return { id: dto.id, customerName: "عميل", problem: description.length > 44 ? `${description.slice(0, 44)}…` : description, categoryId: toFrontendCategory(dto.categoryId), category: categoryNames[toFrontendCategory(dto.categoryId)], area: dto.locationSummary ?? "الموقع غير محدد", fairPrice: "يحدد الفني السعر في العرض", urgency, routingType: dto.aiSummary?.diagnosis?.routing.type, createdAt: new Date(dto.createdAt).toLocaleString("ar", { dateStyle: "short", timeStyle: "short" }), latitude: dto.lat ?? undefined, longitude: dto.lng ?? undefined, description, state: "new" };
 }
 
-export type OfferDto = { id: string; requestId: string; technicianId: string; price: number; message?: string | null; etaMinutes?: number | null; status: "pending" | "accepted" | "rejected" | "withdrawn"; createdAt: string };
-export const mapOffer = (dto: OfferDto): Offer => ({ id: dto.id, repairRequestId: dto.requestId, technicianId: dto.technicianId, price: dto.price, message: dto.message ?? "", etaMinutes: dto.etaMinutes ?? undefined, status: dto.status === "withdrawn" ? "rejected" : dto.status, createdAt: dto.createdAt });
+type OfferTechnicianDto = { id: string; name: string; technicianProfile?: { specialty: string; isVerified: boolean; isPro: boolean; ratingAvg: number | string; ratingCount: number } | null };
+export type OfferDto = { id: string; requestId: string; technicianId: string; price: number; message?: string | null; etaMinutes?: number | null; status: "pending" | "accepted" | "rejected" | "withdrawn"; createdAt: string; technician?: OfferTechnicianDto };
+export const mapOffer = (dto: OfferDto): Offer => {
+  const profile = dto.technician?.technicianProfile;
+  const specialty = profile?.specialty ?? "general";
+  return {
+    id: dto.id,
+    repairRequestId: dto.requestId,
+    technicianId: dto.technicianId,
+    price: dto.price,
+    message: dto.message ?? "",
+    etaMinutes: dto.etaMinutes ?? undefined,
+    status: dto.status === "withdrawn" ? "rejected" : dto.status,
+    createdAt: dto.createdAt,
+    technician: dto.technician ? {
+      id: dto.technician.id,
+      name: dto.technician.name,
+      specialty,
+      categoryIds: [toFrontendCategory(specialty)],
+      rating: Number(profile?.ratingAvg ?? 0),
+      ratingCount: profile?.ratingCount ?? 0,
+      completedJobs: 0,
+      isAvailable: false,
+      isVerified: profile?.isVerified ?? false,
+      isPro: profile?.isPro ?? false
+    } : undefined
+  };
+};
 
-export type JobDto = { id: string; requestId: string; offerId: string; technicianId: string; status: Job["status"]; scheduledAt?: string | null; createdAt?: string; offer: { price: number; etaMinutes?: number | null }; request: { locationSummary?: string | null; description?: string; createdAt?: string; category?: { name?: string } }; conversation?: { id: string } | null; financial?: { commissionRate?: number; platformFee?: number; total?: number; technicianEarning?: number } | null };
-export const mapJob = (dto: JobDto): Job => ({ id: dto.id, requestId: dto.requestId, offerId: dto.offerId, technicianId: dto.technicianId, status: dto.status, agreedPrice: dto.offer.price, expectedArrival: dto.scheduledAt ?? (dto.offer.etaMinutes != null ? `${dto.offer.etaMinutes} min` : ""), locationLabel: dto.request.locationSummary ?? "", description: dto.request.description, createdAt: dto.createdAt, conversationId: dto.conversation?.id, technicianEarning: dto.financial?.technicianEarning });
+export type JobDto = { id: string; requestId: string; offerId: string; technicianId: string; status: Job["status"]; scheduledAt?: string | null; createdAt?: string; offer: { price: number; etaMinutes?: number | null; technician?: OfferTechnicianDto }; request: { locationSummary?: string | null; description?: string; createdAt?: string; category?: { name?: string } }; conversation?: { id: string; messages?: { body?: string | null; createdAt: string }[] } | null; financial?: { commissionRate?: number; platformFee?: number; total?: number; technicianEarning?: number } | null };
+export const mapJob = (dto: JobDto): Job => {
+  const embedded = dto.offer.technician;
+  const profile = embedded?.technicianProfile;
+  const specialty = profile?.specialty ?? "general";
+  const message = dto.conversation?.messages?.[0];
+  return {
+    id: dto.id,
+    requestId: dto.requestId,
+    offerId: dto.offerId,
+    technicianId: dto.technicianId,
+    status: dto.status,
+    agreedPrice: dto.offer.price,
+    expectedArrival: dto.scheduledAt ?? (dto.offer.etaMinutes != null ? `${dto.offer.etaMinutes} min` : ""),
+    locationLabel: dto.request.locationSummary ?? "",
+    description: dto.request.description,
+    createdAt: dto.createdAt,
+    conversationId: dto.conversation?.id,
+    technicianEarning: dto.financial?.technicianEarning,
+    technician: embedded ? {
+      id: embedded.id,
+      name: embedded.name,
+      specialty,
+      categoryIds: [toFrontendCategory(specialty)],
+      rating: Number(profile?.ratingAvg ?? 0),
+      ratingCount: profile?.ratingCount ?? 0,
+      completedJobs: 0,
+      isAvailable: false,
+      isVerified: profile?.isVerified ?? false,
+      isPro: profile?.isPro ?? false
+    } : undefined,
+    lastMessage: message ? { text: message.body ?? "", createdAt: new Date(message.createdAt).toLocaleTimeString() } : undefined
+  };
+};
