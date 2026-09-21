@@ -7,34 +7,52 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { TechnicianStackParamList } from "../../../app/navigation/navigation.types";
-import { aiAdapter } from "../../../services/ai/aiAdapter";
+import { appConfig } from "../../../app/config/appConfig";
+import { subscriptionApi } from "../../../services/api/subscriptionApi";
+import { repairRequestRepository } from "../../repair-request/services/requestService";
+import { analyzeTechnicianRequest, type TechnicianVoiceOfferResult } from "../../../services/ai/technicianVoiceOfferAdapter";
+import { presentAiList, presentAiTerm } from "../../../services/ai/aiPresentation";
 import { colors, shadows, typography } from "../../../shared/theme";
-import { getTechnicianRequest } from "../technicianData";
+import type { TechnicianRequestItem } from "../technicianData";
 import { PalestinianVoiceOfferCard } from "../components/PalestinianVoiceOfferCard";
 
 type Props = NativeStackScreenProps<TechnicianStackParamList, "TechnicianAiAssistant">;
 
 export function TechnicianAiAssistantScreen({ route, navigation }: Props) {
-  const requestId = route.params?.requestId ?? "old_city_plumbing_leak";
-  const request = getTechnicianRequest(requestId) ?? getTechnicianRequest("old_city_plumbing_leak")!;
-  const isPro = route.params?.isPro ?? true;
-  const [result, setResult] = useState<{ suggestedPrice: number; suggestedMessage: string }>();
-  const [error, setError] = useState(false);
+  const [request, setRequest] = useState<TechnicianRequestItem>();
+  const [isPro, setIsPro] = useState(false);
+  const [entitlementLoaded, setEntitlementLoaded] = useState(false);
+  const [result, setResult] = useState<TechnicianVoiceOfferResult>();
+  const [error, setError] = useState<string>();
 
   useEffect(() => {
-    if (!isPro) return;
-    void aiAdapter.generateOfferAssistant({ diagnosis: request.description, fairPriceMin: 110, fairPriceMax: 150 }).then((generated) => setResult({ ...generated, suggestedMessage: `أهلاً ${request.customerName}، أنا قريب من ${request.area} ومعي القطع اللازمة. أقدر أوصل خلال 20 دقيقة وأنفذ الصيانة بسعر ${generated.suggestedPrice} ₪ مع ضمان أسبوعين.` })).catch(() => setError(true));
-  }, [isPro, request.description]);
+    let active = true;
+    void (async () => {
+      const requests = await repairRequestRepository.listForTechnician();
+      const selected = route.params?.requestId ? requests.find(({ id }) => id === route.params?.requestId) : requests[0];
+      if (!selected) throw new Error("تعذر العثور على طلب صيانة متاح.");
+      const entitlement = appConfig.demoMode
+        ? { isPro: route.params?.isPro ?? true, capabilities: { offerAssistant: route.params?.isPro ?? true } }
+        : await subscriptionApi.getMine();
+      if (!active) return;
+      const allowed = entitlement.isPro && entitlement.capabilities.offerAssistant;
+      setRequest(selected); setIsPro(allowed); setEntitlementLoaded(true);
+      if (allowed) { const generated = await analyzeTechnicianRequest(selected); if (active) setResult(generated); }
+    })().catch((cause: unknown) => { if (active) { setEntitlementLoaded(true); setError(cause instanceof Error ? cause.message : "تعذر تشغيل المساعد الآن."); } });
+    return () => { active = false; };
+  }, [route.params?.isPro, route.params?.requestId]);
+
+  const requestId = request?.id ?? route.params?.requestId ?? "";
 
   return <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
     <View style={styles.header}><Pressable onPress={() => navigation.goBack()} style={styles.back}><Ionicons name="arrow-forward" size={18} color="#475569" /></Pressable><View style={styles.headerCopy}><LocalizedText style={styles.headerTitle}>مساعد العرض الذكي</LocalizedText><LocalizedText style={styles.headerSub}>ميزة عَمِّرها Pro</LocalizedText></View><View style={styles.pro}><Ionicons name="star" size={12} color="#FCD34D" /><LocalizedText style={styles.proText}>PRO</LocalizedText></View></View>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      {!isPro ? <View style={styles.locked}><Ionicons name="lock-closed" size={32} color="#8C6D14" /><LocalizedText style={styles.lockedTitle}>هذه الميزة خاصة بـ Pro</LocalizedText><LocalizedText style={styles.lockedText}>فعّل الاشتراك للحصول على تشخيص وسعر ورسالة عرض مقترحة.</LocalizedText><Pressable onPress={() => navigation.navigate("TechnicianPro")} style={styles.primary}><LocalizedText style={styles.primaryText}>التعرف على Pro</LocalizedText></Pressable></View> : <>
+      {!entitlementLoaded ? <View style={styles.loading}><LocalizedText style={styles.loadingTitle}>نحمّل بيانات الطلب...</LocalizedText></View> : error || !request ? <View style={styles.error}><Ionicons name="alert-circle" size={24} color="#BE123C" /><LocalizedText style={styles.errorTitle}>تعذر تشغيل المساعد الآن</LocalizedText><LocalizedText style={styles.errorText}>{error ?? "لا يوجد طلب متاح."}</LocalizedText></View> : !isPro ? <View style={styles.locked}><Ionicons name="lock-closed" size={32} color="#8C6D14" /><LocalizedText style={styles.lockedTitle}>هذه الميزة خاصة بـ Pro</LocalizedText><LocalizedText style={styles.lockedText}>فعّل الاشتراك للحصول على تشخيص وسعر ورسالة عرض مقترحة.</LocalizedText><Pressable onPress={() => navigation.navigate("TechnicianPro")} style={styles.primary}><LocalizedText style={styles.primaryText}>التعرف على Pro</LocalizedText></Pressable></View> : <>
         <View style={styles.request}><View style={styles.requestIcon}><Ionicons name="water" size={20} color="#1D4ED8" /></View><View style={styles.requestCopy}><LocalizedText style={styles.eyebrow}>الطلب قيد التحليل</LocalizedText><LocalizedText style={styles.problem}>{request.problem}</LocalizedText><LocalizedText style={styles.customer}>العميل: {request.customerName} • {request.distanceKm} كم</LocalizedText></View></View>
-        <PalestinianVoiceOfferCard request={request} onResult={({ suggestedMessage, suggestedPrice }) => setResult({ suggestedMessage, suggestedPrice })} />
-        {error ? <View style={styles.error}><Ionicons name="alert-circle" size={24} color="#BE123C" /><LocalizedText style={styles.errorTitle}>تعذر تشغيل المساعد الآن</LocalizedText><LocalizedText style={styles.errorText}>يمكنك متابعة إنشاء العرض يدوياً.</LocalizedText></View> : !result ? <View style={styles.loading}><View style={styles.spark}><Ionicons name="sparkles" size={28} color="#C59B27" /></View><LocalizedText style={styles.loadingTitle}>نحلّل المشكلة...</LocalizedText><LocalizedText style={styles.loadingText}>نراجع الوصف ونقدّر القطع والمدة والسعر العادل.</LocalizedText></View> : <>
-          <View style={styles.analysis}><View style={styles.analysisHead}><Ionicons name="sparkles" size={18} color="#8C6D14" /><LocalizedText style={styles.analysisTitle}>تحليل جبر الذكي</LocalizedText><View style={styles.ready}><LocalizedText style={styles.readyText}>جاهز</LocalizedText></View></View><Detail icon="search" label="التشخيص المحتمل" value="تلف وصلة صرف السيفون أو تشقق الأنبوب البلاستيكي" /><Detail icon="cube" label="القطع المقترحة" value="وصلة سيفون + أنبوب صرف قصير + مادة عزل" /><Detail icon="time" label="المدة المتوقعة" value="30–40 دقيقة" last /></View>
-          <View style={styles.priceCard}><View><LocalizedText style={styles.priceLabel}>السعر العادل في المنطقة</LocalizedText><LocalizedText style={styles.priceRange}>{request.fairPrice}</LocalizedText></View><View style={styles.suggested}><LocalizedText style={styles.suggestedLabel}>عرضك المقترح</LocalizedText><LocalizedText style={styles.suggestedValue}>{result.suggestedPrice} ₪</LocalizedText></View></View>
+        <PalestinianVoiceOfferCard request={request} onResult={setResult} />
+        {!result ? <View style={styles.loading}><View style={styles.spark}><Ionicons name="sparkles" size={28} color="#C59B27" /></View><LocalizedText style={styles.loadingTitle}>نحلّل المشكلة...</LocalizedText><LocalizedText style={styles.loadingText}>نراجع الوصف ونقدّر القطع والمدة والسعر العادل.</LocalizedText></View> : <>
+          <View style={styles.analysis}><View style={styles.analysisHead}><Ionicons name="sparkles" size={18} color="#8C6D14" /><LocalizedText style={styles.analysisTitle}>تحليل جابر الذكي</LocalizedText><View style={styles.ready}><LocalizedText style={styles.readyText}>جاهز</LocalizedText></View></View><Detail icon="search" label="التشخيص المحتمل" value={presentAiTerm(result.diagnosis.likelyIssue)} /><Detail icon="cube" label="القطع المقترحة" value={presentAiList(result.possibleParts)} /><Detail icon="time" label="المدة المتوقعة" value={presentAiTerm(result.suggestedDuration)} last /></View>
+          <View style={styles.priceCard}><View><LocalizedText style={styles.priceLabel}>السعر العادل في المنطقة</LocalizedText><LocalizedText style={styles.priceRange}>{result.fairPrice.min}–{result.fairPrice.max} ₪</LocalizedText></View><View style={styles.suggested}><LocalizedText style={styles.suggestedLabel}>عرضك المقترح</LocalizedText><LocalizedText style={styles.suggestedValue}>{result.suggestedPrice} ₪</LocalizedText></View></View>
           <View style={styles.messageCard}><LocalizedText style={styles.cardTitle}>رسالة العرض المقترحة</LocalizedText><LocalizedText style={styles.message}>{result.suggestedMessage}</LocalizedText></View>
         </>}
         <View style={styles.note}><Ionicons name="information-circle" size={15} color="#8C6D14" /><LocalizedText style={styles.noteText}>الاقتراح مساعد لك. راجع التفاصيل والسعر قبل إرسال العرض للعميل.</LocalizedText></View>

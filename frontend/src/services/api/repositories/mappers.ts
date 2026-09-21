@@ -22,7 +22,7 @@ export function mapRepairRequestForTechnician(dto: RepairRequestDto): import("..
   const categoryNames: Record<ServiceCategoryId, string> = { electrical: "كهرباء", plumbing: "سباكة وصحية", ac: "تكييف وتبريد", appliances: "أجهزة منزلية", carpentry: "نجارة", electronics: "إلكترونيات", general: "صيانة عامة" };
   const urgency = dto.urgency === "high" ? "عاجل" : dto.urgency === "medium" ? "اليوم" : "عادي";
   const description = dto.description;
-  return { id: dto.id, customerName: "عميل", problem: description.length > 44 ? `${description.slice(0, 44)}…` : description, category: categoryNames[toFrontendCategory(dto.categoryId)], area: dto.locationSummary ?? "الموقع غير محدد", fairPrice: "يحدد الفني السعر في العرض", urgency, createdAt: new Date(dto.createdAt).toLocaleString("ar", { dateStyle: "short", timeStyle: "short" }), latitude: dto.lat ?? undefined, longitude: dto.lng ?? undefined, description, state: "new" };
+  return { id: dto.id, customerName: "عميل", problem: description.length > 44 ? `${description.slice(0, 44)}…` : description, categoryId: toFrontendCategory(dto.categoryId), category: categoryNames[toFrontendCategory(dto.categoryId)], area: dto.locationSummary ?? "الموقع غير محدد", fairPrice: "يحدد الفني السعر في العرض", urgency, createdAt: new Date(dto.createdAt).toLocaleString("ar", { dateStyle: "short", timeStyle: "short" }), latitude: dto.lat ?? undefined, longitude: dto.lng ?? undefined, description, state: "new" };
 }
 
 export type OfferDto = { id: string; requestId: string; technicianId: string; price: number; message?: string | null; etaMinutes?: number | null; status: "pending" | "accepted" | "rejected" | "withdrawn"; createdAt: string };

@@ -8,7 +8,7 @@ import { analyzeTechnicianVoice, type TechnicianVoiceOfferResult } from "../../.
 import { colors, shadows, typography } from "../../../shared/theme";
 import type { TechnicianRequestItem } from "../technicianData";
 
-type VoiceState = "idle" | "listening" | "analyzing" | "ready" | "error";
+type VoiceState = "idle" | "analyzing" | "ready" | "error";
 
 export function PalestinianVoiceOfferCard({ request, onResult }: { request: TechnicianRequestItem; onResult(result: TechnicianVoiceOfferResult): void }) {
   const [status, setStatus] = useState<VoiceState>("idle");
@@ -17,10 +17,7 @@ export function PalestinianVoiceOfferCard({ request, onResult }: { request: Tech
   useEffect(() => () => { mounted.current = false; }, []);
 
   const record = async () => {
-    setResult(undefined); setStatus("listening");
-    await new Promise((resolve) => setTimeout(resolve, 1600));
-    if (!mounted.current) return;
-    setStatus("analyzing");
+    setResult(undefined); setStatus("analyzing");
     try {
       const generated = await analyzeTechnicianVoice(request);
       if (!mounted.current) return;
@@ -30,18 +27,17 @@ export function PalestinianVoiceOfferCard({ request, onResult }: { request: Tech
     }
   };
 
-  const busy = status === "listening" || status === "analyzing";
+  const busy = status === "analyzing";
   return <View style={styles.card}>
-    <View style={styles.top}><View style={styles.brand}><View style={styles.aiIcon}><Ionicons name="mic" size={17} color={colors.text} /></View><View><LocalizedText style={styles.title}>الصوت المقدسي الذكي</LocalizedText><LocalizedText style={styles.subtitle}>احكيها بلهجتك، وإحنا بنرتّب عرضك باحتراف</LocalizedText></View></View><View style={[styles.status, busy && styles.busyStatus, status === "ready" && styles.readyStatus]}><View style={[styles.statusDot, busy && styles.busyDot, status === "ready" && styles.readyDot]} /><LocalizedText style={[styles.statusText, busy && styles.busyText, status === "ready" && styles.readyText]}>{status === "listening" ? "يسمعك الآن" : status === "analyzing" ? "يحلّل الحكي" : status === "ready" ? "العرض جاهز" : "جاهز"}</LocalizedText></View></View>
+    <View style={styles.top}><View style={styles.brand}><View style={styles.aiIcon}><Ionicons name="mic" size={17} color={colors.text} /></View><View><LocalizedText style={styles.title}>الصوت المقدسي الذكي</LocalizedText><LocalizedText style={styles.subtitle}>ينظّم النص الصوتي ويحوّله إلى عرض واضح</LocalizedText></View></View><View style={[styles.status, busy && styles.busyStatus, status === "ready" && styles.readyStatus]}><View style={[styles.statusDot, busy && styles.busyDot, status === "ready" && styles.readyDot]} /><LocalizedText style={[styles.statusText, busy && styles.busyText, status === "ready" && styles.readyText]}>{status === "analyzing" ? "يحلّل النص" : status === "ready" ? "العرض جاهز" : "جاهز"}</LocalizedText></View></View>
     <View style={[styles.voiceBox, busy && styles.activeVoice]}>
       <View style={styles.wave}>{[14, 26, 38, 22, 34, 18, 42, 28, 16, 32, 20].map((height, index) => <View key={index} style={[styles.waveBar, { height: busy ? height : Math.max(7, height / 3) }, busy && styles.activeBar]} />)}</View>
-      {status === "idle" ? <LocalizedText style={styles.hint}>اضغط على المايك واحكي للعميل شو فهمت، متى بتوصل، وكم بدك وقت.</LocalizedText> : null}
-      {status === "listening" ? <LocalizedText style={styles.listening}>احكي الآن… الصوت المقدسي الذكي سامعك</LocalizedText> : null}
-      {status === "analyzing" ? <LocalizedText style={styles.analyzing}>بنرتّب حكيك ونحوّله لعرض واضح ومحترف…</LocalizedText> : null}
-      {status === "error" ? <LocalizedText style={styles.error}>تعذر تحليل التسجيل. جرّب مرة ثانية.</LocalizedText> : null}
+      {status === "idle" ? <LocalizedText style={styles.hint}>جرّب نموذج نص صوتي من وصف الطلب ليصيغ جابر العرض المقترح.</LocalizedText> : null}
+      {status === "analyzing" ? <LocalizedText style={styles.analyzing}>بنرتّب النص ونحوّله لعرض واضح…</LocalizedText> : null}
+      {status === "error" ? <LocalizedText style={styles.error}>تعذر تحليل النص. جرّب مرة ثانية.</LocalizedText> : null}
       {result ? <View style={styles.transcript}><View style={styles.transcriptHead}><Ionicons name="checkmark-circle" size={14} color="#047857" /><LocalizedText style={styles.transcriptLabel}>فهمنا من حكيك</LocalizedText></View><LocalizedText style={styles.transcriptText}>“{result.transcript}”</LocalizedText><View style={styles.offer}><LocalizedText style={styles.offerLabel}>الرسالة الناتجة</LocalizedText><LocalizedText style={styles.offerText}>{result.suggestedMessage}</LocalizedText></View></View> : null}
     </View>
-    <Pressable disabled={busy} onPress={() => void record()} style={({ pressed }) => [styles.record, busy && styles.disabled, pressed && styles.pressed]}><View style={[styles.micCircle, status === "listening" && styles.recording]}><Ionicons name={status === "ready" ? "refresh" : "mic"} size={18} color="white" /></View><LocalizedText style={styles.recordText}>{status === "ready" ? "إعادة التسجيل" : busy ? status === "listening" ? "جارٍ الاستماع…" : "جارٍ إنشاء العرض…" : "ابدأ الحكي"}</LocalizedText></Pressable>
+    <Pressable disabled={busy} onPress={() => void record()} style={({ pressed }) => [styles.record, busy && styles.disabled, pressed && styles.pressed]}><View style={styles.micCircle}><Ionicons name={status === "ready" ? "refresh" : "mic"} size={18} color="white" /></View><LocalizedText style={styles.recordText}>{status === "ready" ? "إعادة التحليل" : busy ? "جارٍ إنشاء العرض…" : "جرّب النص الصوتي"}</LocalizedText></Pressable>
     {result ? <View style={styles.applied}><Ionicons name="sparkles" size={14} color="#8C6D14" /><LocalizedText style={styles.appliedText}>تم اعتماد الرسالة والسعر المقترح في العرض بالأسفل.</LocalizedText></View> : null}
   </View>;
 }

@@ -1,4 +1,4 @@
-import type { DiagnosisResult, FairPriceResult, StructuredVoiceRequest, TechnicianMatch } from "@ammerha/ai";
+import type { DiagnosisResult, FairPriceResult, RiskResult, StructuredVoiceRequest, TechnicianMatch } from "@ammerha/ai";
 import type { RepairRequest } from "../models/repairRequest";
 import type { Technician } from "../models/technician";
 
@@ -7,7 +7,8 @@ export interface CustomerAiClient {
   structureRequest(request: RepairRequest): Promise<StructuredVoiceRequest>;
   diagnose(request: RepairRequest): Promise<DiagnosisResult>;
   estimatePrice(request: RepairRequest): Promise<FairPriceResult>;
-  match(technicians: readonly Technician[]): Promise<TechnicianMatch[]>;
+  match(request: RepairRequest, technicians: readonly Technician[]): Promise<TechnicianMatch[]>;
+  assessRisk(request: RepairRequest): Promise<RiskResult>;
 }
 
-export type { DiagnosisResult, FairPriceResult, StructuredVoiceRequest, TechnicianMatch };
+export type { DiagnosisResult, FairPriceResult, RiskResult, StructuredVoiceRequest, TechnicianMatch };

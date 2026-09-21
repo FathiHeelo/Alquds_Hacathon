@@ -20,7 +20,7 @@ test("old_city_plumbing_leak: saved request to public facade, price and existing
   const result = await loadCustomerAiFlow(saved.id, deps);
   assert.deepEqual(result.unavailable, []);
   assert.equal(result.request.id, saved.id);
-  assert.equal(result.structured?.description, saved.description);
+  assert.equal(result.structured?.normalizedDescription, saved.description);
   assert.ok(result.diagnosis?.likelyIssue);
   assert.ok(result.price && result.price.max >= result.price.min);
   assert.equal(result.price?.currency, "ILS");
@@ -31,14 +31,14 @@ test("old_city_plumbing_leak: saved request to public facade, price and existing
 
 test("AI unavailable preserves manual request and unranked F02 technicians", async () => {
   const fail = async (): Promise<never> => { throw new Error("offline"); };
-  const { saved, deps } = await setup({ structureRequest: fail, diagnose: fail, estimatePrice: fail, match: fail });
+  const { saved, deps } = await setup({ structureRequest: fail, diagnose: fail, estimatePrice: fail, match: fail, assessRisk: fail });
   const result = await loadCustomerAiFlow(saved.id, deps);
   assert.equal(result.request.description, saved.description);
   assert.equal(result.diagnosis, undefined);
   assert.equal(result.price, undefined);
   assert.equal(result.recommendations[0]?.technician.id, "tech-tariq-maqdisi");
   assert.equal(result.recommendations[0]?.match, undefined);
-  assert.deepEqual([...result.unavailable].sort(), ["diagnosis", "matching", "price", "structure"]);
+  assert.deepEqual([...result.unavailable].sort(), ["diagnosis", "matching", "price", "risk", "structure"]);
 });
 
 test("missing request is recoverable and never calls AI", async () => {

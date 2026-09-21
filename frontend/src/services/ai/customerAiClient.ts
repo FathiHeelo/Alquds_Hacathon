@@ -10,20 +10,35 @@ function available() {
 export const customerAiClient: CustomerAiClient = {
   async structureRequest(request) {
     available();
-    if (request.voice) return aiAdapter.structureVoiceRequest({ transcript: request.voice.transcript });
-    return { description: request.description, category: request.category, urgency: request.urgency };
+    return aiAdapter.structureVoiceRequest({ transcript: request.voice?.transcript ?? request.description });
   },
   async diagnose(request) {
     available();
-    return aiAdapter.diagnoseProblem({ category: request.category, description: request.description });
+    return aiAdapter.diagnoseProblem({ category: request.category, description: request.description, urgency: request.urgency });
   },
   async estimatePrice(request) {
     available();
     return aiAdapter.estimateFairPrice({ category: request.category, urgency: request.urgency });
   },
-  async match(technicians) {
+  async match(request, technicians) {
     available();
-    return aiAdapter.matchTechnicians(technicians.flatMap(({ id, distanceKm, rating, completedJobs }) =>
-      typeof distanceKm === "number" ? [{ id, distanceKm, rating, completedJobs }] : []));
+    return aiAdapter.rankTechnicians({
+      category: request.category,
+      candidates: technicians.map(({ id, distanceKm, rating, completedJobs, categoryIds, specialty, isAvailable, isVerified, isPro }) => ({
+        id,
+        distanceKm: distanceKm ?? Number.POSITIVE_INFINITY,
+        rating,
+        completedJobs,
+        categoryIds,
+        specialty,
+        isAvailable,
+        isVerified,
+        isPro
+      }))
+    });
+  },
+  async assessRisk(request) {
+    available();
+    return aiAdapter.assessRisk({ userId: request.customerId, requestText: request.description });
   }
 };

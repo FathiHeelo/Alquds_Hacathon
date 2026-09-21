@@ -8,6 +8,7 @@ import { RequestReview } from "../../repair-request/components/RequestReview";
 import { aiStyles, Detail, DiagnosisCard, PriceCard } from "../components/AiResults";
 import { useAiCustomerFlow } from "../hooks/useAiCustomerFlow";
 import { RequestNotFoundError } from "../services/loadCustomerAiFlow";
+import { presentMatchingReason } from "../../../services/ai/aiPresentation";
 
 export function AiCustomerFlowScreen({ route, navigation }: NativeStackScreenProps<CustomerStackParamList, "CustomerAiEntry">) {
   const flow = useAiCustomerFlow(route.params.requestId);
@@ -21,7 +22,7 @@ export function AiCustomerFlowScreen({ route, navigation }: NativeStackScreenPro
       <View style={aiStyles.section}>
         <LocalizedText style={[aiStyles.text, aiStyles.title]}>ملخص طلبك</LocalizedText>
         <RequestReview draft={flow.request} />
-        {flow.request.voice && flow.result?.structured ? <Detail label="تفسير الطلب الصوتي" value={flow.result.structured.description} /> : null}
+        {flow.request.voice && flow.result?.structured ? <Detail label="تفسير الطلب الصوتي" value={flow.result.structured.normalizedDescription} /> : null}
       </View>
       {flow.result ? <>
         {flow.result.unavailable.length ? <View style={aiStyles.section}>
@@ -34,6 +35,9 @@ export function AiCustomerFlowScreen({ route, navigation }: NativeStackScreenPro
         <View style={aiStyles.section}>{flow.result.price
           ? <PriceCard result={flow.result.price} />
           : <EmptyState message="تقدير السعر غير متاح حالياً." />}</View>
+        {flow.result.risk ? <View style={aiStyles.section}>
+          <Detail label="فحص الثقة" value={flow.result.risk.signals.length ? `رصد جابر ${flow.result.risk.signals.length} إشارة للمراجعة البشرية دون اتخاذ إجراء تلقائي.` : "لم يرصد جابر إشارات تستدعي المراجعة."} />
+        </View> : null}
         <View style={aiStyles.section}>
           <LocalizedText style={[aiStyles.text, aiStyles.title]}>{flow.result.unavailable.includes("matching") ? "الفنيون في فئة طلبك" : "الفنيون المقترحون"}</LocalizedText>
           {flow.result.unavailable.includes("technicians") ? <ErrorState message="تعذر تحميل الفنيين." onRetry={() => void flow.retry()} /> :
@@ -42,7 +46,7 @@ export function AiCustomerFlowScreen({ route, navigation }: NativeStackScreenPro
             onProfile={() => continueToOffers(technician.id)} onRepairRequest={() => continueToOffers(technician.id)} actionLabel="متابعة للعروض">
             {match ? <View style={aiStyles.content}>
               <LocalizedText style={aiStyles.text}>درجة المطابقة: {match.score}</LocalizedText>
-              {match.reasons.map((reason, index) => <LocalizedText key={`${index}-${reason}`} style={[aiStyles.text, aiStyles.muted]}>{reason}</LocalizedText>)}
+              {match.reasons.map((reason, index) => <LocalizedText key={`${index}-${reason}`} style={[aiStyles.text, aiStyles.muted]}>{presentMatchingReason(reason)}</LocalizedText>)}
             </View> : null}
           </TechnicianPreview>)}
         </View>

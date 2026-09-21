@@ -1,4 +1,4 @@
-import type { CustomerAiClient, DiagnosisResult, FairPriceResult, StructuredVoiceRequest, TechnicianMatch } from "../../../domain/contracts/customerAiClient";
+import type { CustomerAiClient, DiagnosisResult, FairPriceResult, RiskResult, StructuredVoiceRequest, TechnicianMatch } from "../../../domain/contracts/customerAiClient";
 import type { RepairRequestRepository } from "../../../domain/contracts/repairRequestRepository";
 import type { TechnicianRepository } from "../../../domain/contracts/technicianRepository";
 import type { RepairRequest } from "../../../domain/models/repairRequest";
@@ -15,8 +15,9 @@ export interface CustomerAiFlowResult {
   structured?: StructuredVoiceRequest;
   diagnosis?: DiagnosisResult;
   price?: FairPriceResult;
+  risk?: RiskResult;
   recommendations: Recommendation[];
-  unavailable: Array<"structure" | "diagnosis" | "price" | "technicians" | "matching">;
+  unavailable: Array<"structure" | "diagnosis" | "price" | "risk" | "technicians" | "matching">;
 }
 
 export class RequestNotFoundError extends AppError {
@@ -51,7 +52,7 @@ export async function loadCustomerAiFlow(id: string, deps: FlowDependencies,
   // Each section can fail independently; preserve successful results and the manual request.
   await Promise.all([
     bounded(() => deps.ai.structureRequest(request), timeout).then((value) => {
-      if (!value.description?.trim()) throw new Error("Invalid summary");
+      if (!value.normalizedDescription?.trim()) throw new Error("Invalid summary");
       result.structured = value;
     }).catch(() => { result.unavailable.push("structure"); }),
     bounded(() => deps.ai.diagnose(request), timeout).then((value) => {
@@ -64,6 +65,11 @@ export async function loadCustomerAiFlow(id: string, deps: FlowDependencies,
         throw new Error("Invalid price");
       result.price = value;
     }).catch(() => { result.unavailable.push("price"); }),
+    bounded(() => deps.ai.assessRisk(request), timeout).then((value) => {
+      if (!Number.isFinite(value.riskScore) || value.riskScore < 0 || value.riskScore > 100 || !Array.isArray(value.signals))
+        throw new Error("Invalid risk result");
+      result.risk = value;
+    }).catch(() => { result.unavailable.push("risk"); }),
     bounded(() => deps.technicians.findNearby(
       request.location.latitude != null && request.location.longitude != null
         ? { latitude: request.location.latitude, longitude: request.location.longitude }
@@ -74,7 +80,7 @@ export async function loadCustomerAiFlow(id: string, deps: FlowDependencies,
         result.recommendations = technicians.map((technician) => ({ technician }));
         if (!technicians.length) return;
         try {
-          const matches = await bounded(() => deps.ai.match(technicians), timeout);
+          const matches = await bounded(() => deps.ai.match(request, technicians), timeout);
           const seen = new Set<string>();
           result.recommendations = matches.flatMap((match) => {
             const technician = technicians.find(({ id: technicianId }) => technicianId === match.technicianId);

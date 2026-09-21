@@ -9,6 +9,7 @@ import { serviceCategories } from "../../../shared/constants/serviceCategories";
 import { colors, spacing, typography } from "../../../shared/theme";
 import { urgencyOptions } from "../../repair-request/requestOptions";
 import { isLowConfidence } from "../services/loadCustomerAiFlow";
+import { presentAiTerm } from "../../../services/ai/aiPresentation";
 
 export function DiagnosisCard({ result, request }: { result: DiagnosisResult; request: RepairRequest }) {
   return <Card><View style={aiStyles.content}>
@@ -16,7 +17,7 @@ export function DiagnosisCard({ result, request }: { result: DiagnosisResult; re
       <LocalizedText style={[aiStyles.text, aiStyles.title]}>التشخيص المبدئي</LocalizedText></View>
     <Badge label={`نسبة الثقة: ${Math.round(result.confidence * 100)}%`} />
     {isLowConfidence(result.confidence) ? <LocalizedText accessibilityRole="alert" style={[aiStyles.text, aiStyles.warning]}>التشخيص المبدئي يحتاج إلى تأكيد</LocalizedText> : null}
-    <Detail label="المشكلة المحتملة" value={result.likelyIssue} />
+    <Detail label="المشكلة المحتملة" value={presentAiTerm(result.likelyIssue)} />
     <Detail label="نوع الخدمة" value={serviceCategories.find(({ id }) => id === request.category)?.label} />
     <Detail label="درجة الاستعجال المقترحة" value={urgencyOptions.find(({ id }) => id === result.urgency)?.label} />
     <LocalizedText style={[aiStyles.text, aiStyles.muted]}>يؤكد الفني طبيعة العطل عند المعاينة.</LocalizedText>
@@ -29,7 +30,7 @@ export function PriceCard({ result }: { result: FairPriceResult }) {
       <LocalizedText style={[aiStyles.text, aiStyles.title]}>السعر العادل المتوقع</LocalizedText></View>
     <LocalizedText accessibilityLabel={`من ${result.min} إلى ${result.max} شيكل`} style={aiStyles.price}>{result.min} – {result.max} ₪</LocalizedText>
     <LocalizedText style={[aiStyles.text, aiStyles.muted]}>شيكل إسرائيلي (NIS)</LocalizedText>
-    {result.rationale ? <LocalizedText style={aiStyles.text}>{result.rationale}</LocalizedText> : null}
+    <LocalizedText style={aiStyles.text}>التقدير مبني على نوع الخدمة ودرجة الاستعجال، بنسبة ثقة {Math.round(result.confidence * 100)}%.</LocalizedText>
     <LocalizedText style={[aiStyles.text, aiStyles.muted]}>تقدير إرشادي، وليس سعراً نهائياً مضموناً.</LocalizedText>
   </View></Card>;
 }

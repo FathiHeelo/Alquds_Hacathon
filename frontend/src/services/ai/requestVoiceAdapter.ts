@@ -13,19 +13,24 @@ export interface VoiceSuggestion {
   voice: RequestVoice;
 }
 
-export async function suggestVoiceRequest(): Promise<VoiceSuggestion> {
+export async function suggestVoiceRequest(transcript = demoVoiceRequest.transcript): Promise<VoiceSuggestion> {
   let timeout: ReturnType<typeof setTimeout> | undefined;
   try {
     if (appConfig.aiMode !== "simulation") throw new Error("Remote voice adapter is not configured");
     const result = await Promise.race([
-      aiAdapter.structureVoiceRequest({ transcript: demoVoiceRequest.transcript }),
+      aiAdapter.structureVoiceRequest({ transcript }),
       new Promise<never>((_, reject) => { timeout = setTimeout(() => reject(new Error("Voice timeout")), 5000); })
     ]);
-    if (!result.description?.trim() || !Object.values(Urgency).includes(result.urgency)) throw new Error("Invalid voice result");
-    return { description: result.description,
+    if (!result.normalizedDescription?.trim() || !Object.values(Urgency).includes(result.urgency)) {
+    throw new Error("Invalid voice result");
+}
+
+    return {
+      description: result.normalizedDescription,
       category: serviceCategories.find(({ id }) => id === result.category)?.id,
-      urgency: result.urgency, voice: { transcript: demoVoiceRequest.transcript, source: "ai" } };
+      urgency: result.urgency, voice: { transcript, source: "ai" } };
   } catch {
+    if (__DEV__) console.warn("[AMMERHA] Jaber voice structuring unavailable — using frontend demo fallback");
     return { ...demoVoiceRequest, voice: { transcript: demoVoiceRequest.transcript, source: "demo" } };
   } finally {
     clearTimeout(timeout);
