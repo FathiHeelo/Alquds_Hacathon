@@ -6,7 +6,6 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useCallback, useMemo, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
-import MapView, { Marker, type Region } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { TechnicianStackParamList } from "../../../app/navigation/navigation.types";
@@ -18,9 +17,10 @@ import { repairRequestRepository, technicianRepository } from "../../../services
 import { appConfig } from "../../../app/config/appConfig";
 import type { Technician } from "../../../domain/models/technician";
 import { apiClient } from "../../../services/api/apiClient";
+import { PlatformMap, PlatformMarker, type MapRegion } from "../../map/components/PlatformMap";
 
 type Navigation = NativeStackNavigationProp<TechnicianStackParamList>;
-const region: Region = { latitude: 31.7849, longitude: 35.2329, latitudeDelta: 0.035, longitudeDelta: 0.03 };
+const region: MapRegion = { latitude: 31.7849, longitude: 35.2329, latitudeDelta: 0.035, longitudeDelta: 0.03 };
 type Filter = "الكل" | "عاجل" | "اليوم";
 
 export function TechnicianHomeScreen() {
@@ -60,9 +60,9 @@ export function TechnicianHomeScreen() {
       <View style={styles.filters}>{(["الكل", "عاجل", "اليوم"] as const).map((item) => <Pressable key={item} onPress={() => setFilter(item)} style={[styles.filter, filter === item && styles.activeFilter]}><LocalizedText style={[styles.filterText, filter === item && styles.activeFilterText]}>{item}</LocalizedText></Pressable>)}</View>
 
       <View style={styles.mapCard}>
-        <MapView initialRegion={region} pitchEnabled={false} rotateEnabled={false} style={styles.map} userInterfaceStyle="light">
-          {requests.filter((request) => request.latitude != null && request.longitude != null).map((request) => <Marker key={request.id} coordinate={{ latitude: request.latitude!, longitude: request.longitude! }} onPress={() => setSelectedId(request.id)}><View style={[styles.marker, selectedId === request.id && styles.selectedMarker]}><Ionicons name={request.category.includes("كهرباء") ? "flash" : request.category.includes("تكييف") ? "snow" : request.category.includes("نجارة") ? "hammer" : "water"} size={16} color={selectedId === request.id ? colors.secondary : colors.primary} /></View></Marker>)}
-        </MapView>
+        <PlatformMap initialRegion={region} pitchEnabled={false} rotateEnabled={false} style={styles.map} userInterfaceStyle="light">
+          {requests.filter((request) => request.latitude != null && request.longitude != null).map((request) => <PlatformMarker key={request.id} coordinate={{ latitude: request.latitude!, longitude: request.longitude! }} onPress={() => setSelectedId(request.id)}><View style={[styles.marker, selectedId === request.id && styles.selectedMarker]}><Ionicons name={request.category.includes("كهرباء") ? "flash" : request.category.includes("تكييف") ? "snow" : request.category.includes("نجارة") ? "hammer" : "water"} size={16} color={selectedId === request.id ? colors.secondary : colors.primary} /></View></PlatformMarker>)}
+        </PlatformMap>
         {requests.some((request) => request.latitude != null && request.longitude != null) ? <View style={styles.mapPrivacy}><Ionicons name="shield-checkmark" size={13} color="#176B51" /><LocalizedText style={styles.mapPrivacyText}>الموقع تقريبي حتى قبول العميل للعرض</LocalizedText></View> : requests.length ? <View style={styles.mapPrivacy}><Ionicons name="information-circle" size={13} color="#64748B" /><LocalizedText style={styles.mapPrivacyText}>لم ترسل الخدمة مواقع لهذه الطلبات</LocalizedText></View> : null}
       </View>
 
