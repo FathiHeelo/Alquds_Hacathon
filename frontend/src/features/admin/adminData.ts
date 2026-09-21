@@ -1,5 +1,4 @@
 export type AdminCaseKind = "risk" | "verification" | "report";
-import { appConfig } from "../../app/config/appConfig";
 
 export interface AdminCase {
   id: string;
@@ -33,4 +32,4 @@ let apiCases: readonly AdminCase[] = [];
 export function cacheAdminCases(items: readonly AdminCase[], kind?: AdminCaseKind) {
   apiCases = kind ? [...apiCases.filter((item) => item.kind !== kind), ...items] : [...apiCases.filter((existing) => !items.some((item) => item.id === existing.id)), ...items];
 }
-export function getAdminCase(id: string) { return apiCases.find((item) => item.id === id) ?? (appConfig.demoMode ? adminCases.find((item) => item.id === id) : undefined); }
+export function getAdminCase(id: string) { return apiCases.find((item) => item.id === id) ?? adminCases.find((item) => item.id === id); }

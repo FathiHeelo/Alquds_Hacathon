@@ -1,6 +1,7 @@
 import { appConfig } from "../../app/config/appConfig";
 import { mapToAppError } from "../../shared/errors/mapToAppError";
 import { apiSession, type ApiRole } from "./apiSession";
+import { fetchWithTimeout } from "./fetchWithTimeout";
 
 export interface ApiClient {
   baseUrl: string;
@@ -10,13 +11,10 @@ export interface ApiClient {
 export const apiClient: ApiClient = {
   baseUrl: appConfig.apiBaseUrl,
   async request<T>(path: string, init?: RequestInit, role?: ApiRole): Promise<T> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
     try {
       const token = role ? await apiSession.token(role) : undefined;
-      const response = await fetch(`${appConfig.apiBaseUrl}${path}`, {
+      const response = await fetchWithTimeout(`${appConfig.apiBaseUrl}${path}`, {
         ...init,
-        signal: controller.signal,
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...init?.headers }
       });
 
@@ -28,8 +26,6 @@ export const apiClient: ApiClient = {
       return await response.json() as T;
     } catch (error) {
       throw mapToAppError(error);
-    } finally {
-      clearTimeout(timeout);
     }
   }
 };

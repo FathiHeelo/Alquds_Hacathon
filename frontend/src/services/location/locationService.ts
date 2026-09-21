@@ -14,7 +14,7 @@ export async function getCustomerLocation(): Promise<CustomerLocation | undefine
   if (appConfig.demoMode) return jerusalemDemoLocation;
   try {
     const permission = await Location.requestForegroundPermissionsAsync();
-    if (!permission.granted) return undefined;
+    if (!permission.granted) return jerusalemDemoLocation;
 
     const position = await Location.getCurrentPositionAsync({
       accuracy: Location.Accuracy.Balanced
@@ -27,6 +27,6 @@ export async function getCustomerLocation(): Promise<CustomerLocation | undefine
       source: "device"
     };
   } catch {
-    return undefined;
+    return jerusalemDemoLocation;
   }
 }

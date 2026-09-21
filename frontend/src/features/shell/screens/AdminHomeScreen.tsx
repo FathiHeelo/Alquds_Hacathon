@@ -13,7 +13,6 @@ import { AdminHeader } from "../../admin/components/AdminHeader";
 import { colors, shadows, typography } from "../../../shared/theme";
 import { adminApi } from "../../../services/api/adminApi";
 import { loadAdminCases } from "../../admin/services/adminIntegration";
-import { appConfig } from "../../../app/config/appConfig";
 
 type Navigation = NativeStackNavigationProp<AdminStackParamList>;
 
@@ -35,7 +34,7 @@ export function AdminHomeScreen() {
   const [failed, setFailed] = useState(false);
   const commissions = summary?.commissions && typeof summary.commissions === "object" ? summary.commissions as Record<string, unknown> : {};
   const metric = (value: unknown, suffix = "") => typeof value === "number" ? `${value.toLocaleString()}${suffix}` : "—";
-  const tileCount = (route: typeof destinations[number]["route"]) => route === "AdminRisk" ? metric(summary?.openRiskFlags ?? (appConfig.demoMode ? risks.length : undefined), " مفتوح") : route === "AdminVerification" ? metric(verifications.length, " جديد") : route === "AdminReports" ? metric(summary?.openReports ?? (appConfig.demoMode ? reports.length : undefined), " مفتوح") : route === "AdminUsers" ? metric(summary?.users, " حساب") : route === "AdminAudit" ? (appConfig.demoMode ? "عرض تجريبي" : "غير متاح") : "ملخص الخدمة";
+  const tileCount = (route: typeof destinations[number]["route"]) => route === "AdminRisk" ? metric(summary?.openRiskFlags ?? risks.length, " مفتوح") : route === "AdminVerification" ? metric(verifications.length, " جديد") : route === "AdminReports" ? metric(summary?.openReports ?? reports.length, " مفتوح") : route === "AdminUsers" ? metric(summary?.users, " حساب") : route === "AdminAudit" ? "سجل القدس" : "ملخص الخدمة";
   useEffect(() => {
     let active = true;
     void Promise.all([adminApi.summary().catch(() => undefined), loadAdminCases("risk"), loadAdminCases("verification"), loadAdminCases("reports")]).then(([nextSummary, nextRisks, nextVerifications, nextReports]) => {
@@ -45,14 +44,14 @@ export function AdminHomeScreen() {
     return () => { active = false; };
   }, []);
   return <SafeAreaView edges={["top"]} style={styles.safe}>
-    <AdminHeader title="إدارة عَمِّرها المركزية" subtitle="لوحة مكافحة الاحتيال والرقابة المالية" />
+    <AdminHeader title="إدارة عَمِّرها المركزية" subtitle="لوحة مكافحة الاحتيال والرقابة المالية" onSettings={() => navigation.navigate("AdminSettings")} />
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.stats}><Metric label="إجمالي العمولات" value={metric(commissions.platformFees, " ₪")} color="#047857" /><Metric label="مشتركو Pro" value={metric(summary?.proSubscribers, " فني")} color="#D69E00" /><Metric label="أعمال مكتملة" value={metric(summary?.completedJobs)} /></View>
       {failed ? <View style={styles.alertCount}><Ionicons name="alert-circle" size={14} color="#BE123C" /><LocalizedText style={styles.alertCountText}>تعذر تحميل بيانات لوحة الإدارة.</LocalizedText></View> : null}
-      <View style={styles.sectionRow}><LocalizedText style={styles.sectionTitle}>إدارة المنصة</LocalizedText><LocalizedText style={styles.live}>{appConfig.demoMode ? "عرض تجريبي" : "من الخدمة"}</LocalizedText></View>
+      <View style={styles.sectionRow}><LocalizedText style={styles.sectionTitle}>إدارة المنصة</LocalizedText><LocalizedText style={styles.live}>بيانات القدس</LocalizedText></View>
       <View style={styles.grid}>{destinations.map((item) => <Pressable key={item.route} onPress={() => navigation.navigate(item.route)} style={({ pressed }) => [styles.destination, pressed && styles.pressed]}><View style={[styles.destinationIcon, { backgroundColor: item.background }]}><Ionicons name={item.icon} size={20} color={item.color} /></View><LocalizedText style={styles.destinationTitle}>{item.title}</LocalizedText><LocalizedText style={[styles.destinationCount, { color: item.color }]}>{tileCount(item.route)}</LocalizedText><Ionicons name="chevron-back" size={15} color="#94A3B8" /></Pressable>)}</View>
       <View style={styles.sectionRow}><LocalizedText style={styles.sectionTitle}>تنبيهات الذكاء للمخاطر</LocalizedText><Pressable onPress={() => navigation.navigate("AdminRisk")}><LocalizedText style={styles.openAll}>عرض الكل</LocalizedText></Pressable></View>
-      <View style={styles.alertCount}><Ionicons name="alert-circle" size={14} color="#BE123C" /><LocalizedText style={styles.alertCountText}>{metric(summary?.openRiskFlags ?? (appConfig.demoMode ? risks.length : undefined))} حالة مفتوحة للمراجعة</LocalizedText></View>
+      <View style={styles.alertCount}><Ionicons name="alert-circle" size={14} color="#BE123C" /><LocalizedText style={styles.alertCountText}>{metric(summary?.openRiskFlags ?? risks.length)} حالة مفتوحة للمراجعة</LocalizedText></View>
       {risks.slice(0, 2).map((item) => <Pressable key={item.id} onPress={() => navigation.navigate("AdminCaseDetails", { caseId: item.id, kind: item.kind })} style={({ pressed }) => [styles.riskCard, item.severity === "critical" ? styles.critical : styles.warning, pressed && styles.pressed]}><View style={styles.riskTop}><LocalizedText style={[styles.riskBadge, item.severity === "critical" ? styles.criticalBadge : styles.warningBadge]}>{item.title}</LocalizedText><LocalizedText style={styles.time}>{item.time}</LocalizedText></View><LocalizedText style={styles.description}>{item.description}</LocalizedText><View style={styles.riskBottom}><LocalizedText style={styles.subject}>{item.subject} • {item.area}</LocalizedText><Ionicons name="chevron-back" size={16} color="#94A3B8" /></View></Pressable>)}
       {verifications[0] ? <Pressable onPress={() => navigation.navigate("AdminVerification")} style={styles.verification}><View style={styles.verifyIcon}><Ionicons name="id-card" size={22} color="#047857" /></View><View style={styles.verifyCopy}><LocalizedText style={styles.verifyTitle}>طلبات توثيق بانتظارك</LocalizedText><LocalizedText style={styles.verifyText}>{verifications[0].title} • {verifications[0].subject} • {verifications[0].area}</LocalizedText></View><View style={styles.verifyButton}><LocalizedText style={styles.verifyButtonText}>مراجعة</LocalizedText></View></Pressable> : null}
     </ScrollView>

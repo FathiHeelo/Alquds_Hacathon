@@ -7,14 +7,13 @@ import { pickRequestMedia } from "../../../services/media/mediaAdapter";
 import { mapToAppError } from "../../../shared/errors/mapToAppError";
 import { repairRequestRepository } from "../services/requestService";
 import { validateRepairRequest, type RequestErrors } from "../services/requestValidation";
-import { appConfig } from "../../../app/config/appConfig";
 
 let nextDraft = 1;
 
 export function useRepairRequest(technicianId?: string) {
   const [draft, setDraft] = useState<RepairRequestDraft>(() => ({ localId: `draft-${Date.now()}-${nextDraft++}`,
     customerId: "demo-customer", technicianId, description: "", urgency: Urgency.Medium,
-    preferredTime: PreferredTime.Asap, location: appConfig.demoMode ? { ...jerusalemDemoLocation } : { label: "", source: "device" }, media: [], createdAt: new Date().toISOString() }));
+    preferredTime: PreferredTime.Asap, location: { ...jerusalemDemoLocation }, media: [], createdAt: new Date().toISOString() }));
   const [errors, setErrors] = useState<RequestErrors>({});
   const [error, setError] = useState<string>();
   const [reviewing, setReviewing] = useState(false);

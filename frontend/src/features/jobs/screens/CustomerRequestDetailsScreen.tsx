@@ -23,7 +23,7 @@ export function CustomerRequestDetailsScreen({ route, navigation }: Props) {
   useEffect(() => {
     if (appConfig.demoMode) return;
     let active = true;
-    void Promise.all([repairRequestRepository.getRequest(route.params.requestId), customerJobRepository.list()]).then(async ([repair, jobs]) => {
+    void Promise.all([repairRequestRepository.getRequest(route.params.requestId), customerJobRepository.list()]).then(([repair, jobs]) => {
       if (!repair) { if (active) setRequest(undefined); return; }
       const job = jobs.find((item) => item.requestId === repair.id);
       const state: CustomerRequestState = job?.status ?? "pending";
@@ -32,7 +32,8 @@ export function CustomerRequestDetailsScreen({ route, navigation }: Props) {
       mapped.state = state; mapped.statusLabel = ({ pending: "بانتظار عروض الفنيين", accepted: "تم قبول العرض", on_the_way: "الفني في الطريق", scheduled: "موعد محجوز", in_progress: "العمل جارٍ", completed: "مكتمل", cancelled: "ملغي" } as Record<CustomerRequestState, string>)[state];
       mapped.statusDetail = job ? state === "on_the_way" && job.expectedArrival ? `الوصول المتوقع ${job.expectedArrival}` : job.locationLabel : "سيظهر طلبك للفنيين القريبين"; mapped.price = job?.agreedPrice ?? 0;
       if (active) setRequest(mapped);
-      if (job) { const profile = await technicianRepository.getById(job.technicianId); if (active) setTechnician(profile ?? undefined); }
+      if (active) setTechnician(job?.technician);
+      if (job) void technicianRepository.getById(job.technicianId).then((profile) => { if (active && profile) setTechnician(profile); }).catch(() => undefined);
     }).catch((error: unknown) => { if (active) { setRequest(undefined); setTechnician(undefined); Alert.alert("تعذر تحميل الطلب", error instanceof Error ? error.message : "حاول مرة أخرى."); } }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [route.params.requestId]);

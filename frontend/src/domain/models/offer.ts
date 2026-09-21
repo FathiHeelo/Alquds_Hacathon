@@ -1,3 +1,5 @@
+import type { Technician } from "./technician";
+
 export type OfferStatus = "pending" | "accepted" | "rejected";
 
 export interface Offer {
@@ -10,6 +12,7 @@ export interface Offer {
   etaMinutes?: number;
   status: OfferStatus;
   createdAt: string;
+  technician?: Technician;
 }
 
 export interface AcceptedOfferHandoff {

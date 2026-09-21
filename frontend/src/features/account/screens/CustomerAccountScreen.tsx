@@ -22,8 +22,8 @@ const menuItems = [
   { icon: "person-outline", title: "المعلومات الشخصية", subtitle: "الاسم ورقم الهاتف", color: "#8C6D14", background: "#FFF4C8" },
   { icon: "location-outline", title: "عناويني", subtitle: "المنزل ومواقع الصيانة", color: "#1D4ED8", background: "#DBEAFE" },
   { icon: "card-outline", title: "طرق الدفع", subtitle: "إدارة وسائل الدفع والفواتير", color: "#047857", background: "#D1FAE5" },
-  { icon: "notifications-outline", title: "الإشعارات", subtitle: "تنبيهات الطلبات والعروض", color: "#7C3AED", background: "#EDE9FE" },
-  { icon: "shield-checkmark-outline", title: "الأمان والخصوصية", subtitle: "حماية حسابك وحقوقك", color: "#0F766E", background: "#CCFBF1" },
+  { icon: "notifications-outline", title: "الإشعارات", subtitle: "تنبيهات الطلبات والعروض", color: "#7C3AED", background: "#EDE9FE", route: "notifications" },
+  { icon: "settings-outline", title: "الإعدادات والخصوصية", subtitle: "اللغة والمظهر وإمكانية الوصول", color: "#0F766E", background: "#CCFBF1", route: "settings" },
   { icon: "help-circle-outline", title: "المساعدة والدعم", subtitle: "تواصل مع فريق عَمِّرها", color: "#475569", background: "#E2E8F0" }
 ] as const;
 
@@ -47,7 +47,7 @@ export function CustomerAccountScreen() {
       <View style={styles.profileCard}>
         <View style={styles.profileGlow} />
         <View style={styles.avatar}><Ionicons name="person" size={40} color={colors.primary} /></View>
-        <View style={styles.profileCopy}><View style={styles.nameRow}><LocalizedText style={styles.name}>{account?.name ?? (appConfig.demoMode ? "أحمد ناصر" : "حساب العميل")}</LocalizedText></View>{account?.phone ? <LocalizedText style={styles.phone}>{account.phone}</LocalizedText> : null}</View>
+        <View style={styles.profileCopy}><View style={styles.nameRow}><LocalizedText style={styles.name}>{account?.name ?? "أحمد المقدسي"}</LocalizedText></View>{account?.phone ? <LocalizedText style={styles.phone}>{account.phone}</LocalizedText> : null}</View>
         <Pressable onPress={() => Alert.alert("تعديل الحساب", "يمكنك تعديل معلومات الحساب من هنا.")} style={styles.editButton}><Ionicons name="create-outline" size={16} color="white" /></Pressable>
       </View>
 
@@ -59,10 +59,10 @@ export function CustomerAccountScreen() {
         <View style={styles.stat}><Ionicons name="heart" size={19} color="#8C6D14" /><LocalizedText style={styles.statValue}>—</LocalizedText><LocalizedText style={styles.statLabel}>فنيون مفضلون</LocalizedText></View>
       </View>
 
-      {appConfig.demoMode ? <View style={styles.loyaltyCard}><View style={styles.loyaltyIcon}><Ionicons name="ribbon" size={22} color="#8C6D14" /></View><View style={styles.loyaltyCopy}><LocalizedText style={styles.loyaltyTitle}>عضو عَمِّرها الذهبي</LocalizedText><LocalizedText style={styles.loyaltyText}>باقي 150 نقطة لتحصل على قسيمة إضافية</LocalizedText><View style={styles.progress}><View style={styles.progressFill} /></View></View><Pressable onPress={() => navigation.navigate("CustomerRewards")}><Ionicons name="chevron-back" size={19} color="#8C6D14" /></Pressable></View> : null}
+      <View style={styles.loyaltyCard}><View style={styles.loyaltyIcon}><Ionicons name="ribbon" size={22} color="#8C6D14" /></View><View style={styles.loyaltyCopy}><LocalizedText style={styles.loyaltyTitle}>عضو عَمِّرها الذهبي</LocalizedText><LocalizedText style={styles.loyaltyText}>رصيدك الحالي {points ?? "—"} نقطة في برنامج المكافآت</LocalizedText><View style={styles.progress}><View style={styles.progressFill} /></View></View><Pressable onPress={() => navigation.navigate("CustomerRewards")}><Ionicons name="chevron-back" size={19} color="#8C6D14" /></Pressable></View>
 
       <LocalizedText style={styles.sectionTitle}>إعدادات الحساب</LocalizedText>
-      <View style={styles.menuCard}>{menuItems.map((item, index) => <Pressable key={item.title} onPress={() => Alert.alert(item.title, "سيتم ربط هذه الصفحة ببيانات الحساب الفعلية.")} style={({ pressed }) => [styles.menuItem, index < menuItems.length - 1 && styles.menuDivider, pressed && styles.pressed]}><View style={[styles.menuIcon, { backgroundColor: item.background }]}><Ionicons name={item.icon} size={19} color={item.color} /></View><View style={styles.menuCopy}><LocalizedText style={styles.menuTitle}>{item.title}</LocalizedText><LocalizedText style={styles.menuSubtitle}>{item.subtitle}</LocalizedText></View><Ionicons name="chevron-back" size={17} color="#94A3B8" /></Pressable>)}</View>
+      <View style={styles.menuCard}>{menuItems.map((item, index) => <Pressable key={item.title} onPress={() => "route" in item && item.route === "settings" ? navigation.navigate("CustomerSettings") : "route" in item && item.route === "notifications" ? navigation.navigate("CustomerNotifications") : Alert.alert(item.title, "بيانات العرض جاهزة، وسيتم حفظ أي تعديل من خلال نموذج الإضافة المخصص.")} style={({ pressed }) => [styles.menuItem, index < menuItems.length - 1 && styles.menuDivider, pressed && styles.pressed]}><View style={[styles.menuIcon, { backgroundColor: item.background }]}><Ionicons name={item.icon} size={19} color={item.color} /></View><View style={styles.menuCopy}><LocalizedText style={styles.menuTitle}>{item.title}</LocalizedText><LocalizedText style={styles.menuSubtitle}>{item.subtitle}</LocalizedText></View><Ionicons name="chevron-back" size={17} color="#94A3B8" /></Pressable>)}</View>
 
       <Pressable onPress={logout} style={styles.logout}><Ionicons name="log-out-outline" size={18} color="#BE123C" /><LocalizedText style={styles.logoutText}>العودة لاختيار الدور</LocalizedText></Pressable>
       <LocalizedText style={styles.version}>عَمِّرها • الإصدار 1.0.0</LocalizedText>

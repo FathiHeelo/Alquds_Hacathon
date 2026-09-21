@@ -13,8 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import type { CustomerStackParamList, CustomerTabParamList } from "../../../app/navigation/navigation.types";
 import { colors, shadows, typography, useTheme } from "../../../shared/theme";
 import { TechnicianPortrait } from "../../map/components/TechnicianPortrait";
-import { customerChatRepository, customerJobRepository, technicianRepository } from "../../../services/repositories";
-import type { ChatMessage } from "../../../domain/contracts/chatRepository";
+import { customerJobRepository } from "../../../services/repositories";
 import type { Technician } from "../../../domain/models/technician";
 import type { Job } from "../../../domain/models/job";
 
@@ -23,7 +22,7 @@ type MessagesNavigation = CompositeNavigationProp<
   NativeStackNavigationProp<CustomerStackParamList>
 >;
 
-type Conversation = { job: Job; technician?: Technician; last?: ChatMessage };
+type Conversation = { job: Job; technician?: Technician; last?: Job["lastMessage"] };
 
 export function CustomerMessagesScreen() {
   const navigation = useNavigation<MessagesNavigation>();
@@ -35,10 +34,7 @@ export function CustomerMessagesScreen() {
   const entrance = useRef(Array.from({ length: 30 }, () => new Animated.Value(0))).current;
   useEffect(() => {
     let active = true;
-    void customerJobRepository.list().then(async (jobs) => Promise.all(jobs.filter((job) => job.conversationId).map(async (job) => {
-      const [technician, messages] = await Promise.all([technicianRepository.getById(job.technicianId), customerChatRepository.getMessages(job.id)]);
-      return { job, technician: technician ?? undefined, last: messages.at(-1) };
-    }))).then((rows) => { if (active) setConversations(rows); }).catch(() => { if (active) { setConversations([]); setFailed(true); } }).finally(() => { if (active) setLoading(false); });
+    void customerJobRepository.list().then((jobs) => jobs.filter((job) => job.conversationId).map((job) => ({ job, technician: job.technician, last: job.lastMessage }))).then((rows) => { if (active) setConversations(rows); }).catch(() => { if (active) { setConversations([]); setFailed(true); } }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
   useEffect(() => {

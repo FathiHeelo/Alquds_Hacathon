@@ -1,7 +1,7 @@
-import * as SecureStore from "expo-secure-store";
-
 import { appConfig } from "../../app/config/appConfig";
 import { mapToAppError } from "../../shared/errors/mapToAppError";
+import { fetchWithTimeout } from "./fetchWithTimeout";
+import { sessionStorage } from "./sessionStorage";
 
 export type ApiRole = "customer" | "technician" | "admin";
 
@@ -19,7 +19,7 @@ let persistedSession: Promise<StoredSession | null> | undefined;
 
 async function readSession(): Promise<StoredSession | null> {
   if (!persistedSession) {
-    persistedSession = SecureStore.getItemAsync(storageKey).then((value) => {
+    persistedSession = sessionStorage.getItem(storageKey).then((value) => {
       if (!value) return null;
       const parsed = JSON.parse(value) as Partial<StoredSession>;
       if (!parsed.token || !parsed.role || !(parsed.role in credentials)) return null;
@@ -31,12 +31,12 @@ async function readSession(): Promise<StoredSession | null> {
 
 async function saveSession(session: StoredSession | null): Promise<void> {
   persistedSession = Promise.resolve(session);
-  if (session) await SecureStore.setItemAsync(storageKey, JSON.stringify(session));
-  else await SecureStore.deleteItemAsync(storageKey);
+  if (session) await sessionStorage.setItem(storageKey, JSON.stringify(session));
+  else await sessionStorage.removeItem(storageKey);
 }
 
 async function login(role: ApiRole): Promise<string> {
-  const response = await fetch(`${appConfig.apiBaseUrl}/auth/login`, {
+  const response = await fetchWithTimeout(`${appConfig.apiBaseUrl}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(credentials[role])
@@ -57,7 +57,7 @@ export const apiSession = {
     const stored = await readSession();
     if (!stored) return null;
     try {
-      const response = await fetch(`${appConfig.apiBaseUrl}/auth/me`, { headers: { Authorization: `Bearer ${stored.token}` } });
+      const response = await fetchWithTimeout(`${appConfig.apiBaseUrl}/auth/me`, { headers: { Authorization: `Bearer ${stored.token}` } });
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) await apiSession.clear();
         return response.status === 401 || response.status === 403 ? null : stored.role;

@@ -17,11 +17,22 @@ export const technicianRepository = {
       take: 50
     }),
   completedJobs: (technicianId: string, db: Db = prisma) => db.job.count({ where: { technicianId, status: "completed" } }),
+  completedJobsFor: (technicianIds: string[]) => prisma.job.groupBy({
+    by: ["technicianId"],
+    where: { technicianId: { in: technicianIds }, status: "completed" },
+    _count: { _all: true }
+  }),
   reviewAggregate: (technicianId: string, db: Db = prisma) =>
     db.review.aggregate({
       where: { technicianId },
       _avg: { overall: true, quality: true, speed: true, commitment: true, communication: true },
       _count: true
     }),
+  reviewAggregatesFor: (technicianIds: string[]) => prisma.review.groupBy({
+    by: ["technicianId"],
+    where: { technicianId: { in: technicianIds } },
+    _avg: { overall: true, quality: true, speed: true, commitment: true, communication: true },
+    _count: { _all: true }
+  }),
   reviews: (technicianId: string) => prisma.review.findMany({ where: { technicianId }, orderBy: { createdAt: "desc" }, take: 50 })
 };
