@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { test } from "node:test";
 import { DemoRepairRequestRepository } from "../src/demo/adapters/demoRepairRequestRepository";
 import { demoVoiceRequest } from "../src/demo/fixtures/voiceRequest";
 import type { RepairRequestDraft } from "../src/domain/models/repairRequest";
@@ -14,37 +12,37 @@ const draft: RepairRequestDraft = {
 };
 
 test("required fields and location validation", () => {
-  assert.deepEqual(validateRepairRequest(draft), {});
+  expect(validateRepairRequest(draft)).toEqual({});
   const invalid = validateRepairRequest({ ...draft, description: " ", category: undefined,
     location: { ...draft.location, latitude: NaN } });
-  assert.deepEqual(Object.keys(invalid).sort(), ["category", "description", "location"]);
+  expect(Object.keys(invalid).sort()).toEqual(["category", "description", "location"]);
 });
 
 test("manual submit, technician context, media and idempotent repository retrieval", async () => {
   const repository = new DemoRepairRequestRepository();
   const input = { ...draft, technicianId: "tariq", media: [{ type: "video" as const, uri: "file:///video.mp4", mimeType: "video/mp4" }] };
   const request = await repository.create(input);
-  assert.equal(request.id, "demo-request-1");
-  assert.equal(request.technicianId, "tariq");
-  assert.equal((await repository.create(input)).id, request.id);
+  expect(request.id).toBe("demo-request-1");
+  expect(request.technicianId).toBe("tariq");
+  expect((await repository.create(input)).id).toBe(request.id);
   input.media.length = 0;
-  assert.equal((await repository.getRequest(request.id))?.media.length, 1);
-  assert.equal(await repository.getRequest("missing"), undefined);
-  await assert.rejects(repository.create({ ...draft, description: "" }));
+  expect((await repository.getRequest(request.id))?.media.length).toBe(1);
+  expect(await repository.getRequest("missing")).toBeUndefined();
+  await expect(repository.create({ ...draft, description: "" })).rejects.toThrow();
 });
 
 test("voice facade and unavailable AI fallback leave manual submission usable", async () => {
   const original = aiAdapter.structureVoiceRequest;
   try {
     const ready = await suggestVoiceRequest();
-    assert.ok(ready.description.trim());
+    expect(ready.description.trim()).toBeTruthy();
     aiAdapter.structureVoiceRequest = async () => { throw new Error("unavailable"); };
     const fallback = await suggestVoiceRequest();
-    assert.equal(fallback.voice.source, "demo");
-    assert.equal(fallback.description, demoVoiceRequest.description);
+    expect(fallback.voice.source).toBe("demo");
+    expect(fallback.description).toBe(demoVoiceRequest.description);
     const repository = new DemoRepairRequestRepository();
     const request = await repository.create({ ...draft, ...fallback });
-    assert.equal(request.voice?.transcript, demoVoiceRequest.transcript);
-    assert.deepEqual(validateRepairRequest({ ...draft, voice: undefined }), {});
+    expect(request.voice?.transcript).toBe(demoVoiceRequest.transcript);
+    expect(validateRepairRequest({ ...draft, voice: undefined })).toEqual({});
   } finally { aiAdapter.structureVoiceRequest = original; }
 });

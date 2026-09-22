@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { test } from "node:test";
 import { DemoRepairRequestRepository } from "../src/demo/adapters/demoRepairRequestRepository";
 import { DemoTechnicianRepository } from "../src/demo/adapters/DemoTechnicianRepository";
 import type { CustomerAiClient } from "../src/domain/contracts/customerAiClient";
@@ -18,37 +16,37 @@ async function setup(ai: CustomerAiClient = customerAiClient) {
 test("old_city_plumbing_leak: saved request to public facade, price and existing technician", async () => {
   const { saved, deps } = await setup();
   const initial = await loadCustomerAiFlow(saved.id, deps);
-  assert.equal(initial.awaitingAnswers, true);
-  assert.equal(initial.diagnosis?.followUpQuestions.length, 2);
+  expect(initial.awaitingAnswers).toBe(true);
+  expect(initial.diagnosis?.followUpQuestions.length).toBe(2);
   const answers = [{ questionId: "leak_when_off", value: "no" }, { questionId: "leak_source", value: "drain" }];
   const result = await loadCustomerAiFlow(saved.id, deps, undefined, answers);
-  assert.deepEqual(result.unavailable, []);
-  assert.equal(result.request.id, saved.id);
-  assert.equal(result.structured?.normalizedDescription, saved.description);
-  assert.ok(result.diagnosis?.likelyIssue);
-  assert.ok(result.price && result.price.max >= result.price.min);
-  assert.equal(result.price?.currency, "ILS");
-  assert.equal(result.recommendations[0]?.technician.id, "tech-tariq-maqdisi");
-  assert.ok(result.recommendations[0]?.match);
-  assert.deepEqual(await loadCustomerAiFlow(saved.id, deps, undefined, answers), result);
+  expect(result.unavailable).toEqual([]);
+  expect(result.request.id).toBe(saved.id);
+  expect(result.structured?.normalizedDescription).toBe(saved.description);
+  expect(result.diagnosis?.likelyIssue).toBeTruthy();
+  expect(result.price && result.price.max >= result.price.min).toBeTruthy();
+  expect(result.price?.currency).toBe("ILS");
+  expect(result.recommendations[0]?.technician.id).toBe("tech-tariq-maqdisi");
+  expect(result.recommendations[0]?.match).toBeTruthy();
+  expect(await loadCustomerAiFlow(saved.id, deps, undefined, answers)).toEqual(result);
 });
 
 test("AI unavailable preserves manual request and unranked F02 technicians", async () => {
   const fail = async (): Promise<never> => { throw new Error("offline"); };
   const { saved, deps } = await setup({ structureRequest: fail, diagnose: fail, estimatePrice: fail, match: fail, assessRisk: fail });
   const result = await loadCustomerAiFlow(saved.id, deps);
-  assert.equal(result.request.description, saved.description);
-  assert.equal(result.diagnosis, undefined);
-  assert.equal(result.price, undefined);
-  assert.equal(result.recommendations[0]?.technician.id, "tech-tariq-maqdisi");
-  assert.equal(result.recommendations[0]?.match, undefined);
-  assert.deepEqual([...result.unavailable].sort(), ["diagnosis", "risk", "structure"]);
+  expect(result.request.description).toBe(saved.description);
+  expect(result.diagnosis).toBeUndefined();
+  expect(result.price).toBeUndefined();
+  expect(result.recommendations[0]?.technician.id).toBe("tech-tariq-maqdisi");
+  expect(result.recommendations[0]?.match).toBeUndefined();
+  expect([...result.unavailable].sort()).toEqual(["diagnosis", "risk", "structure"]);
 });
 
 test("missing request is recoverable and never calls AI", async () => {
   const { deps } = await setup();
-  deps.ai = { ...customerAiClient, diagnose: async () => { assert.fail("AI should not run"); } };
-  await assert.rejects(loadCustomerAiFlow("missing", deps), RequestNotFoundError);
+  deps.ai = { ...customerAiClient, diagnose: async () => { throw new Error("AI should not run"); } };
+  await expect(loadCustomerAiFlow("missing", deps)).rejects.toBeInstanceOf(RequestNotFoundError);
 });
 
 test("low confidence and independent price failure keep diagnosis", async () => {
@@ -56,10 +54,10 @@ test("low confidence and independent price failure keep diagnosis", async () => 
     diagnose: async (request, answers) => ({ ...(await customerAiClient.diagnose(request, answers)), confidence: 0.2 }),
     estimatePrice: async () => { throw new Error("price unavailable"); } });
   const result = await loadCustomerAiFlow(saved.id, deps, undefined, [{ questionId: "leak_when_off", value: "no" }, { questionId: "leak_source", value: "drain" }]);
-  assert.ok(result.diagnosis && isLowConfidence(result.diagnosis.confidence));
-  assert.equal(isLowConfidence(0.9), false);
-  assert.equal(result.price, undefined);
-  assert.ok(result.recommendations.length);
+  expect(result.diagnosis && isLowConfidence(result.diagnosis.confidence)).toBeTruthy();
+  expect(isLowConfidence(0.9)).toBe(false);
+  expect(result.price).toBeUndefined();
+  expect(result.recommendations.length).toBeTruthy();
 });
 
 test("repository failure and empty matching both keep the saved request", async () => {
@@ -68,16 +66,16 @@ test("repository failure and empty matching both keep the saved request", async 
   const failed = await loadCustomerAiFlow(saved.id, { ...deps, technicians: {
     ...deps.technicians, getById: async () => null, findNearby: async () => { throw new Error("offline"); }
   } }, undefined, answers);
-  assert.ok(failed.unavailable.includes("technicians"));
-  assert.ok(failed.diagnosis);
+  expect(failed.unavailable.includes("technicians")).toBeTruthy();
+  expect(failed.diagnosis).toBeTruthy();
   const empty = await loadCustomerAiFlow(saved.id, { ...deps, ai: { ...customerAiClient, match: async () => [] } }, undefined, answers);
-  assert.deepEqual(empty.recommendations, []);
-  assert.equal(empty.request.id, saved.id);
+  expect(empty.recommendations).toEqual([]);
+  expect(empty.request.id).toBe(saved.id);
 });
 
 test("hung AI times out without blocking the manual journey", async () => {
   const { saved, deps } = await setup({ ...customerAiClient, diagnose: () => new Promise(() => {}) });
   const result = await loadCustomerAiFlow(saved.id, { ...deps, timeoutMs: 30 });
-  assert.ok(result.unavailable.includes("diagnosis"));
-  assert.equal(result.request.id, saved.id);
+  expect(result.unavailable.includes("diagnosis")).toBeTruthy();
+  expect(result.request.id).toBe(saved.id);
 });

@@ -1,6 +1,3 @@
-import assert from "node:assert/strict";
-import test from "node:test";
-
 import { loadPreferences, savePreferences } from "../src/shared/preferences/preferencesStorage.web";
 import { defaultPreferences, type AccessibilityPreferences } from "../src/shared/preferences/types";
 
@@ -22,13 +19,13 @@ test("web preferences persist every accessibility field and reload", async () =>
   installStorage();
   const expected: AccessibilityPreferences = { appearance: "high_contrast", language: "en", textSize: "large", reduceMotion: true };
   await savePreferences(expected);
-  assert.deepEqual(await loadPreferences(), expected);
+  expect(await loadPreferences()).toEqual(expected);
 });
 
 test("web preferences fall back safely for malformed or inaccessible storage", async () => {
   installStorage("not-json");
-  assert.deepEqual(await loadPreferences(), defaultPreferences);
+  expect(await loadPreferences()).toEqual(defaultPreferences);
   Object.defineProperty(globalThis, "window", { configurable: true, get() { throw new Error("blocked"); } });
-  assert.deepEqual(await loadPreferences(), defaultPreferences);
-  await assert.doesNotReject(() => savePreferences(defaultPreferences));
+  expect(await loadPreferences()).toEqual(defaultPreferences);
+  await savePreferences(defaultPreferences);
 });
