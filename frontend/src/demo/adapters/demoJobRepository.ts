@@ -8,4 +8,31 @@ export class DemoJobRepository implements JobRepository {
   async updateStatus(id: string, status: JobStatus) { const job = await this.getJob(id); if (!job) throw new Error("Job not found"); const updated = { ...job, status }; jobs.set(id, updated); return updated; }
 }
 export const jobRepository = new DemoJobRepository();
-export function resetDemoJobs() { jobs.clear(); }
+
+export function createDemoUrgentJob(input: {
+  requestId: string;
+  technicianId: string;
+  price: number;
+  etaMinutes?: number;
+}) {
+  const id = `demo-job-urgent-${input.requestId}`;
+
+  const job: Job = {
+    id,
+    requestId: input.requestId,
+    offerId: `demo-urgent-offer-${input.requestId}`,
+    technicianId: input.technicianId,
+    status: "accepted",
+    agreedPrice: input.price,
+    expectedArrival: `${input.etaMinutes ?? 20} دقيقة`,
+    durationMinutes: 45,
+    locationLabel: "موقع العميل"
+  };
+
+  jobs.set(id, job);
+  return job;
+}
+
+export function resetDemoJobs() {
+  jobs.clear();
+}

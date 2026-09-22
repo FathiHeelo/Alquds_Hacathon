@@ -1,8 +1,11 @@
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { CustomerStackParamList } from "../../../app/navigation/navigation.types";
 import type { DiagnosisResult } from "@ammerha/ai";
 import { Ionicons } from "@expo/vector-icons";
 import { Linking, Pressable, View } from "react-native";
 import { useState } from "react";
-
+import { appConfig } from "../../../app/config/appConfig";
+import { useNavigation } from "@react-navigation/native";
 import { getVerifiedAssistanceContact } from "../../../app/config/assistanceContacts";
 import { urgentDispatchApi, type UrgentDispatchState } from "../../../services/api/urgentDispatchApi";
 import { Button, Card } from "../../../shared/components";
@@ -31,8 +34,17 @@ const safetyText: Record<string, { ar: string; en: string }> = {
   shut_water_if_safe: { ar: "أغلق مصدر المياه إن أمكن ذلك بأمان.", en: "Shut off the water supply if it is safe to do so." }
 };
 
-export function RoutingDecisionCard({ diagnosis, requestId, onReturn }: { diagnosis: DiagnosisResult; requestId: string; onReturn(): void }) {
+export function RoutingDecisionCard({
+  diagnosis,
+  requestId,
+  onReturn
+}: {
+  diagnosis: DiagnosisResult;
+  requestId: string;
+  onReturn(): void;
+}) {
   const { language, t } = useI18n();
+  const navigation = useNavigation<NativeStackNavigationProp<CustomerStackParamList>>();
   const [dispatch, setDispatch] = useState<UrgentDispatchState>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
@@ -54,7 +66,37 @@ export function RoutingDecisionCard({ diagnosis, requestId, onReturn }: { diagno
     </> : <>
       {dispatch ? <View style={styles.dispatch}><LocalizedText style={aiStyles.text}>{language === "ar" ? `نطاق البحث الحالي: ${dispatch.radiusKm} كم` : `Current search radius: ${dispatch.radiusKm} km`}</LocalizedText><LocalizedText style={aiStyles.text}>{language === "ar" ? `الفنيون المؤهلون: ${dispatch.eligibleCount}` : `Eligible technicians: ${dispatch.eligibleCount}`}</LocalizedText><LocalizedText style={[aiStyles.text, aiStyles.muted]}>{dispatch.status === "assigned" ? (language === "ar" ? "تم تعيين فني واحد للطلب." : "One technician has been assigned.") : (language === "ar" ? "بانتظار أول فني مؤهل يقبل الطلب." : "Waiting for the first eligible technician to accept.")}</LocalizedText></View> : null}
       {error ? <LocalizedText accessibilityRole="alert" style={[aiStyles.text, styles.unavailable]}>{error}</LocalizedText> : null}
-      {!dispatch ? <Button disabled={busy} onPress={() => void run(() => urgentDispatchApi.start(requestId))}>{t("routing.startDispatch")}</Button> : dispatch.status === "searching" && dispatch.canExpand ? <Button disabled={busy} onPress={() => void run(() => urgentDispatchApi.expand(requestId))}>{t("routing.expandDispatch")}</Button> : null}
+      {!dispatch ? (
+  <Button
+    disabled={busy}
+    onPress={() => {
+      if (appConfig.demoMode) {
+        navigation.navigate("CustomerUrgentSearch", {
+          requestId,
+          demo: true
+        });
+        return;
+      }
+
+      void run(() => urgentDispatchApi.start(requestId));
+    }}
+  >
+    {appConfig.demoMode
+      ? language === "ar"
+        ? "عرض البحث العاجل"
+        : "Demo Urgent Search"
+      : language === "ar"
+        ? "طلب فني بشكل عاجل"
+        : "Find an urgent technician"}
+  </Button>
+) : dispatch.status === "searching" && dispatch.canExpand ? (
+  <Button
+    disabled={busy}
+    onPress={() => void run(() => urgentDispatchApi.expand(requestId))}
+  >
+    {t("routing.expandDispatch")}
+  </Button>
+) : null}
       {dispatch?.status === "searching" ? <Pressable disabled={busy} onPress={() => void run(() => urgentDispatchApi.get(requestId, "customer"))}><LocalizedText style={[aiStyles.text, styles.refresh]}>{language === "ar" ? "تحديث حالة البحث" : "Refresh search status"}</LocalizedText></Pressable> : null}
     </>}
   </View></Card>;

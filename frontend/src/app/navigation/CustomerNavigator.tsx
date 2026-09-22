@@ -3,7 +3,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
+import { UrgentSearchScreen } from "../../features/ai-diagnosis/screens/UrgentSearchScreen";
 import { CustomerMapScreen } from "../../features/map/screens/CustomerMapScreen";
 import { RepairRequestScreen } from "../../features/repair-request/screens/RepairRequestScreen";
 import { AiCustomerFlowScreen } from "../../features/ai-diagnosis/screens/AiCustomerFlowScreen";
@@ -125,9 +125,29 @@ export function CustomerNavigator() {
       <Stack.Screen name="CustomerTabs" component={CustomerTabs} options={{ headerShown: false }} />
       <Stack.Screen name="CustomerTechnicianProfile" component={TechnicianProfileScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CustomerRepairRequest" component={RepairRequestScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="CustomerAiEntry" component={AiCustomerFlowScreen} options={{ title: "التشخيص الذكي" }} />
-      <Stack.Screen name="CustomerOffersEntry" component={OffersScreen} options={{ title: "عروض الفنيين" }} />
-      <Stack.Screen name="CustomerOfferDetails" component={OfferDetailsScreen} options={{ title: "تفاصيل العرض" }} />
+      <Stack.Screen
+  name="CustomerAiEntry"
+  component={AiCustomerFlowScreen}
+  options={{ title: "التشخيص الذكي" }}
+/>
+
+<Stack.Screen
+  name="CustomerUrgentSearch"
+  component={UrgentSearchScreen}
+  options={{ headerShown: false }}
+/>
+
+<Stack.Screen
+  name="CustomerOffersEntry"
+  component={OffersScreen}
+  options={{ title: "عروض الفنيين" }}
+/>
+
+<Stack.Screen
+  name="CustomerOfferDetails"
+  component={OfferDetailsScreen}
+  options={{ title: "تفاصيل العرض" }}
+/>
       <Stack.Screen name="CustomerJobEntry" component={CustomerJobEntryScreen} options={{ title: "تأكيد المهمة" }} />
       <Stack.Screen name="CustomerJob" component={CustomerJobScreen} options={{ title: "المهمة النشطة" }} />
       <Stack.Screen name="CustomerRating" component={CustomerRatingScreen} options={{ title: "تقييم الفني" }} />
