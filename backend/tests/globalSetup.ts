@@ -1,9 +1,19 @@
-import { execSync } from "node:child_process";
+/**
+ * Prepares the isolated test dataset: NODE_ENV=test makes every Firestore collection resolve to a
+ * `test_`-prefixed name (see src/database/firestore.ts), so this never touches demo data — same
+ * Firestore project/database, separate namespace.
+ *
+ * Vitest runs the function this returns as the matching teardown, once all tests finish.
+ */
+export default async function setup() {
+  process.env.NODE_ENV = "test";
+  process.env.JWT_SECRET ??= "test-secret";
+  const { seedDemoData } = await import("../src/seed/seed");
+  await seedDemoData();
 
-/** Prepares the isolated test database: apply migrations, then (re)seed demo data. */
-export default function setup() {
-  const url = process.env.TEST_DATABASE_URL ?? "mysql://root:@localhost:3306/ammerha_test";
-  const env = { ...process.env, DATABASE_URL: url };
-  execSync("npx prisma migrate deploy", { env, stdio: "ignore" });
-  execSync("npx prisma db seed", { env, stdio: "ignore" });
+  return async function teardown() {
+    const { firestore, Collections } = await import("../src/database/firestore");
+    // Wipes every test_-prefixed collection so repeated runs don't accumulate stray documents.
+    await Promise.all(Object.values(Collections).map((name) => firestore.recursiveDelete(firestore.collection(`test_${name}`))));
+  };
 }

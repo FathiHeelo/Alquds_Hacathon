@@ -1,5 +1,3 @@
-import type { Prisma } from "@prisma/client";
-
 import { AppError } from "../../errors/AppError";
 import { ErrorCode } from "../../errors/errorCodes";
 import { chatRepository } from "./chat.repository";
@@ -22,18 +20,17 @@ export const chatService = {
   /** `after` supports polling: only messages newer than the given timestamp. */
   async get(jobId: string, user: { id: string; role: string }, after?: Date) {
     const { conversation } = await authorize(jobId, user);
-    return { conversation, messages: await chatRepository.messages(conversation.id, after) };
+    return { conversation, messages: await chatRepository.messages(jobId, after) };
   },
 
   async send(jobId: string, user: { id: string; role: string }, input: MessageInput) {
-    const { conversation, participant } = await authorize(jobId, user);
+    const { participant } = await authorize(jobId, user);
     if (!participant) throw new AppError(ErrorCode.PermissionDenied, "Admins cannot post in conversations", 403);
-    return chatRepository.createMessage({
-      conversationId: conversation.id,
+    return chatRepository.createMessage(jobId, {
       senderId: user.id,
       type: input.type,
       body: "body" in input ? input.body : undefined,
-      payload: "payload" in input ? (input.payload as Prisma.InputJsonValue) : undefined
+      payload: "payload" in input ? input.payload : undefined
     });
   }
 };

@@ -1,24 +1,74 @@
-import type { Prisma } from "@prisma/client";
+import { randomBytes } from "node:crypto";
 
-import { prisma } from "../../database/prisma";
-import type { Db } from "../../shared/db";
+import { Collections, FieldValue, col, firestore } from "../../database/firestore";
+import { tsMillis, withId } from "../../shared/firestore.helpers";
+
+interface PartnerRewardDoc {
+  partnerId: string;
+  title: string;
+  pointsCost: number;
+  active: boolean;
+}
+
+const rewardTx = () => col(Collections.rewardTransactions);
+const partnerRewards = () => col(Collections.partnerRewards);
+const redemptions = () => col(Collections.redemptions);
+const users = () => col(Collections.users);
 
 export const rewardRepository = {
-  findEarn: (userId: string, reason: string, refId: string, db: Db = prisma) =>
-    db.rewardTransaction.findFirst({ where: { userId, reason, refId } }),
-  createTx: (data: Prisma.RewardTransactionUncheckedCreateInput, db: Db = prisma) => db.rewardTransaction.create({ data }),
-  /** Ledger balance = sum(earn) - sum(redeem). */
-  async balance(userId: string, db: Db = prisma) {
-    const groups = await db.rewardTransaction.groupBy({ by: ["type"], where: { userId }, _sum: { points: true } });
-    const sum = (type: string) => groups.find((g) => g.type === type)?._sum.points ?? 0;
-    return { earned: sum("earn"), redeemed: sum("redeem"), balance: sum("earn") - sum("redeem") };
+  transactions: async (userId: string) => {
+    const snap = await rewardTx().where("userId", "==", userId).get();
+    return snap.docs.map(withId).sort((a, b) => tsMillis(b.createdAt) - tsMillis(a.createdAt));
   },
-  transactions: (userId: string) => prisma.rewardTransaction.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 100 }),
-  activeRewards: () => prisma.partnerReward.findMany({ where: { active: true }, include: { partner: true }, orderBy: { pointsCost: "asc" } }),
-  findReward: (id: string, db: Db = prisma) => db.partnerReward.findUnique({ where: { id }, include: { partner: true } }),
-  createRedemption: (data: Prisma.RedemptionUncheckedCreateInput, db: Db = prisma) => db.redemption.create({ data }),
-  redemptions: (userId: string) =>
-    prisma.redemption.findMany({ where: { userId }, include: { reward: { include: { partner: true } } }, orderBy: { createdAt: "desc" } }),
-  /** Row lock on the user so concurrent redemptions serialize (inside a transaction). */
-  lockUser: (userId: string, db: Prisma.TransactionClient) => db.$queryRaw`SELECT id FROM User WHERE id = ${userId} FOR UPDATE`
+  activeRewards: async () => {
+    const snap = await partnerRewards().where("active", "==", true).get();
+    const rows = snap.docs.map((d) => withId(d as FirebaseFirestore.DocumentSnapshot<PartnerRewardDoc>));
+    const partnerIds = [...new Set(rows.map((r) => r.partnerId))];
+    const partnerSnaps = partnerIds.length ? await firestore.getAll(...partnerIds.map((id) => col(Collections.partners).doc(id))) : [];
+    const partners = new Map(partnerSnaps.map((s) => [s.id, s.data() as { name: string } | undefined]));
+    return rows.map((r) => ({ ...r, partner: partners.get(r.partnerId) })).sort((a, b) => a.pointsCost - b.pointsCost);
+  },
+  findReward: async (id: string) => {
+    const snap = await partnerRewards().doc(id).get();
+    if (!snap.exists) return null;
+    const data = withId(snap as FirebaseFirestore.DocumentSnapshot<PartnerRewardDoc>);
+    const partnerSnap = await col(Collections.partners).doc(data.partnerId).get();
+    return { ...data, partner: partnerSnap.data() as { name: string } | undefined };
+  },
+  redemptions: async (userId: string) => {
+    const snap = await redemptions().where("userId", "==", userId).get();
+    const rows = snap.docs.map((d) => withId(d as FirebaseFirestore.DocumentSnapshot<{ rewardId: string; points: number; code: string; createdAt: FirebaseFirestore.Timestamp | Date }>));
+    const rewardIds = [...new Set(rows.map((r) => r.rewardId))];
+    const rewardSnaps = rewardIds.length ? await firestore.getAll(...rewardIds.map((id) => partnerRewards().doc(id))) : [];
+    const rewards = new Map(rewardSnaps.map((s) => [s.id, s.data() as { title: string; partnerId: string } | undefined]));
+    return rows.sort((a, b) => tsMillis(b.createdAt) - tsMillis(a.createdAt)).map((r) => ({ ...r, reward: rewards.get(r.rewardId) }));
+  },
+  /** Idempotent earn: `create()` fails (ALREADY_EXISTS) if this (user, reason, ref) was already awarded. */
+  async awardIfNew(userId: string, points: number, reason: string, refId: string) {
+    const ref = rewardTx().doc(`${userId}__${reason}__${refId}`);
+    try {
+      await ref.create({ userId, type: "earn", points, reason, refId, createdAt: new Date() });
+    } catch {
+      return false;
+    }
+    await users().doc(userId).update({ pointsEarned: FieldValue.increment(points) });
+    return true;
+  },
+  /** Balance check + ledger write happen in one transaction, so points can never go negative. */
+  async redeem(userId: string, reward: { id: string; pointsCost: number }) {
+    return firestore.runTransaction(async (tx) => {
+      const userRef = users().doc(userId);
+      const userSnap = await tx.get(userRef);
+      const user = userSnap.data() as { pointsEarned?: number; pointsRedeemed?: number } | undefined;
+      const balance = (user?.pointsEarned ?? 0) - (user?.pointsRedeemed ?? 0);
+      if (balance < reward.pointsCost) return { ok: false as const, balance };
+
+      const redemptionRef = redemptions().doc();
+      const code = `AMR-${randomBytes(4).toString("hex").toUpperCase()}`;
+      tx.create(redemptionRef, { userId, rewardId: reward.id, points: reward.pointsCost, code, createdAt: new Date() });
+      tx.create(rewardTx().doc(), { userId, type: "redeem", points: reward.pointsCost, reason: "redemption", refId: redemptionRef.id, createdAt: new Date() });
+      tx.update(userRef, { pointsRedeemed: (user?.pointsRedeemed ?? 0) + reward.pointsCost });
+      return { ok: true as const, redemption: { id: redemptionRef.id, code }, balance: balance - reward.pointsCost };
+    });
+  }
 };

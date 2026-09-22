@@ -1,15 +1,14 @@
-import type { JobStatus, UserRole } from "@prisma/client";
-
 import { rewardPoints } from "../../config/business";
-import { prisma } from "../../database/prisma";
+import { FieldValue, globalStatsRef } from "../../database/firestore";
 import { AppError } from "../../errors/AppError";
 import { ErrorCode } from "../../errors/errorCodes";
-import { num } from "../../shared/money";
+import type { JobStatus, UserRole } from "../../shared/status";
 import { NotificationType, notify } from "../notifications/notifications.service";
 import { repairRequestRepository } from "../repair-requests/repairRequest.repository";
 import { awardPoints } from "../rewards/rewards.service";
+import { technicianRepository } from "../technicians/technicians.repository";
 import { computeFinancials } from "./jobs.finance";
-import { jobRepository } from "./jobs.repository";
+import { jobRepository, type JobDoc } from "./jobs.repository";
 
 /** Allowed job status transitions (enforced here, never in controllers). */
 export const jobTransitions: Record<JobStatus, JobStatus[]> = {
@@ -22,24 +21,6 @@ export const jobTransitions: Record<JobStatus, JobStatus[]> = {
 };
 
 const notFound = () => new AppError(ErrorCode.JobNotFound, "Job not found", 404);
-
-type Job = NonNullable<Awaited<ReturnType<typeof jobRepository.findById>>>;
-
-/** Mobile-ready shape: Decimals become numbers. */
-const present = (job: Job) => ({
-  ...job,
-  offer: { ...job.offer, price: num(job.offer.price) },
-  financial: job.financial && {
-    ...job.financial,
-    labor: num(job.financial.labor),
-    parts: num(job.financial.parts),
-    subtotal: num(job.financial.subtotal),
-    commissionRate: Number(job.financial.commissionRate),
-    platformFee: num(job.financial.platformFee),
-    total: num(job.financial.total),
-    technicianEarning: num(job.financial.technicianEarning)
-  }
-});
 
 const assertParticipant = (job: { customerId: string; technicianId: string }, user: { id: string; role: UserRole }) => {
   if (user.role !== "admin" && job.customerId !== user.id && job.technicianId !== user.id) {
@@ -57,20 +38,23 @@ export interface StatusInput {
 
 export const jobService = {
   async listMine(user: { id: string; role: UserRole }) {
-    const where = user.role === "technician" ? { technicianId: user.id } : user.role === "customer" ? { customerId: user.id } : {};
-    return (await jobRepository.listForUser(where)).map(present);
+    if (user.role === "technician") return jobRepository.listForUser("technicianId", user.id);
+    if (user.role === "customer") return jobRepository.listForUser("customerId", user.id);
+    return []; // Admin summary/reporting reads jobs via admin.service, not this per-user listing.
   },
 
   async get(id: string, user: { id: string; role: UserRole }) {
     const job = await jobRepository.findById(id);
     if (!job) throw notFound();
     assertParticipant(job, user);
-    return present(job);
+    return job;
   },
 
   async changeStatus(id: string, user: { id: string; role: UserRole }, input: StatusInput) {
-    const job = await jobRepository.findById(id);
-    if (!job) throw notFound();
+    const ref = jobRepository.ref(id);
+    const snap = await ref.get();
+    if (!snap.exists) throw notFound();
+    const job = snap.data() as JobDoc;
     assertParticipant(job, user);
 
     // Technician drives progress; the customer may only cancel before work starts.
@@ -82,36 +66,41 @@ export const jobService = {
       throw new AppError(ErrorCode.InvalidJobTransition, `Cannot move job from ${job.status} to ${input.status}`, 409);
     }
 
-    await prisma.$transaction(async (tx) => {
-      const patch = {
-        status: input.status,
-        ...(input.status === "scheduled" && input.scheduledAt ? { scheduledAt: input.scheduledAt } : {}),
-        ...(input.status === "in_progress" ? { startedAt: new Date() } : {}),
-        ...(input.status === "completed" ? { completedAt: new Date() } : {})
-      };
-      if (!(await jobRepository.transition(id, job.status, patch, tx))) {
-        throw new AppError(ErrorCode.InvalidJobTransition, "Job status changed concurrently, retry", 409);
-      }
+    const financial = input.status === "completed" ? computeFinancials(input.laborAmount ?? job.offer.price, input.partsAmount ?? 0) : undefined;
+    const patch: Partial<JobDoc> = {
+      status: input.status,
+      ...(input.status === "scheduled" && input.scheduledAt ? { scheduledAt: input.scheduledAt } : {}),
+      ...(input.status === "in_progress" ? { startedAt: new Date() } : {}),
+      ...(input.status === "completed" ? { completedAt: new Date(), financial } : {})
+    };
 
-      const payload = { jobId: id, requestId: job.requestId };
-      if (input.status === "on_the_way") await notify(job.customerId, NotificationType.OnTheWay, "Technician is on the way", undefined, payload, tx);
-      if (input.status === "in_progress") await notify(job.customerId, NotificationType.Started, "Work has started", undefined, payload, tx);
+    // The CAS transition is the only step that races with anything else; everything after it is a
+    // one-time side effect only the (guaranteed unique) winner performs.
+    if (!(await jobRepository.transition(id, job.status, patch))) {
+      throw new AppError(ErrorCode.InvalidJobTransition, "Job status changed concurrently, retry", 409);
+    }
 
-      if (input.status === "cancelled") {
-        await repairRequestRepository.transitionStatus(job.requestId, ["accepted"], "cancelled", tx);
-        const other = user.id === job.customerId ? job.technicianId : job.customerId;
-        await notify(other, NotificationType.JobCancelled, "Job was cancelled", undefined, payload, tx);
-      }
+    const payload = { jobId: id, requestId: job.requestId };
+    if (input.status === "on_the_way") await notify(job.customerId, NotificationType.OnTheWay, "Technician is on the way", undefined, payload);
+    if (input.status === "in_progress") await notify(job.customerId, NotificationType.Started, "Work has started", undefined, payload);
 
-      if (input.status === "completed") {
-        await repairRequestRepository.transitionStatus(job.requestId, ["accepted"], "completed", tx);
-        const labor = input.laborAmount ?? Number(job.offer.price);
-        await jobRepository.createFinancial({ jobId: id, ...computeFinancials(labor, input.partsAmount ?? 0) }, tx);
-        await notify(job.customerId, NotificationType.Completed, "Job completed", undefined, payload, tx);
-        await notify(job.customerId, NotificationType.RatingRequest, "How was the service? Rate your technician", undefined, payload, tx);
-        await awardPoints(job.technicianId, rewardPoints.technicianCompletedJob, "job_completed", id, tx);
-      }
-    });
+    if (input.status === "cancelled") {
+      await repairRequestRepository.transitionStatus(job.requestId, ["accepted"], "cancelled");
+      const other = user.id === job.customerId ? job.technicianId : job.customerId;
+      await notify(other, NotificationType.JobCancelled, "Job was cancelled", undefined, payload);
+    }
+
+    if (input.status === "completed" && financial) {
+      await repairRequestRepository.transitionStatus(job.requestId, ["accepted"], "completed");
+      await technicianRepository.onCompletedJob(job.technicianId, financial);
+      await globalStatsRef().set(
+        { completedJobsCount: FieldValue.increment(1), grossTotal: FieldValue.increment(financial.subtotal), platformFeeTotal: FieldValue.increment(financial.platformFee) },
+        { merge: true }
+      );
+      await notify(job.customerId, NotificationType.Completed, "Job completed", undefined, payload);
+      await notify(job.customerId, NotificationType.RatingRequest, "How was the service? Rate your technician", undefined, payload);
+      await awardPoints(job.technicianId, rewardPoints.technicianCompletedJob, "job_completed", id);
+    }
 
     return this.get(id, user);
   }

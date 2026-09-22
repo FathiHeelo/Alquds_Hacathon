@@ -8,18 +8,14 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/src/server.js",
     "typecheck": "tsc --noEmit",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:deploy": "prisma migrate deploy",
-    "prisma:seed": "prisma db seed",
-    "prisma:clean-test-data": "tsx prisma/cleanup-test-data.ts",
+    "seed": "tsx src/seed/seed.ts",
     "test": "vitest run"
   },
   "dependencies": {
-    "@prisma/client": "^6.16.0",
     "bcryptjs": "^3.0.3",
     "dotenv": "^18.0.0",
     "express": "^5.1.0",
+    "firebase-admin": "^14.4.0",
     "jsonwebtoken": "^9.0.3",
     "zod": "^4.6.5"
   },
@@ -29,13 +25,9 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.5.0",
     "@types/supertest": "^7.2.1",
-    "prisma": "^6.16.0",
     "supertest": "^7.2.2",
     "tsx": "^4.20.0",
     "typescript": "^5.9.0",
     "vitest": "^5.0.1"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
   }
 }

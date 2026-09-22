@@ -1,25 +1,29 @@
-import { prisma } from "../../database/prisma";
-import { num } from "../../shared/money";
+import { Collections, col } from "../../database/firestore";
+import { AppError } from "../../errors/AppError";
+import { ErrorCode } from "../../errors/errorCodes";
+import type { TechnicianProfileDoc } from "../technicians/technicians.repository";
 
 export const reportService = {
   /** Safety/abuse case raised by a user; reviewed by an admin. */
-  create: (reporterId: string, input: { targetUserId?: string; jobId?: string; reason: string; details?: string }) =>
-    prisma.report.create({ data: { reporterId, ...input } }),
+  async create(reporterId: string, input: { targetUserId?: string; jobId?: string; reason: string; details?: string }) {
+    const ref = col(Collections.reports).doc();
+    const doc = { reporterId, ...input, status: "open", createdAt: new Date(), updatedAt: new Date() };
+    await ref.set(doc);
+    return { id: ref.id, ...doc };
+  },
 
-  /** Technician earnings aggregate from persisted job financial summaries. */
+  /** Technician earnings, read straight off the atomic counters maintained at job-completion time. */
   async technicianEarnings(technicianId: string) {
-    const agg = await prisma.jobFinancial.aggregate({
-      where: { job: { technicianId } },
-      _sum: { subtotal: true, platformFee: true, technicianEarning: true, labor: true, parts: true },
-      _count: true
-    });
+    const snap = await col(Collections.technicianProfiles).doc(technicianId).get();
+    if (!snap.exists) throw new AppError(ErrorCode.NotFound, "Technician not found", 404);
+    const p = snap.data() as TechnicianProfileDoc;
     return {
-      completedJobs: agg._count,
-      gross: num(agg._sum.subtotal ?? 0),
-      labor: num(agg._sum.labor ?? 0),
-      parts: num(agg._sum.parts ?? 0),
-      platformFees: num(agg._sum.platformFee ?? 0),
-      netEarnings: num(agg._sum.technicianEarning ?? 0)
+      completedJobs: p.completedJobsCount,
+      gross: p.earningsGross,
+      labor: p.earningsLabor,
+      parts: p.earningsParts,
+      platformFees: p.earningsPlatformFee,
+      netEarnings: p.earningsNet
     };
   }
 };

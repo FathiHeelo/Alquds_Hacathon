@@ -1,13 +1,14 @@
 import { Router } from "express";
 
-import { prisma } from "../../database/prisma";
+import { Collections, col } from "../../database/firestore";
 
 export const healthRouter = Router();
 
 healthRouter.get("/", async (_request, response) => {
   let database: "up" | "down" = "up";
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    // Cheap connectivity probe: a single-document read against Firestore.
+    await col(Collections.serviceCategories).limit(1).get();
   } catch {
     database = "down";
   }

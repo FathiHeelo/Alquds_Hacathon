@@ -1,9 +1,12 @@
+import { randomUUID } from "node:crypto";
+
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 import { env } from "../../config/env";
 import { AppError } from "../../errors/AppError";
 import { ErrorCode } from "../../errors/errorCodes";
+import { technicianRepository } from "../technicians/technicians.repository";
 import { publicUser, userRepository } from "../users/users.repository";
 
 export interface RegisterInput {
@@ -24,19 +27,27 @@ export const authService = {
     if (await userRepository.findByEmail(email)) throw new AppError(ErrorCode.Conflict, "Email already registered", 409);
     if (input.phone && (await userRepository.findByPhone(input.phone))) throw new AppError(ErrorCode.Conflict, "Phone already registered", 409);
 
-    const user = await userRepository.create({
-      role: input.role,
-      name: input.name,
-      email,
-      phone: input.phone,
-      passwordHash: await bcrypt.hash(input.password, 10),
-      ...(input.role === "technician"
-        ? {
-            technicianProfile: { create: { specialty: input.specialty, serviceAreas: [] } },
-            subscription: { create: { plan: "free" } }
-          }
-        : {})
-    });
+    const id = randomUUID();
+    let user;
+    try {
+      user = await userRepository.create(id, {
+        role: input.role,
+        name: input.name,
+        email,
+        phone: input.phone,
+        passwordHash: await bcrypt.hash(input.password, 10),
+        status: "active",
+        pointsEarned: 0,
+        pointsRedeemed: 0
+      });
+    } catch {
+      // Two concurrent registrations for the same email/phone: the index doc `create()` lost the race.
+      throw new AppError(ErrorCode.Conflict, "Email or phone already registered", 409);
+    }
+
+    if (input.role === "technician") {
+      await technicianRepository.createProfile(id, { specialty: input.specialty, serviceAreas: [] });
+    }
     return { token: signToken(user.id, user.role), user: publicUser(user) };
   },
 
