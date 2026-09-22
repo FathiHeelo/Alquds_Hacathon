@@ -7,7 +7,7 @@ import { userRepository, withBalance } from "../users/users.repository";
 /** Idempotent earn: one award per (user, reason, ref). Safe to call any time after the triggering write. */
 export const awardPoints = async (userId: string, points: number, reason: string, refId: string) => {
   const awarded = await rewardRepository.awardIfNew(userId, points, reason, refId);
-  if (awarded) await notify(userId, NotificationType.Reward, `You earned ${points} points`, undefined, { points, reason });
+  if (awarded) await notify(userId, NotificationType.Reward, `حصلت على ${points} نقطة`, "تمت إضافة النقاط إلى رصيد مكافآت عَمِّرها.", { points, reason });
   return awarded;
 };
 

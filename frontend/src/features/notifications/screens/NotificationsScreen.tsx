@@ -7,7 +7,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { CustomerStackParamList } from "../../../app/navigation/navigation.types";
-import { colors, shadows, typography } from "../../../shared/theme";
+import { colors, shadows, typography, useTheme } from "../../../shared/theme";
 import { notificationRepository } from "../../../services/repositories";
 import { customerJobRepository } from "../../../services/repositories";
 import { appConfig } from "../../../app/config/appConfig";
@@ -31,6 +31,7 @@ const tones = {
 };
 
 export function NotificationsScreen({ navigation }: Props) {
+  const { theme } = useTheme();
   const [notifications, setNotifications] = useState<NotificationCardItem[]>(() => appConfig.demoMode ? demoNotifications.map((item) => ({ ...item, read: ["safety", "offer"].includes(item.id) })) : []);
   const [loading, setLoading] = useState(!appConfig.demoMode);
   const [loadError, setLoadError] = useState(false);
@@ -51,7 +52,7 @@ export function NotificationsScreen({ navigation }: Props) {
     }).catch(() => undefined);
   };
 
-  return <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
+  return <SafeAreaView edges={["top", "bottom"]} style={[styles.safe, { backgroundColor: theme.background }]}>
     <View style={styles.header}>
       <Pressable accessibilityLabel="العودة" onPress={() => navigation.goBack()} style={styles.backButton}><Ionicons name="arrow-forward" size={18} color="#475569" /></Pressable>
       <View style={styles.headerCopy}><LocalizedText style={styles.title}>مركز الإشعارات</LocalizedText><LocalizedText style={styles.subtitle}>كل جديد في طلباتك ومكافآتك</LocalizedText></View>
@@ -70,8 +71,9 @@ export function NotificationsScreen({ navigation }: Props) {
 }
 
 function NotificationCard({ item, onPress }: { item: NotificationCardItem; onPress(): void }) {
+  const { theme } = useTheme();
   const tone = tones[item.tone];
-  return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.card, { backgroundColor: item.read ? "white" : tone.background, borderColor: tone.border }, pressed && styles.pressed]}>
+  return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.card, { backgroundColor: item.read ? theme.cardBackground : item.tone === "gold" ? theme.primarySoft : theme.surfaceElevated, borderColor: item.read ? theme.border : item.tone === "gold" ? theme.primaryPressed : theme.borderStrong }, pressed && styles.pressed]}>
     <View style={[styles.icon, { backgroundColor: tone.iconBackground }]}><Ionicons name={item.icon} size={20} color={tone.icon} /></View>
     <View style={styles.copy}><View style={styles.notificationTitleRow}><LocalizedText style={styles.notificationTitle}>{item.title}</LocalizedText>{!item.read ? <View style={styles.unreadDot} /> : null}</View><LocalizedText style={styles.detail}>{item.detail}</LocalizedText><LocalizedText style={styles.time}>{item.time}</LocalizedText></View>
     <Ionicons name="chevron-back" size={16} color="#94A3B8" />

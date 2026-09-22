@@ -5,13 +5,13 @@ import type { CompositeNavigationProp } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { CustomerStackParamList, CustomerTabParamList } from "../../../app/navigation/navigation.types";
 import { useDemoSession } from "../../../app/providers/DemoSessionProvider";
-import { colors, shadows, typography } from "../../../shared/theme";
+import { colors, shadows, typography, useTheme } from "../../../shared/theme";
 import { appConfig } from "../../../app/config/appConfig";
 import { apiClient } from "../../../services/api/apiClient";
 import { repairRequestRepository, rewardRepository } from "../../../services/repositories";
@@ -30,24 +30,25 @@ const menuItems = [
 export function CustomerAccountScreen() {
   const navigation = useNavigation<AccountNavigation>();
   const { logout } = useDemoSession();
-  const [account, setAccount] = useState<{ name?: string; phone?: string | null }>();
+  const { theme, isDark } = useTheme();
+  const [account, setAccount] = useState<{ name?: string; phone?: string | null; email?: string | null }>();
   const [requestCount, setRequestCount] = useState<number>();
   const [points, setPoints] = useState<number>();
   useEffect(() => {
     if (appConfig.demoMode) { setAccount({ name: "أحمد ناصر", phone: "+970 59 123 4567" }); setRequestCount(12); setPoints(850); return; }
     let active = true;
-    void apiClient.request<{ name?: string; phone?: string | null }>("/users/me", undefined, "customer").then((value) => { if (active) setAccount(value); }).catch(() => { if (active) setAccount(undefined); });
+    void apiClient.request<{ name?: string; phone?: string | null; email?: string | null }>("/users/me", undefined, "customer").then((value) => { if (active) setAccount(value); }).catch(() => { if (active) setAccount(undefined); });
     void repairRequestRepository.listMine().then((items) => { if (active) setRequestCount(items.length); }).catch(() => { if (active) setRequestCount(undefined); });
     void rewardRepository.getAccount().then((value) => { if (active) setPoints(value.balance); }).catch(() => { if (active) setPoints(undefined); });
     return () => { active = false; };
   }, []);
-  return <SafeAreaView edges={["top"]} style={styles.safe}>
-    <View style={styles.header}><View><LocalizedText style={styles.title}>حسابي</LocalizedText><LocalizedText style={styles.subtitle}>إدارة بياناتك وخدماتك في عَمِّرها</LocalizedText></View><Pressable accessibilityLabel="إمكانية الوصول والمظهر" accessibilityRole="button" onPress={() => navigation.navigate("CustomerSettings")} style={styles.headerIcon}><Ionicons name="settings-outline" size={21} color={colors.primaryPressed} /></Pressable></View>
+  return <SafeAreaView edges={["top"]} style={[styles.safe, { backgroundColor: theme.background }]}>
+    <View style={[styles.header, { backgroundColor: theme.background }]}><View><LocalizedText style={styles.title}>حسابي</LocalizedText><LocalizedText style={styles.subtitle}>إدارة بياناتك وخدماتك في عَمِّرها</LocalizedText></View><Pressable accessibilityLabel="إمكانية الوصول والمظهر" accessibilityRole="button" onPress={() => navigation.navigate("CustomerSettings")} style={styles.headerIcon}><Ionicons name="settings-outline" size={21} color={theme.primaryPressed} /></Pressable></View>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <View style={styles.profileCard}>
+      <View style={[styles.profileCard, { backgroundColor: isDark ? theme.surfaceElevated : colors.secondary, borderColor: theme.border }]}>
         <View style={styles.profileGlow} />
-        <View style={styles.avatar}><Ionicons name="person" size={40} color={colors.primary} /></View>
-        <View style={styles.profileCopy}><View style={styles.nameRow}><LocalizedText style={styles.name}>{account?.name ?? "أحمد المقدسي"}</LocalizedText></View>{account?.phone ? <LocalizedText style={styles.phone}>{account.phone}</LocalizedText> : null}</View>
+        <Image accessibilityLabel="صورة العميل" source={require("../../../../assets/customers/customer-default.jpg")} style={styles.avatarImage} />
+        <View style={styles.profileCopy}><View style={styles.nameRow}><LocalizedText style={styles.name}>{account?.name ?? "أحمد المقدسي"}</LocalizedText><Ionicons name="checkmark-circle" size={14} color="#6EE7B7" /></View><LocalizedText style={styles.phone}>{account?.phone ?? "0590000001"}</LocalizedText><LocalizedText style={styles.profileMeta}>{account?.email ?? "customer@ammerha.demo"}</LocalizedText><View style={styles.location}><Ionicons name="location" size={12} color="#D6B24D" /><LocalizedText style={styles.locationText}>شارع صلاح الدين، القدس</LocalizedText></View></View>
         <Pressable onPress={() => Alert.alert("تعديل الحساب", "يمكنك تعديل معلومات الحساب من هنا.")} style={styles.editButton}><Ionicons name="create-outline" size={16} color="white" /></Pressable>
       </View>
 
@@ -72,7 +73,7 @@ export function CustomerAccountScreen() {
 
 const styles = createAdaptiveStyleSheet({
   safe: { backgroundColor: "#F8F7F4", flex: 1 }, header: { alignItems: "center", flexDirection: "row-reverse", justifyContent: "space-between", paddingBottom: 12, paddingHorizontal: 16, paddingTop: 10 }, title: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 22, fontWeight: "800", textAlign: "right" }, subtitle: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 10, textAlign: "right" }, headerIcon: { alignItems: "center", backgroundColor: "#FFF4C8", borderRadius: 13, height: 42, justifyContent: "center", width: 42 }, content: { padding: 14, paddingBottom: 30 },
-  profileCard: { ...shadows.raised, alignItems: "center", backgroundColor: colors.secondary, borderRadius: 22, flexDirection: "row-reverse", gap: 11, overflow: "hidden", padding: 15 }, profileGlow: { backgroundColor: "rgba(197,155,39,0.14)", borderRadius: 90, height: 180, left: -50, position: "absolute", top: -65, width: 180 }, avatar: { alignItems: "center", backgroundColor: "#28443D", borderColor: colors.primary, borderRadius: 32, borderWidth: 2, height: 64, justifyContent: "center", width: 64 }, profileCopy: { flex: 1 }, nameRow: { alignItems: "center", flexDirection: "row-reverse", gap: 5 }, name: { color: "white", fontFamily: typography.fontFamily, fontSize: 17, fontWeight: "800" }, phone: { color: "#CBD5E1", fontFamily: typography.fontFamily, fontSize: 10, marginTop: 2, textAlign: "right" }, location: { alignItems: "center", flexDirection: "row-reverse", gap: 3, marginTop: 5 }, locationText: { color: "#D6B24D", fontFamily: typography.fontFamily, fontSize: 9, fontWeight: "600" }, editButton: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.12)", borderRadius: 11, height: 36, justifyContent: "center", width: 36 },
+  profileCard: { ...shadows.raised, alignItems: "center", borderRadius: 22, borderWidth: 1, flexDirection: "row-reverse", gap: 11, overflow: "hidden", padding: 15 }, profileGlow: { backgroundColor: "rgba(197,155,39,0.14)", borderRadius: 90, height: 180, left: -50, position: "absolute", top: -65, width: 180 }, avatarImage: { borderColor: colors.primary, borderRadius: 32, borderWidth: 2, height: 64, width: 64 }, profileCopy: { flex: 1 }, nameRow: { alignItems: "center", flexDirection: "row-reverse", gap: 5 }, name: { color: "white", fontFamily: typography.fontFamily, fontSize: 17, fontWeight: "800" }, phone: { color: "#CBD5E1", fontFamily: typography.fontFamily, fontSize: 10, marginTop: 2, textAlign: "right" }, profileMeta: { color: "#AAB8B1", fontFamily: typography.fontFamily, fontSize: 8, marginTop: 2, textAlign: "right" }, location: { alignItems: "center", flexDirection: "row-reverse", gap: 3, marginTop: 5 }, locationText: { color: "#D6B24D", fontFamily: typography.fontFamily, fontSize: 9, fontWeight: "600" }, editButton: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.12)", borderRadius: 11, height: 36, justifyContent: "center", width: 36 },
   stats: { ...shadows.subtle, alignItems: "center", backgroundColor: "white", borderColor: "#ECE7DC", borderRadius: 18, borderWidth: 1, flexDirection: "row-reverse", marginTop: 12, paddingVertical: 12 }, stat: { alignItems: "center", flex: 1, gap: 2 }, statValue: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 14, fontWeight: "800" }, statLabel: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 8, textAlign: "center" }, statDivider: { backgroundColor: "#ECE7DC", height: 35, width: 1 },
   loyaltyCard: { alignItems: "center", backgroundColor: "#FFF8E3", borderColor: "#EEDB9D", borderRadius: 17, borderWidth: 1, flexDirection: "row-reverse", gap: 9, marginTop: 12, padding: 12 }, loyaltyIcon: { alignItems: "center", backgroundColor: "white", borderRadius: 11, height: 40, justifyContent: "center", width: 40 }, loyaltyCopy: { flex: 1 }, loyaltyTitle: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 11, fontWeight: "800", textAlign: "right" }, loyaltyText: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 8, marginTop: 2, textAlign: "right" }, progress: { backgroundColor: "#F3E2AB", borderRadius: 4, height: 5, marginTop: 6, overflow: "hidden" }, progressFill: { backgroundColor: colors.primary, borderRadius: 4, height: 5, width: "85%" },
   sectionTitle: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 13, fontWeight: "800", marginBottom: 8, marginTop: 18, textAlign: "right" }, menuCard: { ...shadows.subtle, backgroundColor: "white", borderColor: "#ECE7DC", borderRadius: 18, borderWidth: 1, overflow: "hidden" }, menuItem: { alignItems: "center", flexDirection: "row-reverse", gap: 10, minHeight: 64, paddingHorizontal: 12 }, menuDivider: { borderBottomColor: "#F0ECE3", borderBottomWidth: 1 }, menuIcon: { alignItems: "center", borderRadius: 11, height: 38, justifyContent: "center", width: 38 }, menuCopy: { flex: 1 }, menuTitle: { color: colors.text, fontFamily: typography.fontFamily, fontSize: 11, fontWeight: "700", textAlign: "right" }, menuSubtitle: { color: colors.textMuted, fontFamily: typography.fontFamily, fontSize: 8, marginTop: 2, textAlign: "right" }, pressed: { backgroundColor: "#FAFAF9" }, logout: { alignItems: "center", backgroundColor: "#FFF1F2", borderColor: "#FECDD3", borderRadius: 14, borderWidth: 1, flexDirection: "row-reverse", gap: 6, justifyContent: "center", marginTop: 14, minHeight: 46 }, logoutText: { color: "#BE123C", fontFamily: typography.fontFamily, fontSize: 11, fontWeight: "700" }, version: { color: "#94A3B8", fontFamily: typography.fontFamily, fontSize: 8, marginTop: 12, textAlign: "center" }

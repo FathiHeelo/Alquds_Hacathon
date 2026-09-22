@@ -37,7 +37,9 @@ const users = [
   { id: "tech-user-08", role: "technician" as const, name: "أنس بركات", email: "anas@ammerha.demo", phone: "0591000008" },
   { id: "customer-01", role: "customer" as const, name: "ليان ناصر", email: "ahmad.customer@ammerha.demo", phone: "0592000001" },
   { id: "customer-02", role: "customer" as const, name: "محمد حمدان", email: "mohammad.customer@ammerha.demo", phone: "0592000002" },
-  { id: "customer-03", role: "customer" as const, name: "مريم الكرمي", email: "layan.customer@ammerha.demo", phone: "0592000003" }
+  { id: "customer-03", role: "customer" as const, name: "مريم الكرمي", email: "layan.customer@ammerha.demo", phone: "0592000003" },
+  { id: "pending-tech-saeed", role: "technician" as const, name: "سعيد كمال", email: "saeed@ammerha.demo", phone: "0593000001" },
+  { id: "pending-tech-lina", role: "technician" as const, name: "لينا صبري", email: "lina@ammerha.demo", phone: "0593000002" }
 ];
 
 const technicians = [
@@ -92,6 +94,20 @@ export async function seedDemoData() {
     createdAt: now, updatedAt: now
   });
   batch.set(col(Collections.subscriptions).doc("demo-technician-2"), { plan: "free", status: "active", createdAt: now, updatedAt: now });
+
+  const pendingTechnicians = [
+    { userId: "pending-tech-saeed", specialty: "hvac", yearsExperience: 6, areas: ["الشيخ جراح", "وادي الجوز"], bio: "فني تكييف وتبريد بانتظار مراجعة الوثائق." },
+    { userId: "pending-tech-lina", specialty: "appliances", yearsExperience: 4, areas: ["شعفاط", "بيت حنينا"], bio: "فنية أجهزة منزلية بانتظار اعتماد الشهادات." }
+  ];
+  for (const t of pendingTechnicians) {
+    batch.set(col(Collections.technicianProfiles).doc(t.userId), {
+      specialty: t.specialty, yearsExperience: t.yearsExperience, serviceAreas: [...t.areas], availability: "available",
+      verificationStatus: "pending", isVerified: false, isPro: false, ratingSum: 0, ratingCount: 0, qualitySum: 0, speedSum: 0, commitmentSum: 0, communicationSum: 0,
+      bio: t.bio, acceptsUrgentRequests: false, completedJobsCount: 0, earningsGross: 0, earningsLabor: 0, earningsParts: 0, earningsPlatformFee: 0, earningsNet: 0,
+      createdAt: now, updatedAt: now
+    });
+    batch.set(col(Collections.subscriptions).doc(t.userId), { plan: "free", status: "active", createdAt: now, updatedAt: now });
+  }
 
   for (const t of technicians) {
     batch.set(col(Collections.technicianProfiles).doc(t.userId), {
@@ -226,9 +242,19 @@ export async function seedDemoData() {
 
   // ── Deterministic admin cases ──
   batch.set(col(Collections.reports).doc("demo-report-1"), { reporterId: "demo-customer", targetUserId: "demo-technician-2", reason: "طلب الدفع والتواصل خارج التطبيق", status: "open", createdAt: now, updatedAt: now });
+  batch.set(col(Collections.reports).doc("demo-report-2"), { reporterId: "customer-01", targetUserId: "tech-user-04", reason: "تأخر الفني عن الموعد دون تحديث الحالة", details: "تأخر 45 دقيقة عن الموعد في وادي الجوز ولم يرسل تحديث وصول.", status: "open", createdAt: now, updatedAt: now });
+  batch.set(col(Collections.reports).doc("demo-report-3"), { reporterId: "tech-user-01", targetUserId: "customer-02", reason: "اختلاف وصف المشكلة عن الصور", details: "المشكلة الفعلية تحتاج قطعاً إضافية؛ الطلب بانتظار تسوية السعر داخل المنصة.", status: "open", createdAt: now, updatedAt: now });
   batch.set(col(Collections.riskAssessments).doc("demo-risk-1"), {
     userId: "demo-technician-2", level: "medium", score: 0.55, source: "نظام عَمِّرها الذكي", status: "open",
     flags: [{ code: "دفع_خارج_المنصة", note: "رُصد طلب للدفع نقداً خارج التطبيق" }], createdAt: now
+  });
+  batch.set(col(Collections.riskAssessments).doc("demo-risk-2"), {
+    userId: "tech-user-05", level: "high", score: 0.78, source: "نظام عَمِّرها الذكي", status: "open",
+    flags: [{ code: "إلغاءات_متكررة", note: "ثلاثة إلغاءات بعد الوصول خلال أسبوع" }], createdAt: now
+  });
+  batch.set(col(Collections.riskAssessments).doc("demo-risk-3"), {
+    userId: "tech-user-06", level: "medium", score: 0.62, source: "نظام عَمِّرها الذكي", status: "open",
+    flags: [{ code: "تواصل_خارجي_متكرر", note: "محاولتان لمشاركة وسيلة تواصل خارجية" }], createdAt: now
   });
 
   // ── Global stats (mirrors the per-technician earnings counters above) ──
