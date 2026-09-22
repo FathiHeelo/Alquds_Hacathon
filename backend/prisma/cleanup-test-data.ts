@@ -12,10 +12,17 @@ async function main() {
     select: { id: true }
   });
   const requestIds = requests.map(({ id }) => id);
-  if (!requestIds.length) {
-    console.log("No known test requests found.");
-    return;
-  }
+  const testRisks = await prisma.riskAssessment.findMany({
+    where: {
+      OR: [
+        { source: { contains: "integration" } },
+        { source: { contains: "e2e" } },
+        { flags: { some: { OR: [{ code: { contains: "runtime" } }, { code: { contains: "e2e" } }] } } }
+      ]
+    },
+    select: { id: true }
+  });
+  const riskIds = testRisks.map(({ id }) => id);
 
   const jobs = await prisma.job.findMany({ where: { requestId: { in: requestIds } }, select: { id: true } });
   const jobIds = jobs.map(({ id }) => id);
@@ -30,6 +37,7 @@ async function main() {
   }).map(({ id }) => id);
 
   await prisma.$transaction(async (tx) => {
+    if (riskIds.length) await tx.riskAssessment.deleteMany({ where: { id: { in: riskIds } } });
     if (notificationIds.length) await tx.notification.deleteMany({ where: { id: { in: notificationIds } } });
     if (conversationIds.length) await tx.message.deleteMany({ where: { conversationId: { in: conversationIds } } });
     if (jobIds.length) {
@@ -43,7 +51,7 @@ async function main() {
     await tx.repairRequest.deleteMany({ where: { id: { in: requestIds } } });
   });
 
-  console.log(`Removed ${requestIds.length} test requests and their dependent records.`);
+  console.log(`Removed ${requestIds.length} test requests and ${riskIds.length} test risk assessments.`);
 }
 
 void main()

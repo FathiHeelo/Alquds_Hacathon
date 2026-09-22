@@ -37,7 +37,7 @@ export const offerService = {
     }
 
     await repairRequestRepository.transitionStatus(requestId, ["open"], "matched");
-    await notify(request.customerId, NotificationType.NewOffer, "New offer received", undefined, { requestId, offerId: offer.id });
+    await notify(request.customerId, NotificationType.NewOffer, "وصلك عرض صيانة جديد", "افتح الطلب لمراجعة عرض الفني والسعر ووقت الوصول.", { requestId, offerId: offer.id });
     return present(offer);
   },
 
