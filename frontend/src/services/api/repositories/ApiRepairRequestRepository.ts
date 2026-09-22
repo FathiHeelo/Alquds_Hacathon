@@ -16,4 +16,5 @@ export class ApiRepairRequestRepository implements RepairRequestRepository {
     const dto = await apiClient.request<RepairRequestDto>(`/repair-requests/${id}`, { method: "PATCH", body: JSON.stringify({ categoryId: toBackendCategory(diagnosis?.category), urgency: diagnosis?.urgency, aiSummary: { diagnosis } }) }, "customer");
     return mapRepairRequest(dto);
   }
+  async remove(id: string) { await apiClient.request<void>(`/repair-requests/${id}`, { method: "DELETE" }, "customer"); }
 }

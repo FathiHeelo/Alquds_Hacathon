@@ -69,6 +69,21 @@ export const repairRequestService = {
     return repo.findById(id);
   },
 
+  /**
+   * Hard delete, wiping the request (and any leftover offers) from the database. Only the owner,
+   * and only before a technician is on the job (open/matched/cancelled) — once a job exists, the
+   * request is part of that job's history and must not disappear from under it.
+   */
+  async remove(id: string, customerId: string) {
+    const request = await repo.findById(id);
+    if (!request) throw notFound();
+    if (request.customerId !== customerId) throw new AppError(ErrorCode.PermissionDenied, "Not your request", 403);
+    if (!["open", "matched", "cancelled"].includes(request.status)) {
+      throw new AppError(ErrorCode.InvalidRequestState, `Request is ${request.status} and can no longer be deleted`, 409);
+    }
+    await repo.remove(id);
+  },
+
   /** Update/cancel guard: only the owner, and only while open/matched. Also used by urgent dispatch. */
   async ownedOpenRequest(id: string, customerId: string) {
     const request = await repo.findById(id);
