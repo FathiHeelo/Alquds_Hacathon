@@ -46,4 +46,8 @@ export class DemoRepairRequestRepository implements RepairRequestRepository {
     this.requests.set(id, copy(updated));
     return copy(updated);
   }
+
+  async remove(id: string): Promise<void> {
+    this.requests.delete(id);
+  }
 }

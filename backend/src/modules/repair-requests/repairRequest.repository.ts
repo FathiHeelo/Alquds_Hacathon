@@ -67,5 +67,13 @@ export const repairRequestRepository = {
     };
     return tx ? run(tx) : firestore.runTransaction(run);
   },
-  hasTechnicianOffer: async (requestId: string, technicianId: string) => (await col(Collections.offers).doc(`${requestId}__${technicianId}`).get()).exists
+  hasTechnicianOffer: async (requestId: string, technicianId: string) => (await col(Collections.offers).doc(`${requestId}__${technicianId}`).get()).exists,
+  /** Hard delete: removes the request and any offers left pointing at it (single-field filter, no composite index). */
+  async remove(id: string) {
+    const offersSnap = await col(Collections.offers).where("requestId", "==", id).get();
+    const batch = firestore.batch();
+    for (const doc of offersSnap.docs) batch.delete(doc.ref);
+    batch.delete(requests().doc(id));
+    await batch.commit();
+  }
 };

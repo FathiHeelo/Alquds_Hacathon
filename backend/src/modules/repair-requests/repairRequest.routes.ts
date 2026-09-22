@@ -55,6 +55,12 @@ repairRequestsRouter.post("/:id/cancel", guard("customer"), async (request, resp
   response.json(await repairRequestService.cancel(String(request.params.id), request.auth!.id));
 });
 
+/** Hard delete (removed from the database), as opposed to /cancel which only marks it cancelled. */
+repairRequestsRouter.delete("/:id", guard("customer"), async (request, response) => {
+  await repairRequestService.remove(String(request.params.id), request.auth!.id);
+  response.status(204).end();
+});
+
 repairRequestsRouter.post("/:id/urgent-dispatch", guard("customer"), async (request, response) => {
   response.status(201).json(await urgentDispatchService.start(String(request.params.id), request.auth!.id));
 });

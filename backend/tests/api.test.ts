@@ -99,6 +99,22 @@ describe("S02 repair requests", () => {
     expect((await api().post(`/api/v1/repair-requests/${tmp.body.id}/cancel`).set(auth(customer))).body.status).toBe("cancelled");
     expect((await api().patch(`/api/v1/repair-requests/${tmp.body.id}`).set(auth(customer)).send({ description: "Too late edit" })).status).toBe(409);
   });
+
+  it("deletes a request from the database, but only while it's not tied to a job", async () => {
+    const deletable = await api().post("/api/v1/repair-requests").set(auth(customer)).send({ categoryId: "painting", description: "Paint the balcony" });
+    expect((await api().delete(`/api/v1/repair-requests/${deletable.body.id}`).set(auth(customer))).status).toBe(204);
+    expect((await api().get(`/api/v1/repair-requests/${deletable.body.id}`).set(auth(customer))).status).toBe(404);
+
+    const other = await api().post("/api/v1/auth/register").send({ name: "Other2", email: `other2-${run}@test.dev`, password: "Passw0rd!x", role: "customer" });
+    const notMine = await api().post("/api/v1/repair-requests").set(auth(customer)).send({ categoryId: "painting", description: "Paint the kitchen" });
+    expect((await api().delete(`/api/v1/repair-requests/${notMine.body.id}`).set(auth(other.body.token))).status).toBe(403);
+
+    const withOffer = await api().post("/api/v1/repair-requests").set(auth(customer)).send({ categoryId: "plumbing", description: "Fix the tap" });
+    const off = await api().post(`/api/v1/repair-requests/${withOffer.body.id}/offers`).set(auth(technician)).send({ price: 50 });
+    const accepted = await api().post(`/api/v1/offers/${off.body.id}/accept`).set(auth(customer));
+    expect(accepted.status).toBe(201);
+    expect((await api().delete(`/api/v1/repair-requests/${withOffer.body.id}`).set(auth(customer))).status).toBe(409);
+  });
 });
 
 describe("AI urgent dispatch", () => {
