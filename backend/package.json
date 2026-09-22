@@ -9,7 +9,9 @@
     "start": "node dist/src/server.js",
     "typecheck": "tsc --noEmit",
     "seed": "tsx src/seed/seed.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "e2e": "node src/scripts/e2e-smoke.mjs",
+    "cleanup:e2e": "tsx src/scripts/cleanup-e2e-data.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
