@@ -11,7 +11,7 @@ import { rewardRepository } from "./rewards.repository";
 export const awardPoints = async (userId: string, points: number, reason: string, refId: string, db: Db = prisma) => {
   if (await rewardRepository.findEarn(userId, reason, refId, db)) return null;
   const tx = await rewardRepository.createTx({ userId, type: "earn", points, reason, refId }, db);
-  await notify(userId, NotificationType.Reward, `You earned ${points} points`, undefined, { points, reason }, db);
+  await notify(userId, NotificationType.Reward, `حصلت على ${points} نقطة`, "تمت إضافة النقاط إلى رصيد مكافآت عَمِّرها.", { points, reason }, db);
   return tx;
 };
 

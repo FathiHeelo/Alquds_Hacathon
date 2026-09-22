@@ -39,7 +39,9 @@ async function main() {
     { id: "tech-user-08", role: "technician" as const, name: "أنس بركات", email: "anas@ammerha.demo", phone: "0591000008" },
     { id: "customer-01", role: "customer" as const, name: "ليان ناصر", email: "ahmad.customer@ammerha.demo", phone: "0592000001" },
     { id: "customer-02", role: "customer" as const, name: "محمد حمدان", email: "mohammad.customer@ammerha.demo", phone: "0592000002" },
-    { id: "customer-03", role: "customer" as const, name: "مريم الكرمي", email: "layan.customer@ammerha.demo", phone: "0592000003" }
+    { id: "customer-03", role: "customer" as const, name: "مريم الكرمي", email: "layan.customer@ammerha.demo", phone: "0592000003" },
+    { id: "pending-tech-saeed", role: "technician" as const, name: "سعيد كمال", email: "saeed@ammerha.demo", phone: "0593000001" },
+    { id: "pending-tech-lina", role: "technician" as const, name: "لينا صبري", email: "lina@ammerha.demo", phone: "0593000002" }
   ];
   for (const u of users) {
     await prisma.user.upsert({ where: { id: u.id }, update: { ...u, passwordHash }, create: { ...u, passwordHash } });
@@ -71,6 +73,8 @@ async function main() {
     update: { specialty: "electrical", yearsExperience: 5, serviceAreas: ["بيت حنينا"], verificationStatus: "pending", isVerified: false, bio: "فنية كهرباء منزلية بانتظار استكمال التوثيق.", lat: 31.8286, lng: 35.2234 },
     create: { userId: "demo-technician-2", specialty: "electrical", yearsExperience: 5, serviceAreas: ["بيت حنينا"], verificationStatus: "pending", bio: "فنية كهرباء منزلية بانتظار استكمال التوثيق.", lat: 31.8286, lng: 35.2234 }
   });
+  await prisma.technicianProfile.upsert({ where: { userId: "pending-tech-saeed" }, update: { specialty: "hvac", yearsExperience: 6, serviceAreas: ["الشيخ جراح", "وادي الجوز"], verificationStatus: "pending", isVerified: false, bio: "فني تكييف وتبريد بانتظار مراجعة الوثائق." }, create: { userId: "pending-tech-saeed", specialty: "hvac", yearsExperience: 6, serviceAreas: ["الشيخ جراح", "وادي الجوز"], verificationStatus: "pending", isVerified: false, bio: "فني تكييف وتبريد بانتظار مراجعة الوثائق." } });
+  await prisma.technicianProfile.upsert({ where: { userId: "pending-tech-lina" }, update: { specialty: "appliances", yearsExperience: 4, serviceAreas: ["شعفاط", "بيت حنينا"], verificationStatus: "pending", isVerified: false, bio: "فنية أجهزة منزلية بانتظار اعتماد الشهادات." }, create: { userId: "pending-tech-lina", specialty: "appliances", yearsExperience: 4, serviceAreas: ["شعفاط", "بيت حنينا"], verificationStatus: "pending", isVerified: false, bio: "فنية أجهزة منزلية بانتظار اعتماد الشهادات." } });
 
   const technicians = [
     { userId: "tech-user-01", specialty: "plumbing", yearsExperience: 11, areas: ["سلوان", "البلدة القديمة"], lat: 31.7766, lng: 35.2354, isPro: false, rating: 4.8, count: 87, bio: "صيانة تمديدات المياه والسخانات وكشف التسريب." },
@@ -259,6 +263,12 @@ async function main() {
     { id: "demo-notification-safety", type: "safety", title: "تذكير بحماية حسابك", body: "أبقِ المحادثة والدفع داخل عَمِّرها لضمان حقوقك.", data: {} }
   ];
   for (const notification of notifications) await prisma.notification.upsert({ where: { id: notification.id }, update: notification, create: { ...notification, userId: "demo-customer" } });
+  await prisma.notification.updateMany({ where: { title: "New offer received" }, data: { title: "وصلك عرض صيانة جديد", body: "افتح الطلب لمراجعة عرض الفني والسعر ووقت الوصول." } });
+  const englishRewardNotifications = await prisma.notification.findMany({ where: { title: { startsWith: "You earned" } }, select: { id: true, title: true } });
+  for (const item of englishRewardNotifications) {
+    const points = item.title.match(/\d+/)?.[0] ?? "نقاط جديدة";
+    await prisma.notification.update({ where: { id: item.id }, data: { title: `حصلت على ${points} نقطة`, body: "تمت إضافة النقاط إلى رصيد مكافآت عَمِّرها." } });
+  }
 
   // ── Partners & rewards ──
   await prisma.partner.upsert({ where: { id: "demo-partner-hardware" }, update: { name: "عدد وأدوات باب الساهرة", area: "القدس" }, create: { id: "demo-partner-hardware", name: "عدد وأدوات باب الساهرة", area: "القدس" } });
@@ -276,6 +286,8 @@ async function main() {
     update: { reason: "طلب الدفع والتواصل خارج التطبيق", status: "open" },
     create: { id: "demo-report-1", reporterId: "demo-customer", targetUserId: "demo-technician-2", reason: "طلب الدفع والتواصل خارج التطبيق", status: "open" }
   });
+  await prisma.report.upsert({ where: { id: "demo-report-2" }, update: { reason: "تأخر الفني عن الموعد دون تحديث الحالة", details: "تأخر 45 دقيقة عن الموعد في وادي الجوز ولم يرسل تحديث وصول.", status: "open" }, create: { id: "demo-report-2", reporterId: "customer-01", targetUserId: "tech-user-04", reason: "تأخر الفني عن الموعد دون تحديث الحالة", details: "تأخر 45 دقيقة عن الموعد في وادي الجوز ولم يرسل تحديث وصول.", status: "open" } });
+  await prisma.report.upsert({ where: { id: "demo-report-3" }, update: { reason: "اختلاف وصف المشكلة عن الصور", details: "المشكلة الفعلية تحتاج قطعاً إضافية؛ الطلب بانتظار تسوية السعر داخل المنصة.", status: "open" }, create: { id: "demo-report-3", reporterId: "tech-user-01", targetUserId: "customer-02", reason: "اختلاف وصف المشكلة عن الصور", details: "المشكلة الفعلية تحتاج قطعاً إضافية؛ الطلب بانتظار تسوية السعر داخل المنصة.", status: "open" } });
   await prisma.riskAssessment.upsert({
     where: { id: "demo-risk-1" },
     update: { level: "medium", score: 0.55, source: "نظام عَمِّرها الذكي", status: "open" },
@@ -290,6 +302,10 @@ async function main() {
     }
   });
   await prisma.riskFlag.updateMany({ where: { assessmentId: "demo-risk-1" }, data: { code: "دفع_خارج_المنصة", note: "رُصد طلب للدفع نقداً خارج التطبيق" } });
+  await prisma.riskAssessment.upsert({ where: { id: "demo-risk-2" }, update: { level: "high", score: 0.78, source: "نظام عَمِّرها الذكي", status: "open" }, create: { id: "demo-risk-2", userId: "tech-user-05", level: "high", score: 0.78, source: "نظام عَمِّرها الذكي", status: "open", flags: { create: [{ code: "إلغاءات_متكررة", note: "ثلاثة إلغاءات بعد الوصول خلال أسبوع" }] } } });
+  await prisma.riskFlag.updateMany({ where: { assessmentId: "demo-risk-2" }, data: { code: "إلغاءات_متكررة", note: "ثلاثة إلغاءات بعد الوصول خلال أسبوع" } });
+  await prisma.riskAssessment.upsert({ where: { id: "demo-risk-3" }, update: { level: "medium", score: 0.62, source: "نظام عَمِّرها الذكي", status: "open" }, create: { id: "demo-risk-3", userId: "tech-user-06", level: "medium", score: 0.62, source: "نظام عَمِّرها الذكي", status: "open", flags: { create: [{ code: "تواصل_خارجي_متكرر", note: "محاولتان لمشاركة وسيلة تواصل خارجية" }] } } });
+  await prisma.riskFlag.updateMany({ where: { assessmentId: "demo-risk-3" }, data: { code: "تواصل_خارجي_متكرر", note: "محاولتان لمشاركة وسيلة تواصل خارجية" } });
 
   console.log(`Seeded demo data (password for all demo accounts: ${DEMO_PASSWORD})`);
 }

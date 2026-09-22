@@ -13,11 +13,13 @@ import type { ChatMessage } from "../../../domain/contracts/chatRepository";
 import type { Technician } from "../../../domain/models/technician";
 import type { Job } from "../../../domain/models/job";
 import { ErrorState, LoadingState } from "../../../shared/components";
-import { colors, shadows, typography } from "../../../shared/theme";
+import { colors, shadows, typography, useTheme } from "../../../shared/theme";
+import { TechnicianPortrait } from "../../map/components/TechnicianPortrait";
 
 const jobStatusLabel: Record<Job["status"], string> = { accepted: "تم قبول الطلب", scheduled: "موعد محجوز", on_the_way: "الفني في الطريق", in_progress: "العمل جارٍ", completed: "اكتمل العمل", cancelled: "الطلب ملغي" };
 
 export function CustomerChatScreen({ route, navigation }: NativeStackScreenProps<CustomerStackParamList, "CustomerChat">) {
+  const { theme } = useTheme();
   const [messages, setMessages] = useState<readonly ChatMessage[]>([]);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
@@ -45,21 +47,22 @@ export function CustomerChatScreen({ route, navigation }: NativeStackScreenProps
     }
   };
 
-  return <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.safe}>
+  return <SafeAreaView edges={["top", "bottom"]} style={[styles.safe, { backgroundColor: theme.background }]}>
+    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={[styles.safe, { backgroundColor: theme.background }]}>
       <View style={styles.header}>
         <Pressable accessibilityLabel="العودة إلى الرسائل" onPress={() => navigation.goBack()} style={styles.headerButton}><Ionicons name="arrow-forward" size={18} color="#475569" /></Pressable>
-        <View style={styles.person}><View style={styles.portrait}><View style={styles.avatar}><Ionicons name="person" size={21} color={colors.primary} /></View></View><View><View style={styles.nameRow}><LocalizedText style={styles.name}>{technician?.name ?? "الفني"}</LocalizedText>{technician?.isPro ? <LocalizedText style={styles.pro}>Pro</LocalizedText> : null}</View><LocalizedText style={styles.status}>{job ? jobStatusLabel[job.status] : ""}</LocalizedText></View></View>
+        <View style={styles.person}><View style={styles.portrait}>{technician ? <TechnicianPortrait technician={technician} round size={40} /> : <View style={styles.avatar}><Ionicons name="person" size={21} color={colors.primary} /></View>}</View><View><View style={styles.nameRow}><LocalizedText style={styles.name}>{technician?.name ?? "الفني"}</LocalizedText>{technician?.isPro ? <LocalizedText style={styles.pro}>Pro</LocalizedText> : null}</View><LocalizedText style={styles.status}>{job ? jobStatusLabel[job.status] : ""}</LocalizedText></View></View>
         <Pressable accessibilityLabel="مركز الأمان" onPress={() => setSafetyVisible(!safetyVisible)} style={styles.headerButton}><Ionicons name="shield-checkmark" size={18} color={colors.primaryPressed} /></Pressable>
       </View>
       {safetyVisible ? <View style={styles.safety}><Ionicons name="lock-closed" size={13} color="#8C6D14" /><LocalizedText style={styles.safetyText}>لأمانك وضمان حقوقك، تتم جميع الاتفاقات عبر عَمِّرها دون مشاركة أرقام الهواتف.</LocalizedText></View> : null}
       {loading ? <LoadingState /> : error ? <ErrorState message="تعذر تحميل المحادثة." /> : <ScrollView ref={listRef} contentContainerStyle={styles.stream} keyboardShouldPersistTaps="handled" onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}>
         {messages.length ? <View style={styles.day}><LocalizedText style={styles.dayText}>المحادثة</LocalizedText></View> : <View style={styles.empty}><Ionicons name="chatbubble-ellipses-outline" size={30} color="#CBD5E1" /><LocalizedText style={styles.emptyText}>لا توجد رسائل بعد. ابدأ المحادثة برسالة.</LocalizedText></View>}
         {messages.map((message) => <View key={message.id} style={[styles.bubble, message.sender === "customer" ? styles.outgoing : styles.incoming]}>
-          <LocalizedText style={styles.message}>{message.text}</LocalizedText><LocalizedText style={styles.time}>{message.createdAt}</LocalizedText>
+          {message.text.startsWith("📍") ? <View style={styles.location}><View style={styles.locationIcon}><Ionicons name="location" size={17} color="#1D4ED8" /></View><View><LocalizedText style={styles.locationTitle}>موقع تمت مشاركته</LocalizedText><LocalizedText style={styles.locationText}>{message.text.replace("📍", "").trim()}</LocalizedText></View></View> : <LocalizedText style={styles.message}>{message.text}</LocalizedText>}<LocalizedText style={styles.time}>{message.createdAt}</LocalizedText>
         </View>)}
       </ScrollView>}
       <View style={styles.inputBar}>
+        <Pressable accessibilityLabel="إرسال موقعي" onPress={() => void send("📍 موقعي التقريبي: شارع صلاح الدين، القدس • 31.7834, 35.2304")} style={styles.attach}><Ionicons name="location" size={18} color={theme.info} /></Pressable>
         <LocalizedTextInput multiline value={text} onChangeText={setText} placeholder={`اكتب رسالتك لـ ${(technician?.name ?? "الفني").split(" ")[0]}...`} placeholderTextColor="#94A3B8" style={styles.input} />
         <Pressable accessibilityLabel="إرسال الرسالة" disabled={!text.trim()} onPress={() => void send(text)} style={({ pressed }) => [styles.send, !text.trim() && styles.sendDisabled, pressed && styles.pressed]}><Ionicons name="send" size={17} color={colors.text} /></Pressable>
       </View>
