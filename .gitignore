@@ -12,3 +12,7 @@ yarn-error.log*
 pnpm-debug.log*
 coverage/
 *.tsbuildinfo
+
+# Firebase credentials — never commit
+firebase-service-account.json
+*firebase-adminsdk*.json

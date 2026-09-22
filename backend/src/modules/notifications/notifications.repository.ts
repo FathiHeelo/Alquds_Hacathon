@@ -1,19 +1,43 @@
-import type { Prisma } from "@prisma/client";
+import { Collections, col } from "../../database/firestore";
+import { tsMillis, withId } from "../../shared/firestore.helpers";
 
-import { prisma } from "../../database/prisma";
-import type { Db } from "../../shared/db";
+interface NotificationDoc {
+  userId: string;
+  type: string;
+  title: string;
+  body?: string;
+  data?: Record<string, unknown>;
+  readAt: FirebaseFirestore.Timestamp | Date | null;
+  createdAt: FirebaseFirestore.Timestamp | Date;
+}
+
+const notifications = () => col(Collections.notifications);
 
 export const notificationRepository = {
-  create: (data: Prisma.NotificationUncheckedCreateInput, db: Db = prisma) => db.notification.create({ data }),
-  list: (userId: string, unreadOnly: boolean) =>
-    prisma.notification.findMany({
-      where: { userId, ...(unreadOnly ? { readAt: null } : {}) },
-      orderBy: { createdAt: "desc" },
-      take: 100
-    }),
-  unreadCount: (userId: string) => prisma.notification.count({ where: { userId, readAt: null } }),
-  markRead: (id: string, userId: string) =>
-    prisma.notification.updateMany({ where: { id, userId, readAt: null }, data: { readAt: new Date() } }),
-  markAllRead: (userId: string) => prisma.notification.updateMany({ where: { userId, readAt: null }, data: { readAt: new Date() } }),
-  findOwned: (id: string, userId: string) => prisma.notification.findFirst({ where: { id, userId } })
+  create: async (data: { userId: string; type: string; title: string; body?: string; data?: Record<string, unknown> }) => {
+    const ref = notifications().doc();
+    const doc = { ...data, readAt: null, createdAt: new Date() };
+    await ref.set(doc);
+    return { id: ref.id, ...doc };
+  },
+  list: async (userId: string, unreadOnly: boolean) => {
+    const snap = await notifications().where("userId", "==", userId).get();
+    const rows = snap.docs.map((d) => withId(d as FirebaseFirestore.DocumentSnapshot<NotificationDoc>)).sort((a, b) => tsMillis(b.createdAt) - tsMillis(a.createdAt));
+    return (unreadOnly ? rows.filter((r) => !r.readAt) : rows).slice(0, 100);
+  },
+  unreadCount: async (userId: string) => {
+    const snap = await notifications().where("userId", "==", userId).get();
+    return snap.docs.filter((d) => !(d.data() as NotificationDoc).readAt).length;
+  },
+  findOwned: async (id: string, userId: string) => {
+    const snap = await notifications().doc(id).get();
+    return snap.exists && (snap.data() as NotificationDoc).userId === userId ? snap : null;
+  },
+  markRead: (id: string) => notifications().doc(id).update({ readAt: new Date() }),
+  markAllRead: async (userId: string) => {
+    const snap = await notifications().where("userId", "==", userId).get();
+    const unread = snap.docs.filter((d) => !(d.data() as NotificationDoc).readAt);
+    await Promise.all(unread.map((d) => d.ref.update({ readAt: new Date() })));
+    return unread.length;
+  }
 };

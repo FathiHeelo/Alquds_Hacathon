@@ -2,10 +2,10 @@ import type { RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 
 import { env } from "../config/env";
-import { prisma } from "../database/prisma";
+import { Collections, col } from "../database/firestore";
 import { AppError } from "../errors/AppError";
 import { ErrorCode } from "../errors/errorCodes";
-import type { UserRole } from "../shared/status";
+import type { AccountStatus, UserRole } from "../shared/status";
 
 /** Verifies the bearer token and loads the account (so suspension takes effect immediately). */
 export const authenticate: RequestHandler = async (request, _response, next) => {
@@ -19,11 +19,12 @@ export const authenticate: RequestHandler = async (request, _response, next) => 
     throw new AppError(ErrorCode.AuthRequired, "Invalid or expired token", 401);
   }
 
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, role: true, status: true } });
-  if (!user) throw new AppError(ErrorCode.AuthRequired, "Account not found", 401);
-  if (user.status !== "active") throw new AppError(ErrorCode.AccountInactive, `Account is ${user.status}`, 403);
+  const snap = await col(Collections.users).doc(userId).get();
+  if (!snap.exists) throw new AppError(ErrorCode.AuthRequired, "Account not found", 401);
+  const data = snap.data() as { role: UserRole; status: AccountStatus };
+  if (data.status !== "active") throw new AppError(ErrorCode.AccountInactive, `Account is ${data.status}`, 403);
 
-  request.auth = user;
+  request.auth = { id: userId, role: data.role, status: data.status };
   next();
 };
 

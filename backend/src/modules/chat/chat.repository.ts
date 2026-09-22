@@ -1,17 +1,30 @@
-import type { Prisma } from "@prisma/client";
+import { Collections, col } from "../../database/firestore";
+import { withId } from "../../shared/firestore.helpers";
 
-import { prisma } from "../../database/prisma";
-import type { Db } from "../../shared/db";
+interface ConversationDoc {
+  jobId: string;
+  customerId: string;
+  technicianId: string;
+  createdAt: FirebaseFirestore.Timestamp | Date;
+}
+
+const conversations = () => col(Collections.conversations);
 
 export const chatRepository = {
-  createConversation: (data: Prisma.ConversationUncheckedCreateInput, db: Db = prisma) => db.conversation.create({ data }),
-  findByJob: (jobId: string) => prisma.conversation.findUnique({ where: { jobId } }),
-  findById: (id: string) => prisma.conversation.findUnique({ where: { id } }),
-  messages: (conversationId: string, after?: Date) =>
-    prisma.message.findMany({
-      where: { conversationId, ...(after ? { createdAt: { gt: after } } : {}) },
-      orderBy: { createdAt: "asc" },
-      take: 200
-    }),
-  createMessage: (data: Prisma.MessageUncheckedCreateInput) => prisma.message.create({ data })
+  findByJob: async (jobId: string) => {
+    const snap = await conversations().doc(jobId).get();
+    return snap.exists ? withId(snap as FirebaseFirestore.DocumentSnapshot<ConversationDoc>) : null;
+  },
+  messages: async (conversationId: string, after?: Date) => {
+    let query: FirebaseFirestore.Query = conversations().doc(conversationId).collection("messages").orderBy("createdAt", "asc");
+    if (after) query = query.where("createdAt", ">", after);
+    const snap = await query.limit(200).get();
+    return snap.docs.map(withId);
+  },
+  createMessage: async (conversationId: string, data: { senderId: string; type: string; body?: string; payload?: Record<string, unknown> }) => {
+    const ref = conversations().doc(conversationId).collection("messages").doc();
+    const doc = { ...data, createdAt: new Date() };
+    await ref.set(doc);
+    return { id: ref.id, ...doc };
+  }
 };

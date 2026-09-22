@@ -8,11 +8,12 @@ export const userService = {
     if (!user) throw new AppError(ErrorCode.NotFound, "User not found", 404);
     return publicUser(user);
   },
-  async updateMe(id: string, input: { name?: string; phone?: string | null }) {
+  async updateMe(id: string, input: { name?: string; phone?: string }) {
     if (input.phone) {
       const existing = await userRepository.findByPhone(input.phone);
       if (existing && existing.id !== id) throw new AppError(ErrorCode.Conflict, "Phone already in use", 409);
     }
-    return publicUser(await userRepository.update(id, input));
+    const updated = await userRepository.update(id, input);
+    return publicUser(updated!);
   }
 };

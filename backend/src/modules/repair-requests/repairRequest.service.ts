@@ -1,8 +1,7 @@
-import type { Prisma, UserRole } from "@prisma/client";
-
-import { prisma } from "../../database/prisma";
 import { AppError } from "../../errors/AppError";
 import { ErrorCode } from "../../errors/errorCodes";
+import { col, Collections } from "../../database/firestore";
+import type { UserRole } from "../../shared/status";
 import { repairRequestRepository as repo } from "./repairRequest.repository";
 
 type Media = { url: string; type: "image" | "video" | "audio" };
@@ -16,7 +15,7 @@ export interface RequestInput {
   lng?: number;
   urgency?: "low" | "medium" | "high";
   preferredTime?: Date;
-  aiSummary?: Prisma.InputJsonValue;
+  aiSummary?: Record<string, unknown>;
   media?: Media[];
 }
 
@@ -28,21 +27,19 @@ export const repairRequestService = {
 
   async create(customerId: string, input: RequestInput) {
     if (!(await repo.findCategory(input.categoryId))) throw new AppError(ErrorCode.ValidationError, "Unknown category", 400);
-    const { media = [], ...data } = input;
-    return repo.create({ ...data, customerId }, media);
+    const { media = [], urgency = "medium", ...data } = input;
+    return repo.create({ ...data, urgency, customerId }, media);
   },
 
   listMine: (customerId: string) => repo.listByCustomer(customerId),
 
   /** Open requests matching the technician's specialty and service areas. */
   async feed(technicianId: string) {
-    const profile = await prisma.technicianProfile.findUnique({ where: { userId: technicianId } });
-    const areas = Array.isArray(profile?.serviceAreas) ? (profile!.serviceAreas as string[]) : [];
-    return repo.feed({
-      status: { in: [...OPEN_STATES] },
-      ...(profile?.specialty ? { categoryId: profile.specialty } : {}),
-      ...(areas.length ? { OR: [{ area: null }, { area: { in: areas } }] } : {})
-    });
+    const profileSnap = await col(Collections.technicianProfiles).doc(technicianId).get();
+    const profile = profileSnap.data() as { specialty?: string; serviceAreas?: string[] } | undefined;
+    const areas = profile?.serviceAreas ?? [];
+    const all = await repo.feed([...OPEN_STATES]);
+    return all.filter((r) => (!profile?.specialty || r.categoryId === profile.specialty) && (!areas.length || !r.area || areas.includes(r.area)));
   },
 
   async getForUser(id: string, user: { id: string; role: UserRole }) {
@@ -72,7 +69,7 @@ export const repairRequestService = {
     return repo.findById(id);
   },
 
-  /** Update/cancel guard: only the owner, and only while open/matched. */
+  /** Update/cancel guard: only the owner, and only while open/matched. Also used by urgent dispatch. */
   async ownedOpenRequest(id: string, customerId: string) {
     const request = await repo.findById(id);
     if (!request) throw notFound();

@@ -1,15 +1,26 @@
 import { proPlanDays } from "../../config/business";
-import { prisma } from "../../database/prisma";
+import { Collections, col } from "../../database/firestore";
 import { AppError } from "../../errors/AppError";
 import { ErrorCode } from "../../errors/errorCodes";
 
-type Sub = { plan: "free" | "pro"; status: "active" | "expired" | "cancelled"; activeFrom: Date | null; activeUntil: Date | null } | null;
+interface SubscriptionDoc {
+  plan: "free" | "pro";
+  status: "active" | "expired" | "cancelled";
+  activeFrom?: FirebaseFirestore.Timestamp | Date | null;
+  activeUntil?: FirebaseFirestore.Timestamp | Date | null;
+}
+
+const subscriptions = () => col(Collections.subscriptions);
+const technicianProfiles = () => col(Collections.technicianProfiles);
 
 /** Effective Pro state: plan is pro, status active, and not past activeUntil. */
-const isProActive = (sub: Sub, now = new Date()) =>
-  !!sub && sub.plan === "pro" && sub.status === "active" && (!sub.activeUntil || sub.activeUntil > now);
+const isProActive = (sub: SubscriptionDoc | undefined, now = new Date()) => {
+  if (!sub || sub.plan !== "pro" || sub.status !== "active") return false;
+  const until = sub.activeUntil instanceof Date ? sub.activeUntil : sub.activeUntil?.toDate();
+  return !until || until > now;
+};
 
-const present = (sub: Sub) => {
+const present = (sub: SubscriptionDoc | undefined) => {
   const pro = isProActive(sub);
   return {
     plan: pro ? "pro" : "free",
@@ -23,12 +34,14 @@ const present = (sub: Sub) => {
 
 export const subscriptionService = {
   async getEntitlement(technicianId: string) {
-    return present(await prisma.subscription.findUnique({ where: { technicianId } }));
+    const snap = await subscriptions().doc(technicianId).get();
+    return present(snap.data() as SubscriptionDoc | undefined);
   },
 
   /** Central capability check for the AI Offer Assistant. */
   async canUseOfferAssistant(technicianId: string) {
-    return isProActive(await prisma.subscription.findUnique({ where: { technicianId } }));
+    const snap = await subscriptions().doc(technicianId).get();
+    return isProActive(snap.data() as SubscriptionDoc | undefined);
   },
 
   async assertOfferAssistantAccess(technicianId: string) {
@@ -39,8 +52,7 @@ export const subscriptionService = {
 
   /** Admin/demo activation. No payment processing. */
   async setPlan(technicianId: string, plan: "free" | "pro", days = proPlanDays) {
-    const profile = await prisma.technicianProfile.findUnique({ where: { userId: technicianId } });
-    if (!profile) throw new AppError(ErrorCode.NotFound, "Technician not found", 404);
+    if (!(await technicianProfiles().doc(technicianId).get()).exists) throw new AppError(ErrorCode.NotFound, "Technician not found", 404);
 
     const now = new Date();
     const data =
@@ -48,9 +60,9 @@ export const subscriptionService = {
         ? { plan, status: "active" as const, activeFrom: now, activeUntil: new Date(now.getTime() + days * 86_400_000) }
         : { plan, status: "cancelled" as const, activeUntil: now };
 
-    await prisma.$transaction([
-      prisma.subscription.upsert({ where: { technicianId }, update: data, create: { technicianId, ...data } }),
-      prisma.technicianProfile.update({ where: { userId: technicianId }, data: { isPro: plan === "pro" } })
+    await Promise.all([
+      subscriptions().doc(technicianId).set({ ...data, updatedAt: now }, { merge: true }),
+      technicianProfiles().doc(technicianId).update({ isPro: plan === "pro" })
     ]);
     return this.getEntitlement(technicianId);
   }

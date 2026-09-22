@@ -1,8 +1,5 @@
-import type { Prisma } from "@prisma/client";
-
 import { AppError } from "../../errors/AppError";
 import { ErrorCode } from "../../errors/errorCodes";
-import type { Db } from "../../shared/db";
 import { notificationRepository } from "./notifications.repository";
 
 /** In-app notification events for the maintenance flow. */
@@ -19,8 +16,8 @@ export const NotificationType = {
   UrgentDispatchAccepted: "urgent_dispatch_accepted"
 } as const;
 
-export const notify = (userId: string, type: string, title: string, body?: string, data?: Prisma.InputJsonValue, db?: Db) =>
-  notificationRepository.create({ userId, type, title, body, data }, db);
+export const notify = (userId: string, type: string, title: string, body?: string, data?: Record<string, unknown>) =>
+  notificationRepository.create({ userId, type, title, body, data });
 
 export const notificationService = {
   async list(userId: string, unreadOnly: boolean) {
@@ -28,13 +25,11 @@ export const notificationService = {
     return { unreadCount: unread, items };
   },
   async markRead(id: string, userId: string) {
-    const found = await notificationRepository.findOwned(id, userId);
-    if (!found) throw new AppError(ErrorCode.NotFound, "Notification not found", 404);
-    await notificationRepository.markRead(id, userId);
+    if (!(await notificationRepository.findOwned(id, userId))) throw new AppError(ErrorCode.NotFound, "Notification not found", 404);
+    await notificationRepository.markRead(id);
     return { id, read: true };
   },
   async markAllRead(userId: string) {
-    const result = await notificationRepository.markAllRead(userId);
-    return { updated: result.count };
+    return { updated: await notificationRepository.markAllRead(userId) };
   }
 };
